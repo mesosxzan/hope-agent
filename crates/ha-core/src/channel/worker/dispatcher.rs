@@ -537,6 +537,10 @@ async fn handle_inbound_message(
         session_id: session_id.clone(),
         agent_id: agent_id.clone(),
         message: engine_message,
+        // IM-inbound turns echo the user's typed text via the IM client
+        // itself (no GUI display_text mechanism); leave the mirror quote on
+        // the raw message.
+        display_text: None,
         attachments,
         session_db: session_db.clone(),
         model_chain,

@@ -535,6 +535,7 @@ pub async fn chat(
         session_id: sid.clone(),
         agent_id: current_agent_id.clone(),
         message: message.clone(),
+        display_text: display_text.clone(),
         attachments,
         session_db: db.clone(),
         model_chain,

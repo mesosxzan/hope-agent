@@ -88,10 +88,17 @@ pub(crate) fn spawn_stream_pipeline(
     // drop bursty text deltas while the preview task awaits IM network IO,
     // which can make split-mode inline finalization skip incomplete text.
     let (event_tx, event_rx) = mpsc::unbounded_channel::<String>();
+    // Out-of-band channel for friendly status notices (model_fallback /
+    // profile_rotation / context_compacted / thinking_auto_disabled). Kept
+    // separate from `event_tx` so notices ship as standalone IM messages
+    // and don't mix into the per-round LLM text accumulator or the
+    // typewriter preview.
+    let (system_notice_tx, system_notice_rx) = mpsc::unbounded_channel::<String>();
     let round_texts = Arc::new(Mutex::new(RoundTextAccumulator::default()));
 
     let stream_task = spawn_channel_stream_task(
         event_rx,
+        system_notice_rx,
         plugin.clone(),
         target.account_id.to_string(),
         target.chat_id.to_string(),
@@ -107,6 +114,7 @@ pub(crate) fn spawn_stream_pipeline(
     let event_sink: Arc<dyn EventSink> = Arc::new(ChannelStreamSink::new(
         session_id.to_string(),
         event_tx,
+        system_notice_tx,
         round_texts.clone(),
         account.show_thinking(),
         broadcast_to_bus,

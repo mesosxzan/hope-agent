@@ -252,6 +252,9 @@
     "compactNoChange": "Context does not need compression",
     "compactNow": "Compress Context",
     "compacting": "Compressing...",
+    "contextCompactedMsgs": "{{count}} msgs",
+    "contextCompactedTier": "tier {{tier}}",
+    "contextCompactedTitle": "Context compacted",
     "conversations": "Chats",
     "copied": "Copied",
     "copy": "Copy",
@@ -365,6 +368,7 @@
       }
     },
     "pickSession": "Pick a session",
+    "profileRotationTitle": "Profile rotation",
     "queueMessage": "Queue message",
     "reasonAuth": "Authentication failed",
     "reasonBilling": "Billing / quota exceeded",

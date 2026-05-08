@@ -4,6 +4,7 @@ pub mod context;
 mod engine;
 pub(crate) mod im_error_message;
 pub(crate) mod im_mirror;
+pub(crate) mod im_system_message;
 pub(crate) mod persister;
 pub(crate) mod quote;
 pub mod sink_registry;

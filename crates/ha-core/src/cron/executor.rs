@@ -281,6 +281,7 @@ pub async fn build_and_run_agent_with_context(
         session_id: session_id.to_string(),
         agent_id: agent_id.to_string(),
         message: message.to_string(),
+        display_text: None,
         attachments: Vec::new(),
         session_db: session_db.clone(),
         model_chain,

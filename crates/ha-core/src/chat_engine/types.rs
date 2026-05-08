@@ -278,6 +278,12 @@ pub struct ChannelStreamSink {
     pub session_id: String,
     /// Forwards raw events to the channel streaming background task.
     pub event_tx: tokio::sync::mpsc::UnboundedSender<String>,
+    /// Pre-formatted IM-side system notices (model_fallback /
+    /// profile_rotation / context_compacted / thinking_auto_disabled). The
+    /// streaming task receives them and ships each as its own `send_message`
+    /// — kept off `event_tx` and out of the round accumulator so they don't
+    /// tangle with the per-round LLM text in `Split` mode.
+    pub system_notice_tx: tokio::sync::mpsc::UnboundedSender<String>,
     /// Round-by-round text + media, see [`RoundTextAccumulator`].
     pub round_texts: Arc<Mutex<RoundTextAccumulator>>,
     /// Per-account `/reason` state. When `false` (default), `thinking_delta`
@@ -304,6 +310,7 @@ impl ChannelStreamSink {
     pub fn new(
         session_id: String,
         event_tx: tokio::sync::mpsc::UnboundedSender<String>,
+        system_notice_tx: tokio::sync::mpsc::UnboundedSender<String>,
         round_texts: Arc<Mutex<RoundTextAccumulator>>,
         show_thinking: bool,
         broadcast_to_bus: bool,
@@ -311,6 +318,7 @@ impl ChannelStreamSink {
         Self {
             session_id,
             event_tx,
+            system_notice_tx,
             round_texts,
             show_thinking,
             broadcast_to_bus,
@@ -381,6 +389,24 @@ impl EventSink for ChannelStreamSink {
             if closed_thinking {
                 self.forward_thinking_close_separator();
             }
+        } else if event.contains("\"type\":\"model_fallback\"")
+            || event.contains("\"type\":\"profile_rotation\"")
+            || event.contains("\"type\":\"context_compacted\"")
+            || event.contains("\"type\":\"thinking_auto_disabled\"")
+        {
+            // Friendly status notices that mirror the GUI's inline banners.
+            // Routed through the dedicated `system_notice_tx` so the stream
+            // task ships each as its own IM message — keeps them out of the
+            // per-round LLM text accumulator and the typewriter preview.
+            // Tier 0/1 `context_compacted` returns `None` (too noisy for IM).
+            if let Ok(value) = serde_json::from_str::<serde_json::Value>(event) {
+                if let Some(notice) =
+                    crate::chat_engine::im_system_message::format_im_system_event(&value)
+                {
+                    let _ = self.system_notice_tx.send(notice);
+                }
+            }
+            return;
         } else if event.contains("\"type\":\"tool_call\"") {
             let closed_thinking = if let Ok(mut acc) = self.round_texts.lock() {
                 acc.on_tool_call()
@@ -435,6 +461,13 @@ pub struct ChatEngineParams {
     pub session_id: String,
     pub agent_id: String,
     pub message: String,
+    /// Friendly user-facing rendering of the prompt (e.g. `Using skill **X**...`
+    /// for slash-invoked skills). When set, the IM-mirror user-quote prefix
+    /// uses this string so attached IM chats see what the desktop user saw,
+    /// not the raw `[SYSTEM:...]` prompt sent to the model. The DB-persisted
+    /// user message is set separately by the API caller (Tauri / HTTP).
+    /// `None` for plain chat input.
+    pub display_text: Option<String>,
     pub attachments: Vec<crate::agent::Attachment>,
     pub session_db: Arc<SessionDB>,
 
@@ -521,7 +554,9 @@ mod tests {
     fn mk_sink() -> (ChannelStreamSink, Arc<Mutex<RoundTextAccumulator>>) {
         let rounds = Arc::new(Mutex::new(RoundTextAccumulator::default()));
         let (tx, _rx) = tokio::sync::mpsc::unbounded_channel::<String>();
-        let sink = ChannelStreamSink::new("sess-1".into(), tx, rounds.clone(), false, true);
+        let (notice_tx, _notice_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+        let sink =
+            ChannelStreamSink::new("sess-1".into(), tx, notice_tx, rounds.clone(), false, true);
         (sink, rounds)
     }
 
@@ -537,8 +572,30 @@ mod tests {
     ) {
         let rounds = Arc::new(Mutex::new(RoundTextAccumulator::default()));
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<String>();
-        let sink = ChannelStreamSink::new("sess-1".into(), tx, rounds.clone(), show_thinking, true);
+        let (notice_tx, _notice_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+        let sink = ChannelStreamSink::new(
+            "sess-1".into(),
+            tx,
+            notice_tx,
+            rounds.clone(),
+            show_thinking,
+            true,
+        );
         (sink, rounds, rx)
+    }
+
+    /// Variant that surfaces both receivers so system-event tests can verify
+    /// the forwarded notice strings.
+    fn mk_sink_with_notice_rx() -> (
+        ChannelStreamSink,
+        tokio::sync::mpsc::UnboundedReceiver<String>,
+    ) {
+        let rounds = Arc::new(Mutex::new(RoundTextAccumulator::default()));
+        let (tx, _rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+        let (notice_tx, notice_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+        let sink =
+            ChannelStreamSink::new("sess-1".into(), tx, notice_tx, rounds.clone(), false, true);
+        (sink, notice_rx)
     }
 
     fn emit(sink: &ChannelStreamSink, value: serde_json::Value) {
@@ -825,5 +882,59 @@ mod tests {
         assert!(drained[0].text.is_empty());
         assert_eq!(drained[0].medias.len(), 1);
         assert_eq!(drained[1].text, "done");
+    }
+
+    #[test]
+    fn system_event_routes_to_notice_channel() {
+        let (sink, mut notice_rx) = mk_sink_with_notice_rx();
+        emit(
+            &sink,
+            json!({
+                "type": "model_fallback",
+                "model": "OpenAI / gpt-4o",
+                "reason": "auth",
+                "attempt": 2,
+                "total": 3,
+            }),
+        );
+        let notice = notice_rx.try_recv().expect("notice should be queued");
+        assert!(notice.contains("Switching to"));
+        assert!(notice.contains("auth issue"));
+    }
+
+    #[test]
+    fn system_event_does_not_pollute_round_accumulator() {
+        // Emitting a system event mid-stream must not append text to the
+        // current round — they go to their own delivery channel.
+        let (sink, rounds) = mk_sink();
+        emit(&sink, json!({"type": "text_delta", "content": "hello"}));
+        emit(
+            &sink,
+            json!({
+                "type": "model_fallback",
+                "model": "x", "reason": "timeout"
+            }),
+        );
+        emit(&sink, json!({"type": "text_delta", "content": " world"}));
+
+        let drained = rounds.lock().unwrap().drain();
+        assert_eq!(drained.len(), 1);
+        assert_eq!(drained[0].text, "hello world");
+    }
+
+    #[test]
+    fn noisy_context_compacted_drops_silently() {
+        // Tier 0/1 micro-compactions return None from format_im_system_event
+        // — sink must accept the event without panicking and not enqueue a
+        // notice.
+        let (sink, mut notice_rx) = mk_sink_with_notice_rx();
+        emit(
+            &sink,
+            json!({
+                "type": "context_compacted",
+                "data": { "tier_applied": 0, "messages_affected": 5 }
+            }),
+        );
+        assert!(notice_rx.try_recv().is_err());
     }
 }

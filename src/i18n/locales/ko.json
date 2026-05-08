@@ -252,6 +252,9 @@
     "compactNoChange": "컨텍스트 압축 불필요",
     "compactNow": "컨텍스트 압축",
     "compacting": "압축 중...",
+    "contextCompactedMsgs": "메시지 {{count}}개",
+    "contextCompactedTier": "tier {{tier}}",
+    "contextCompactedTitle": "컨텍스트 압축됨",
     "conversations": "대화",
     "copied": "복사됨",
     "copy": "복사",
@@ -365,6 +368,7 @@
       }
     },
     "pickSession": "세션 선택",
+    "profileRotationTitle": "프로필 전환",
     "queueMessage": "대기열에 추가",
     "reasonAuth": "인증 실패",
     "reasonBilling": "결제 / 할당량 초과",

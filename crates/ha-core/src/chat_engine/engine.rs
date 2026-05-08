@@ -113,6 +113,7 @@ pub async fn run_chat_engine(params: ChatEngineParams) -> Result<ChatEngineResul
         session_id,
         agent_id,
         message,
+        display_text,
         attachments,
         session_db: db,
         model_chain,
@@ -188,12 +189,15 @@ pub async fn run_chat_engine(params: ChatEngineParams) -> Result<ChatEngineResul
 
     let mut stream_lifecycle = StreamLifecycle::begin(&session_id, source)?;
 
+    // IM-mirror prefers the friendly `display_text` (e.g. `Using skill **X**...`
+    // rendered for `/skill` invocations) so attached IM chats see what the
+    // desktop user saw, not the raw `[SYSTEM:...]` prompt fed to the model.
     let mut im_mirror = attach_im_live_mirror(
         &session_id,
         source,
         Some(crate::chat_engine::im_mirror::LastUserSnapshot {
             source: source.as_str().to_string(),
-            text: message.clone(),
+            text: crate::util::non_empty_trim_or(display_text.as_deref(), &message).to_owned(),
             attachment_count: attachments.len(),
         }),
     )
@@ -324,6 +328,12 @@ pub async fn run_chat_engine(params: ChatEngineParams) -> Result<ChatEngineResul
                         "reason": reason,
                     })) {
                         emit_stream_event(&event_sink, &session_id, source, &json_str);
+                        // Persist as `role=event` so the GUI's
+                        // ProfileRotationBanner survives session reload.
+                        let _ = db.append_message(
+                            &session_id,
+                            &session::NewMessage::event(&json_str).with_source(source),
+                        );
                     }
                 };
 
@@ -709,11 +719,32 @@ pub async fn run_chat_engine(params: ChatEngineParams) -> Result<ChatEngineResul
                     compact_agent.set_conversation_history(history);
                     save_agent_context(&db, &session_id, &compact_agent);
 
+                    // Manual snake_case shape — `CompactResult` itself is
+                    // `rename_all="camelCase"`, but the frontend / IM
+                    // formatter / persister all key off snake_case fields
+                    // (matching `agent/context.rs`'s pre-LLM compaction
+                    // emit). Direct `"data": compact_result` would silently
+                    // skip every consumer's tier filter.
                     if let Ok(event_str) = serde_json::to_string(&serde_json::json!({
                         "type": "context_compacted",
-                        "data": compact_result,
+                        "data": {
+                            "tier_applied": compact_result.tier_applied,
+                            "tokens_before": compact_result.tokens_before,
+                            "tokens_after": compact_result.tokens_after,
+                            "messages_affected": compact_result.messages_affected,
+                            "description": compact_result.description,
+                        },
                     })) {
                         emit_stream_event(&event_sink, &session_id, source, &event_str);
+                        // emergency_compact always runs Tier ≥ 3 — persist
+                        // unconditionally so the GUI's ContextCompactedBanner
+                        // survives session reload. Per-turn pre-LLM compaction
+                        // (agent/context.rs) is filtered separately in the
+                        // persister's `context_compacted` arm.
+                        let _ = db.append_message(
+                            &session_id,
+                            &session::NewMessage::event(&event_str).with_source(source),
+                        );
                     }
 
                     // Write the just-failed profile back to PROFILE_STICKY

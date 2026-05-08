@@ -252,6 +252,9 @@
     "compactNoChange": "Konteks tidak perlu dimampatkan",
     "compactNow": "Mampatkan konteks",
     "compacting": "Memampatkan...",
+    "contextCompactedMsgs": "{{count}} mesej",
+    "contextCompactedTier": "tier {{tier}}",
+    "contextCompactedTitle": "Konteks dipadatkan",
     "conversations": "Perbualan",
     "copied": "Disalin",
     "copy": "Salin",
@@ -365,6 +368,7 @@
       }
     },
     "pickSession": "Pilih sesi",
+    "profileRotationTitle": "Tukar profil",
     "queueMessage": "Beratur mesej",
     "reasonAuth": "Pengesahan gagal",
     "reasonBilling": "Bil / kuota melebihi",

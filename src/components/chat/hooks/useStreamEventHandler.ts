@@ -241,7 +241,22 @@ export function handleStreamEvent(
   }
 
   // Handle tool_call, tool_result, model_fallback, codex_auth_expired via updateSessionMessages
-  if (event.type === "thinking_auto_disabled") {
+  if (
+    event.type === "thinking_auto_disabled" ||
+    event.type === "profile_rotation" ||
+    event.type === "context_compacted"
+  ) {
+    // Mirror the backend persister + IM formatter: skip Tier 0/1 noise and
+    // the Tier 3 "summarizing" start marker so live and post-reload views
+    // render the same banners (no flash-and-disappear chips during a
+    // session that get dropped on refresh).
+    if (event.type === "context_compacted") {
+      const data = (event as { data?: Record<string, unknown> }).data ?? {}
+      const tier = typeof data.tier_applied === "number" ? data.tier_applied : 0
+      if (tier < 2 || data.description === "summarizing") {
+        return true
+      }
+    }
     updateSessionMessages(sid, (prev) => {
       const notice: Message = {
         role: "event",

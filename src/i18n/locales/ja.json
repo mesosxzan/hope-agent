@@ -252,6 +252,9 @@
     "compactNoChange": "コンテキストの圧縮は不要です",
     "compactNow": "コンテキストを圧縮",
     "compacting": "圧縮中...",
+    "contextCompactedMsgs": "{{count}} 件",
+    "contextCompactedTier": "tier {{tier}}",
+    "contextCompactedTitle": "コンテキスト圧縮",
     "conversations": "チャット",
     "copied": "コピーしました",
     "copy": "コピー",
@@ -365,6 +368,7 @@
       }
     },
     "pickSession": "セッションを選択",
+    "profileRotationTitle": "プロファイル切替",
     "queueMessage": "メッセージをキューに追加",
     "reasonAuth": "認証失敗",
     "reasonBilling": "課金 / クォータ超過",

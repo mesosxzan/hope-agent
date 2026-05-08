@@ -488,6 +488,7 @@ fn execute_subagent(
             session_id: child_session_id,
             agent_id: agent_id.clone(),
             message: task,
+            display_text: None,
             attachments,
             session_db,
             model_chain,

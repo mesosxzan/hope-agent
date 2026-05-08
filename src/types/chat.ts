@@ -107,6 +107,8 @@ export interface Message {
   usage?: MessageUsage
   model?: string
   fallbackEvent?: FallbackEvent
+  profileRotationEvent?: ProfileRotationEvent
+  contextCompactedEvent?: ContextCompactedEvent
   /** If set, this user message was sent by a parent agent (not a human) */
   fromAgentId?: string
   /** If true, this user message is a sub-agent result injected by the backend */
@@ -170,6 +172,28 @@ export interface FallbackEvent {
   total?: number
   provider_id?: string
   model_id?: string
+}
+
+/** Auth-profile rotation inside the same provider (e.g. primary → secondary
+ *  account on rate limit). Persisted as `role=event` so reload re-renders. */
+export interface ProfileRotationEvent {
+  provider_id?: string
+  model_id?: string
+  from_profile?: string
+  to_profile?: string
+  reason?: string
+}
+
+/** Context window compaction event. Tier 0/1 reactive micro-compactions are
+ *  filtered out at persist time (see chat_engine/persister.rs); the GUI banner
+ *  only sees Tier ≥ 2 events. */
+export interface ContextCompactedEvent {
+  tier_applied?: number
+  description?: string
+  messages_affected?: number
+  tokens_before?: number
+  tokens_after?: number
+  messages_to_summarize?: number
 }
 
 export interface AvailableModel {

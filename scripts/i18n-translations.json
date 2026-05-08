@@ -68,7 +68,11 @@
         "failed": "引き継ぎに失敗しました:{{error}}"
       },
       "pickSession": "セッションを選択",
-      "detachOnDesktopNoop": "デスクトップでは IM チャットへの接続がないため、detach は何もしません。"
+      "detachOnDesktopNoop": "デスクトップでは IM チャットへの接続がないため、detach は何もしません。",
+      "profileRotationTitle": "プロファイル切替",
+      "contextCompactedTitle": "コンテキスト圧縮",
+      "contextCompactedTier": "tier {{tier}}",
+      "contextCompactedMsgs": "{{count}} 件"
     },
     "effort": {
       "none": "オフ"
@@ -835,7 +839,11 @@
         "failed": "인계 실패: {{error}}"
       },
       "pickSession": "세션 선택",
-      "detachOnDesktopNoop": "데스크톱은 IM 채팅에 바인딩되지 않으므로 detach는 효과가 없습니다."
+      "detachOnDesktopNoop": "데스크톱은 IM 채팅에 바인딩되지 않으므로 detach는 효과가 없습니다.",
+      "profileRotationTitle": "프로필 전환",
+      "contextCompactedTitle": "컨텍스트 압축됨",
+      "contextCompactedTier": "tier {{tier}}",
+      "contextCompactedMsgs": "메시지 {{count}}개"
     },
     "effort": {
       "none": "끄기"
@@ -1602,7 +1610,11 @@
         "failed": "交班失敗:{{error}}"
       },
       "pickSession": "選擇工作階段",
-      "detachOnDesktopNoop": "桌面端不繫結 IM chat,detach 在此處無效。"
+      "detachOnDesktopNoop": "桌面端不繫結 IM chat,detach 在此處無效。",
+      "profileRotationTitle": "設定切換",
+      "contextCompactedTitle": "上下文已壓縮",
+      "contextCompactedTier": "tier {{tier}}",
+      "contextCompactedMsgs": "{{count}} 則"
     },
     "effort": {
       "none": "關閉"
@@ -2369,7 +2381,11 @@
         "failed": "Devir başarısız: {{error}}"
       },
       "pickSession": "Bir oturum seç",
-      "detachOnDesktopNoop": "Masaüstünde IM sohbetine bağlama yok — detach burada etkisiz."
+      "detachOnDesktopNoop": "Masaüstünde IM sohbetine bağlama yok — detach burada etkisiz.",
+      "profileRotationTitle": "Profil değişimi",
+      "contextCompactedTitle": "Bağlam sıkıştırıldı",
+      "contextCompactedTier": "tier {{tier}}",
+      "contextCompactedMsgs": "{{count}} mesaj"
     },
     "effort": {
       "none": "Kapalı"
@@ -3136,7 +3152,11 @@
         "failed": "Bàn giao thất bại: {{error}}"
       },
       "pickSession": "Chọn phiên",
-      "detachOnDesktopNoop": "Trên máy tính không có liên kết IM chat — detach không có tác dụng ở đây."
+      "detachOnDesktopNoop": "Trên máy tính không có liên kết IM chat — detach không có tác dụng ở đây.",
+      "profileRotationTitle": "Đổi profile",
+      "contextCompactedTitle": "Đã nén context",
+      "contextCompactedTier": "tier {{tier}}",
+      "contextCompactedMsgs": "{{count}} tin"
     },
     "effort": {
       "none": "Tắt"
@@ -3903,7 +3923,11 @@
         "failed": "Transferência falhou: {{error}}"
       },
       "pickSession": "Escolher uma sessão",
-      "detachOnDesktopNoop": "Detach não tem efeito no desktop — nenhum chat de IM vinculado a esta sessão aqui."
+      "detachOnDesktopNoop": "Detach não tem efeito no desktop — nenhum chat de IM vinculado a esta sessão aqui.",
+      "profileRotationTitle": "Rotação de perfil",
+      "contextCompactedTitle": "Contexto compactado",
+      "contextCompactedTier": "tier {{tier}}",
+      "contextCompactedMsgs": "{{count}} msgs"
     },
     "effort": {
       "none": "Desligado"
@@ -4670,7 +4694,11 @@
         "failed": "Передача не удалась: {{error}}"
       },
       "pickSession": "Выбрать сессию",
-      "detachOnDesktopNoop": "На рабочем столе нет привязки к IM-чату — detach не имеет эффекта."
+      "detachOnDesktopNoop": "На рабочем столе нет привязки к IM-чату — detach не имеет эффекта.",
+      "profileRotationTitle": "Смена профиля",
+      "contextCompactedTitle": "Контекст сжат",
+      "contextCompactedTier": "tier {{tier}}",
+      "contextCompactedMsgs": "{{count}} сообщ."
     },
     "effort": {
       "none": "Выкл"
@@ -5437,7 +5465,11 @@
         "failed": "فشل التحويل: {{error}}"
       },
       "pickSession": "اختر جلسة",
-      "detachOnDesktopNoop": "لا توجد محادثة IM مرتبطة بهذه الجلسة على سطح المكتب — detach لا يفعل شيئًا هنا."
+      "detachOnDesktopNoop": "لا توجد محادثة IM مرتبطة بهذه الجلسة على سطح المكتب — detach لا يفعل شيئًا هنا.",
+      "profileRotationTitle": "تغيير الملف الشخصي",
+      "contextCompactedTitle": "تم ضغط السياق",
+      "contextCompactedTier": "tier {{tier}}",
+      "contextCompactedMsgs": "{{count}} رسالة"
     },
     "effort": {
       "none": "إيقاف"
@@ -6204,7 +6236,11 @@
         "failed": "Transferencia fallida: {{error}}"
       },
       "pickSession": "Elegir una sesión",
-      "detachOnDesktopNoop": "Detach no tiene efecto en el escritorio — no hay un chat de IM vinculado a esta sesión aquí."
+      "detachOnDesktopNoop": "Detach no tiene efecto en el escritorio — no hay un chat de IM vinculado a esta sesión aquí.",
+      "profileRotationTitle": "Rotación de perfil",
+      "contextCompactedTitle": "Contexto compactado",
+      "contextCompactedTier": "tier {{tier}}",
+      "contextCompactedMsgs": "{{count}} msgs"
     },
     "effort": {
       "none": "Apagado"
@@ -6971,7 +7007,11 @@
         "failed": "Penyerahan gagal: {{error}}"
       },
       "pickSession": "Pilih sesi",
-      "detachOnDesktopNoop": "Pada desktop tiada ikatan IM chat — detach tidak berkesan di sini."
+      "detachOnDesktopNoop": "Pada desktop tiada ikatan IM chat — detach tidak berkesan di sini.",
+      "profileRotationTitle": "Tukar profil",
+      "contextCompactedTitle": "Konteks dipadatkan",
+      "contextCompactedTier": "tier {{tier}}",
+      "contextCompactedMsgs": "{{count}} mesej"
     },
     "effort": {
       "none": "Mati"
@@ -7800,7 +7840,11 @@
         "failed": "交班失败:{{error}}"
       },
       "pickSession": "选择会话",
-      "detachOnDesktopNoop": "桌面端不绑定 IM chat,detach 在此处无效。"
+      "detachOnDesktopNoop": "桌面端不绑定 IM chat,detach 在此处无效。",
+      "profileRotationTitle": "配置切换",
+      "contextCompactedTitle": "上下文已压缩",
+      "contextCompactedTier": "tier {{tier}}",
+      "contextCompactedMsgs": "{{count}} 条"
     },
     "slashCommands": {
       "sessions": {

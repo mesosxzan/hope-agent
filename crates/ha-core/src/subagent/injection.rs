@@ -331,6 +331,7 @@ pub(crate) async fn inject_and_run_parent(
             session_id: parent_session_id.clone(),
             agent_id: parent_agent_id.clone(),
             message: push_message.clone(),
+            display_text: None,
             attachments: Vec::new(),
             session_db: session_db.clone(),
             model_chain,

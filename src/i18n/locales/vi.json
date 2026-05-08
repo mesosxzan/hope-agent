@@ -252,6 +252,9 @@
     "compactNoChange": "Ngữ cảnh không cần nén",
     "compactNow": "Nén ngữ cảnh",
     "compacting": "Đang nén...",
+    "contextCompactedMsgs": "{{count}} tin",
+    "contextCompactedTier": "tier {{tier}}",
+    "contextCompactedTitle": "Đã nén context",
     "conversations": "Hội thoại",
     "copied": "Đã sao chép",
     "copy": "Sao chép",
@@ -365,6 +368,7 @@
       }
     },
     "pickSession": "Chọn phiên",
+    "profileRotationTitle": "Đổi profile",
     "queueMessage": "Xếp hàng gửi",
     "reasonAuth": "Xác thực thất bại",
     "reasonBilling": "Thanh toán / hạn mức vượt quá",

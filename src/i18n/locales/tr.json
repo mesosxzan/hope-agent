@@ -252,6 +252,9 @@
     "compactNoChange": "Bağlamın sıkıştırılmasına gerek yok",
     "compactNow": "Bağlamı sıkıştır",
     "compacting": "Sıkıştırılıyor...",
+    "contextCompactedMsgs": "{{count}} mesaj",
+    "contextCompactedTier": "tier {{tier}}",
+    "contextCompactedTitle": "Bağlam sıkıştırıldı",
     "conversations": "Sohbetler",
     "copied": "Kopyalandı",
     "copy": "Kopyala",
@@ -365,6 +368,7 @@
       }
     },
     "pickSession": "Bir oturum seç",
+    "profileRotationTitle": "Profil değişimi",
     "queueMessage": "Sıraya al",
     "reasonAuth": "Kimlik doğrulama başarısız",
     "reasonBilling": "Faturalama / kota aşıldı",

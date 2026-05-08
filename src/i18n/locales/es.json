@@ -252,6 +252,9 @@
     "compactNoChange": "No es necesario compactar el contexto",
     "compactNow": "Compactar contexto",
     "compacting": "Compactando...",
+    "contextCompactedMsgs": "{{count}} msgs",
+    "contextCompactedTier": "tier {{tier}}",
+    "contextCompactedTitle": "Contexto compactado",
     "conversations": "Conversaciones",
     "copied": "Copiado",
     "copy": "Copiar",
@@ -365,6 +368,7 @@
       }
     },
     "pickSession": "Elegir una sesión",
+    "profileRotationTitle": "Rotación de perfil",
     "queueMessage": "Encolar mensaje",
     "reasonAuth": "Error de autenticación",
     "reasonBilling": "Facturación / cuota excedida",

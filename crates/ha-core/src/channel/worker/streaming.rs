@@ -136,6 +136,7 @@ pub(super) fn append_preview_round_text(accumulated: &mut String, text: &str, ne
 #[allow(clippy::too_many_arguments)]
 pub(super) fn spawn_channel_stream_task(
     mut event_rx: mpsc::UnboundedReceiver<String>,
+    mut system_notice_rx: mpsc::UnboundedReceiver<String>,
     plugin: Arc<dyn ChannelPlugin>,
     account_id: String,
     chat_id: String,
@@ -149,6 +150,32 @@ pub(super) fn spawn_channel_stream_task(
 ) -> tokio::task::JoinHandle<StreamPreviewOutcome> {
     tokio::spawn(async move {
         let Some(mut preview_transport) = preview_transport else {
+            // No preview transport (Final mode or non-streaming channel):
+            // drain `event_rx` while still shipping system notices as their
+            // own one-shot messages, so the IM user still sees fallback /
+            // compaction / thinking-auto-disabled notices.
+            loop {
+                tokio::select! {
+                    notice = system_notice_rx.recv() => match notice {
+                        Some(body) => send_system_notice_now(
+                            &plugin, &account_id, &chat_id, thread_id.as_deref(), &body
+                        ).await,
+                        None => break,
+                    },
+                    event = event_rx.recv() => {
+                        if event.is_none() { break; }
+                    }
+                }
+            }
+            // Drain anything still buffered after either channel closed.
+            drain_system_notices(
+                &mut system_notice_rx,
+                &plugin,
+                &account_id,
+                &chat_id,
+                thread_id.as_deref(),
+            )
+            .await;
             while event_rx.recv().await.is_some() {}
             return StreamPreviewOutcome::default();
         };
@@ -208,6 +235,18 @@ pub(super) fn spawn_channel_stream_task(
             }
 
             tokio::select! {
+                notice = system_notice_rx.recv() => {
+                    if let Some(body) = notice {
+                        // Ship the notice as its own IM message — outside
+                        // the per-round preview pipeline so it doesn't
+                        // collide with `accumulated` / `preview_message_id`.
+                        // Closed channel just means the engine dropped its
+                        // sender; keep the loop running on `event_rx`.
+                        send_system_notice_now(
+                            &plugin, &account_id, &chat_id, thread_id.as_deref(), &body
+                        ).await;
+                    }
+                }
                 event = event_rx.recv() => {
                     match event {
                         Some(event_str) => {
@@ -267,6 +306,10 @@ pub(super) fn spawn_channel_stream_task(
                                 card_session = None;
                                 finalized_rounds += 1;
                             }
+                            drain_system_notices(
+                                &mut system_notice_rx, &plugin, &account_id, &chat_id,
+                                thread_id.as_deref(),
+                            ).await;
                             break;
                         }
                     }
@@ -305,6 +348,42 @@ pub(super) fn spawn_channel_stream_task(
             finalized_rounds,
         }
     })
+}
+
+/// Ship a friendly system notice (model_fallback / profile_rotation /
+/// context_compacted / thinking_auto_disabled) to the IM chat as its own
+/// standalone message. Bypasses the per-round preview pipeline so notices
+/// don't tangle with `accumulated` / `preview_message_id`. Failures only
+/// log — system notices are best-effort UX, not data integrity.
+async fn send_system_notice_now(
+    plugin: &Arc<dyn ChannelPlugin>,
+    account_id: &str,
+    chat_id: &str,
+    thread_id: Option<&str>,
+    body: &str,
+) {
+    let target = super::pipeline::DeliveryTarget {
+        account_id,
+        chat_id,
+        thread_id,
+        reply_to_message_id: None,
+    };
+    super::dispatcher::send_text_chunks(plugin, &target, body, None, &[]).await;
+}
+
+/// Drain any system notices buffered when `event_rx` closed in the same
+/// tick. Called from both the no-preview branch and the main loop's EOF
+/// arm so a late notice still reaches the user.
+async fn drain_system_notices(
+    rx: &mut mpsc::UnboundedReceiver<String>,
+    plugin: &Arc<dyn ChannelPlugin>,
+    account_id: &str,
+    chat_id: &str,
+    thread_id: Option<&str>,
+) {
+    while let Ok(body) = rx.try_recv() {
+        send_system_notice_now(plugin, account_id, chat_id, thread_id, &body).await;
+    }
 }
 
 /// Close the current round's preview and deliver its media. Called from

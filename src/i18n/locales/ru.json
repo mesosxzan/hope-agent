@@ -252,6 +252,9 @@
     "compactNoChange": "Контекст не нуждается в сжатии",
     "compactNow": "Сжать контекст",
     "compacting": "Сжатие...",
+    "contextCompactedMsgs": "{{count}} сообщ.",
+    "contextCompactedTier": "tier {{tier}}",
+    "contextCompactedTitle": "Контекст сжат",
     "conversations": "Чаты",
     "copied": "Скопировано",
     "copy": "Копировать",
@@ -365,6 +368,7 @@
       }
     },
     "pickSession": "Выбрать сессию",
+    "profileRotationTitle": "Смена профиля",
     "queueMessage": "В очередь",
     "reasonAuth": "Ошибка аутентификации",
     "reasonBilling": "Биллинг / квота исчерпана",

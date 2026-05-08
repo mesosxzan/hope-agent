@@ -10,10 +10,17 @@ import { formatTokens, formatDuration, formatMessageTime, extractModifiedFiles }
 import MarkdownRenderer from "@/components/common/MarkdownRenderer"
 import FileAttachments from "./FileAttachments"
 import FallbackBanner from "@/components/chat/FallbackBanner"
+import ProfileRotationBanner from "@/components/chat/ProfileRotationBanner"
+import ContextCompactedBanner from "@/components/chat/ContextCompactedBanner"
 import MessageUrlPreviews from "./MessageUrlPreviews"
 import { AssistantContentBlocks } from "./MessageContent"
 import { PlanCommentBubble } from "./PlanCommentBubble"
-import type { Message, AgentSummaryForSidebar } from "@/types/chat"
+import type {
+  Message,
+  AgentSummaryForSidebar,
+  ProfileRotationEvent,
+  ContextCompactedEvent,
+} from "@/types/chat"
 import ModelPickerCard from "@/components/chat/ModelPickerCard"
 import ContextBreakdownCard from "@/components/chat/context-view/ContextBreakdownCard"
 
@@ -293,6 +300,13 @@ function MessageBubbleInner({
           })}
         </div>
       )
+    }
+    if (eventPayload?.type === "profile_rotation") {
+      return <ProfileRotationBanner event={eventPayload as ProfileRotationEvent} />
+    }
+    if (eventPayload?.type === "context_compacted") {
+      const data = (eventPayload.data ?? eventPayload) as ContextCompactedEvent
+      return <ContextCompactedBanner event={data} />
     }
     return (
       <div className="max-w-[80%] px-3 py-1.5 rounded-lg text-xs text-muted-foreground bg-muted/50 border border-border/50 text-center [&_p]:m-0">

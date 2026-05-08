@@ -252,6 +252,9 @@
     "compactNoChange": "当前上下文无需压缩",
     "compactNow": "压缩上下文",
     "compacting": "压缩中...",
+    "contextCompactedMsgs": "{{count}} 条",
+    "contextCompactedTier": "tier {{tier}}",
+    "contextCompactedTitle": "上下文已压缩",
     "conversations": "会话",
     "copied": "已复制",
     "copy": "复制",
@@ -365,6 +368,7 @@
       }
     },
     "pickSession": "选择会话",
+    "profileRotationTitle": "配置切换",
     "queueMessage": "排队发送",
     "reasonAuth": "认证失败",
     "reasonBilling": "账户余额不足",

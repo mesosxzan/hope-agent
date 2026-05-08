@@ -303,6 +303,7 @@ pub async fn chat(
         session_id: sid.clone(),
         agent_id: agent_id.clone(),
         message: body.message.clone(),
+        display_text: body.display_text.clone(),
         attachments: body.attachments,
         session_db: db.clone(),
         model_chain,

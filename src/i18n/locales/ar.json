@@ -252,6 +252,9 @@
     "compactNoChange": "السياق لا يحتاج إلى ضغط",
     "compactNow": "ضغط السياق",
     "compacting": "جاري الضغط...",
+    "contextCompactedMsgs": "{{count}} رسالة",
+    "contextCompactedTier": "tier {{tier}}",
+    "contextCompactedTitle": "تم ضغط السياق",
     "conversations": "المحادثات",
     "copied": "تم النسخ",
     "copy": "نسخ",
@@ -365,6 +368,7 @@
       }
     },
     "pickSession": "اختر جلسة",
+    "profileRotationTitle": "تغيير الملف الشخصي",
     "queueMessage": "وضع في الطابور",
     "reasonAuth": "فشل المصادقة",
     "reasonBilling": "الفواتير / تم تجاوز الحصة",
