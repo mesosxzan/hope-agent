@@ -179,11 +179,13 @@ export default function MessageList({
       // (`messages[prependCount] === prevFirst`) silently fails. Fall
       // back to reference compare only when neither side has a dbId
       // (streaming placeholders, never the case at messages[0] in
-      // practice). `!atBottomRef.current` skips the case where streaming
+      // practice). `!atBottom` skips the case where streaming
       // append raced past in the same tick (no actual prepend; user is
-      // at bottom anyway).
+      // at bottom anyway). State (not ref) here because render must read
+      // a render-stable snapshot — the scroll handler always sets state +
+      // ref together, so the lag is at most one frame.
       prependCount > 0 &&
-      !atBottomRef.current &&
+      !atBottom &&
       prevFirst != null &&
       messages[prependCount] != null &&
       (prevFirst.dbId != null && messages[prependCount].dbId != null
