@@ -355,7 +355,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 按子系统汇总
 
-0.1.0 同一批改动按子系统重新组织的视图（与上方 Keep a Changelog 分类视图同源，方便跨子系统检索）。
+下面是上方 Added / Changed / Fixed 同一批改动换种组织方式——按子系统列出，方便按模块查阅，不引入新增内容。
 
 ### 品牌 & 工程重命名
 
