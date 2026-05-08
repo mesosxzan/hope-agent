@@ -75,7 +75,7 @@ pub(crate) fn spawn_stream_pipeline(
 ) -> StreamPipeline {
     let reply_mode = account.im_reply_mode();
     let capabilities = plugin.capabilities();
-    let max_msg_len = capabilities.max_message_length.unwrap_or(4096);
+    let max_msg_len = capabilities.streaming_preview_max_bytes.unwrap_or(4096);
     let preview_transport = match reply_mode {
         ImReplyMode::Preview | ImReplyMode::Split => {
             select_stream_preview_transport(chat_type, &capabilities)

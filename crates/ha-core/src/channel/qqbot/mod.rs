@@ -101,7 +101,7 @@ impl ChannelPlugin for QqBotPlugin {
             supports_draft: false,
             supports_polls: false,
             supports_reactions: false,
-            max_message_length: Some(4096),
+            streaming_preview_max_bytes: Some(4096),
             // 暂不声明原生媒体能力——dispatcher 的 to_outbound_media 优先
             // 给 MediaData::FilePath（hope-agent 本地缓存路径），但 QQ Bot
             // V2 上传 API 只接收公网 HTTPS URL，FilePath 会被静默跳过；同时

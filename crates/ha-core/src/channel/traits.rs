@@ -169,10 +169,15 @@ pub trait ChannelPlugin: Send + Sync + 'static {
     /// For Telegram this is HTML, for Discord it's native Markdown, etc.
     fn markdown_to_native(&self, markdown: &str) -> String;
 
-    /// Split a long message into chunks that fit the channel's message length limit.
-    /// The default splits at the channel's max_message_length on paragraph boundaries.
+    /// Split a long message into chunks that fit the channel's per-send byte
+    /// ceiling. The default falls back to `streaming_preview_max_bytes` (a
+    /// safe under-estimate); plugins whose platform allows larger single
+    /// sends should override with the true byte ceiling.
     fn chunk_message(&self, text: &str) -> Vec<String> {
-        let max_len = self.capabilities().max_message_length.unwrap_or(4096);
+        let max_len = self
+            .capabilities()
+            .streaming_preview_max_bytes
+            .unwrap_or(4096);
         chunk_text(text, max_len)
     }
 
@@ -298,9 +303,9 @@ pub fn default_check_access(
 ///
 /// **Note**: `max_len` is byte-conservative. Most IM platforms publish their
 /// limit in characters (or UTF-16 code units for Telegram); a single CJK
-/// character is 3 bytes UTF-8, so 4096 bytes ≈ 1365 CJK chars. Channels
-/// whose official spec is in characters MUST set `max_message_length` below
-/// the spec value to leave UTF-8 headroom. See per-channel `capabilities()`.
+/// character is 3 bytes UTF-8, so 4096 bytes ≈ 1365 CJK chars. Plugins whose
+/// official spec is in characters should pick a byte ceiling that stays under
+/// the spec value across worst-case UTF-8 inputs.
 pub fn chunk_text(text: &str, max_len: usize) -> Vec<String> {
     if text.len() <= max_len {
         return vec![text.to_string()];

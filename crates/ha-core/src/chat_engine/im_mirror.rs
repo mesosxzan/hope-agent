@@ -107,7 +107,7 @@ pub(crate) async fn attach_im_live_mirror(
     if let Some(quote) = build_user_quote_prefix(quote_view.as_ref()) {
         let body = quote.trim_end();
         if !body.is_empty() {
-            send_text_chunks(&plugin, &target, body, None).await;
+            send_text_chunks(&plugin, &target, body, None, &[]).await;
             quote_sent = true;
         }
     }
@@ -205,7 +205,7 @@ pub(crate) async fn abort_im_live_mirror(
         thread_id: attach.thread_id.as_deref(),
         reply_to_message_id: None,
     };
-    send_text_chunks(&plugin, &target, &body, None).await;
+    send_text_chunks(&plugin, &target, &body, None, &[]).await;
     crate::app_info!(
         "channel",
         "mirror",

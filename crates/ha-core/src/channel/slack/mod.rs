@@ -109,7 +109,7 @@ impl ChannelPlugin for SlackPlugin {
             supports_reactions: false,
             // Slack chat.postMessage 上限 4000 字符；UTF-8 字节计算下 CJK 字符
             // 占 3 bytes，留 20% 余量到 3200 字节避免 msg_too_long
-            max_message_length: Some(3200),
+            streaming_preview_max_bytes: Some(3200),
             // TODO: native Slack media (files.getUploadURLExternal +
             // files.completeUploadExternal) not yet implemented. Dispatcher
             // falls back to a download-link text for now.

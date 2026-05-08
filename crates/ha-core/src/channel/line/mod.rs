@@ -137,7 +137,7 @@ impl ChannelPlugin for LinePlugin {
             supports_buttons: true,
             // LINE 文本上限 5000 字符；UTF-8 字节计算 CJK 占 3 bytes，4500 字节
             // 留余量
-            max_message_length: Some(4500),
+            streaming_preview_max_bytes: Some(4500),
             supports_card_stream: false,
         }
     }

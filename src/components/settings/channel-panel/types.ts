@@ -73,7 +73,7 @@ export interface ChannelPluginInfo {
     supportsEdit: boolean
     supportsMedia: string[]
     supportsTyping: boolean
-    maxMessageLength: number | null
+    streamingPreviewMaxBytes: number | null
     supportsCardStream?: boolean
   }
 }

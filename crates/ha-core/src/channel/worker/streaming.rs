@@ -11,9 +11,9 @@ use crate::chat_engine::RoundTextAccumulator;
 /// characters per markdown element). Counted in `chars()` not bytes —
 /// CJK glyphs are 3 bytes UTF-8, so a byte-based limit would silently
 /// truncate at ~33k Chinese characters. Independent of IM-text
-/// `max_message_length` (cardkit elements aren't subject to that limit)
-/// so streaming previews keep flowing on responses larger than the
-/// channel's text-message cap.
+/// `streaming_preview_max_bytes` (cardkit elements aren't subject to
+/// that gate) so streaming previews keep flowing on responses larger
+/// than the channel's text-message cap.
 pub(super) const CARD_ELEMENT_MAX_CHARS: usize = 100_000;
 pub(super) const STREAM_PREVIEW_FIRST_FLUSH_DELAY: Duration = Duration::from_millis(300);
 pub(super) const STREAM_PREVIEW_FLUSH_INTERVAL: Duration = Duration::from_millis(1000);
@@ -382,7 +382,7 @@ async fn finalize_split_round(
             thread_id,
             reply_to_message_id,
         };
-        super::dispatcher::send_text_chunks(plugin, &target, accumulated, None).await;
+        super::dispatcher::send_text_chunks(plugin, &target, accumulated, None, &[]).await;
     }
 
     // 3. Transport-specific close. Best-effort: any error here is

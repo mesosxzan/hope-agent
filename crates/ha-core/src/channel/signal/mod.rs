@@ -116,7 +116,7 @@ impl ChannelPlugin for SignalPlugin {
             supports_media: Vec::new(),
             supports_typing: true,
             supports_buttons: false,
-            max_message_length: None,
+            streaming_preview_max_bytes: None,
             supports_card_stream: false,
         }
     }

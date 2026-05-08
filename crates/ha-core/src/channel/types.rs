@@ -287,8 +287,22 @@ pub struct ChannelCapabilities {
     pub supports_typing: bool,
     #[serde(default)]
     pub supports_buttons: bool,
+    /// Streaming-preview byte budget. Used **only** to decide whether the
+    /// in-flight `text_delta` accumulator still fits in a single preview
+    /// message — when `native_text.len() > streaming_preview_max_bytes`,
+    /// the streaming task drops preview rendering and falls back to chunked
+    /// `send_text_chunks` for that round.
+    ///
+    /// Conventionally set ~25% below the platform's true single-message
+    /// limit so a still-growing preview doesn't trip the limit at the
+    /// last delta. **This is not the chunk-send slice size** — that's
+    /// controlled by each plugin's `chunk_message` override (which uses
+    /// the platform's true byte ceiling).
+    ///
+    /// `None` = no preview byte gate (channel either has no streaming
+    /// preview, or relies on a different transport like cardkit).
     #[serde(default)]
-    pub max_message_length: Option<usize>,
+    pub streaming_preview_max_bytes: Option<usize>,
     /// Channel offers a "card streaming" API that mutates a card element's
     /// content in place without flagging the host message as edited.
     /// Currently only Feishu (cardkit) implements this.

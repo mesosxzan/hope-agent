@@ -166,7 +166,7 @@ impl ChannelPlugin for FeishuPlugin {
             ],
             supports_typing: false,
             supports_buttons: true,
-            max_message_length: Some(4096),
+            streaming_preview_max_bytes: Some(4096),
             supports_card_stream: true,
         }
     }

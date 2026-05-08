@@ -367,7 +367,7 @@ impl ChannelPlugin for WeChatPlugin {
             // 微信本身按字符上限较宽（旧版本 ~5000 字符），但 iLink 协议下
             // 多次快速发消息会触发"发送频繁"风控；保守 1500 字节避免长回答
             // 被切多条 + 多媒体共发时刷屏。
-            max_message_length: Some(1500),
+            streaming_preview_max_bytes: Some(1500),
             supports_card_stream: false,
         }
     }

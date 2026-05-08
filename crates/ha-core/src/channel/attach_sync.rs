@@ -93,7 +93,7 @@ pub async fn deliver_attach_catchup(
             thread_id,
             reply_to_message_id: None,
         };
-        send_text_chunks(plugin, &target, &snapshot.text, None).await;
+        send_text_chunks(plugin, &target, &snapshot.text, None, &[]).await;
     }
 
     // 2. Re-send the latest turn's media. We do not regenerate or

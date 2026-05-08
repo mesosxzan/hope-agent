@@ -378,19 +378,13 @@ async fn handle_inbound_message(
                             .with_source(crate::chat_engine::ChatSource::Channel),
                     );
                 }
-                // Send reply to the IM channel
-                let native_text = plugin.markdown_to_native(&content);
-                let payload = ReplyPayload {
-                    text: Some(native_text),
-                    reply_to_message_id: Some(msg.message_id.clone()),
-                    thread_id: msg.thread_id.clone(),
-                    parse_mode: Some(ParseMode::Html),
-                    buttons,
-                    ..ReplyPayload::text("")
+                let slash_target = DeliveryTarget {
+                    account_id: &account.id,
+                    chat_id: &msg.chat_id,
+                    thread_id: msg.thread_id.as_deref(),
+                    reply_to_message_id: Some(&msg.message_id),
                 };
-                let _ = plugin
-                    .send_message(&account.id, &msg.chat_id, &payload)
-                    .await;
+                send_text_chunks(&plugin, &slash_target, &content, None, &buttons).await;
                 emit_channel_update(effective_sid);
                 emit_stream_lifecycle("channel:stream_end", effective_sid);
                 return Ok(());
@@ -401,17 +395,13 @@ async fn handle_inbound_message(
             }
             Err(e) => {
                 let error_reply = format!("⚠️ {}", e);
-                let native_text = plugin.markdown_to_native(&error_reply);
-                let payload = ReplyPayload {
-                    text: Some(native_text),
-                    reply_to_message_id: Some(msg.message_id.clone()),
-                    thread_id: msg.thread_id.clone(),
-                    parse_mode: Some(ParseMode::Html),
-                    ..ReplyPayload::text("")
+                let err_target = DeliveryTarget {
+                    account_id: &account.id,
+                    chat_id: &msg.chat_id,
+                    thread_id: msg.thread_id.as_deref(),
+                    reply_to_message_id: Some(&msg.message_id),
                 };
-                let _ = plugin
-                    .send_message(&account.id, &msg.chat_id, &payload)
-                    .await;
+                send_text_chunks(&plugin, &err_target, &error_reply, None, &[]).await;
                 emit_stream_lifecycle("channel:stream_end", &session_id);
                 return Ok(());
             }
@@ -628,18 +618,17 @@ async fn handle_inbound_message(
                     is_codex_auth,
                 },
             );
-            let payload = ReplyPayload {
-                text: Some(body),
-                reply_to_message_id: Some(msg.message_id.clone()),
-                thread_id: msg.thread_id.clone(),
-                ..ReplyPayload::text("")
+            let err_target = DeliveryTarget {
+                account_id: &account.id,
+                chat_id: &msg.chat_id,
+                thread_id: msg.thread_id.as_deref(),
+                reply_to_message_id: Some(&msg.message_id),
             };
             send_error_reply(
                 &plugin,
-                &account.id,
-                &msg.chat_id,
+                &err_target,
                 outcome.stream_outcome.preview.as_ref(),
-                &payload,
+                &body,
             )
             .await;
         }
@@ -761,39 +750,25 @@ fn to_outbound_media(it: &crate::attachments::MediaItem, media_type: MediaType) 
     }
 }
 
-/// Replace the current preview (if any) with an error reply, falling back to
-/// `send_message` whenever the preview path can't carry the error text. We
-/// don't try to keep cardkit alive on the error path — the user should see a
-/// plain text error attached to their original message.
+/// Replace the current preview (if any) with an error reply, routing through
+/// `send_text_chunks` so long error text (rare but possible — formatted
+/// engine traces) is markdown-to-native rendered + chunked. We don't try to
+/// keep cardkit alive on the error path — the user should see a plain text
+/// error attached to their original message; the half-rendered card auto-
+/// closes server-side after 10 minutes.
 async fn send_error_reply(
     plugin: &Arc<dyn ChannelPlugin>,
-    account_id: &str,
-    chat_id: &str,
+    target: &DeliveryTarget<'_>,
     preview: Option<&PreviewHandle>,
-    payload: &ReplyPayload,
+    error_text: &str,
 ) {
-    match preview {
-        Some(PreviewHandle::Message { message_id }) => {
-            if let Err(edit_err) = plugin
-                .edit_message(account_id, chat_id, message_id, payload)
-                .await
-            {
-                app_warn!(
-                    "channel",
-                    "worker",
-                    "Failed to replace preview with error reply: {}",
-                    edit_err
-                );
-                let _ = plugin.send_message(account_id, chat_id, payload).await;
-            }
-        }
-        Some(PreviewHandle::Card { .. }) | None => {
-            // Card path: leave the half-rendered card alone (it'll auto-close
-            // after 10 minutes server-side) and send the error as a fresh
-            // text reply so the user sees what went wrong.
-            let _ = plugin.send_message(account_id, chat_id, payload).await;
-        }
-    }
+    let chunk_preview = match preview {
+        // Card path: pass `None` so chunk-send opens a fresh message;
+        // half-rendered card is left to auto-close.
+        Some(PreviewHandle::Card { .. }) => None,
+        other => other,
+    };
+    send_text_chunks(plugin, target, error_text, chunk_preview, &[]).await;
 }
 
 /// Write the full response into the streaming card and close streaming.
@@ -870,6 +845,10 @@ async fn finalize_card_stream(
 /// without quoting (catch-up / mirror paths that have no inbound message
 /// to reply to).
 ///
+/// `buttons` are appended only to the **last** chunk so the inline buttons
+/// stick to the trailing message (the chunk visually closest to the user's
+/// next interaction). Pass `&[]` for plain text.
+///
 /// Visible to the rest of the crate so attach catch-up + future mirror
 /// paths can reuse the same chunk-aware `markdown_to_native` →
 /// `chunk_message` → `send_message` sequence used by the live dispatcher.
@@ -878,17 +857,30 @@ pub(crate) async fn send_text_chunks(
     target: &DeliveryTarget<'_>,
     response: &str,
     preview: Option<&PreviewHandle>,
+    buttons: &[Vec<InlineButton>],
 ) {
     let native_text = plugin.markdown_to_native(response);
     let chunks = plugin.chunk_message(&native_text);
+    let last_idx = chunks.len().saturating_sub(1);
 
     for (i, chunk) in chunks.iter().enumerate() {
+        // Per-chunk throttle: same 50ms gap deliver_media_to_chat uses to
+        // dodge Telegram / LINE / WeChat per-chat flood protections.
+        if i > 0 {
+            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        }
+        let chunk_buttons = if i == last_idx {
+            buttons.to_vec()
+        } else {
+            Vec::new()
+        };
         let payload = if i == 0 {
             ReplyPayload {
                 text: Some(chunk.clone()),
                 reply_to_message_id: target.reply_to_message_id.map(str::to_string),
                 thread_id: target.thread_id.map(|s| s.to_string()),
                 parse_mode: Some(ParseMode::Html),
+                buttons: chunk_buttons,
                 ..ReplyPayload::text("")
             }
         } else {
@@ -896,6 +888,7 @@ pub(crate) async fn send_text_chunks(
                 text: Some(chunk.clone()),
                 thread_id: target.thread_id.map(|s| s.to_string()),
                 parse_mode: Some(ParseMode::Html),
+                buttons: chunk_buttons,
                 ..ReplyPayload::text("")
             }
         };
@@ -1013,34 +1006,13 @@ pub(super) async fn deliver_split(
             // Pre-final round only reaches here on non-streaming channels —
             // streaming channels finalize per-round inline.
             if !round.text.trim().is_empty() {
-                let payload = ReplyPayload {
-                    text: Some(round.text.clone()),
+                let pre_target = DeliveryTarget {
+                    account_id: target.account_id,
+                    chat_id: target.chat_id,
+                    thread_id: target.thread_id,
                     reply_to_message_id: None,
-                    thread_id: target.thread_id.map(str::to_string),
-                    ..ReplyPayload::text("")
                 };
-                match plugin
-                    .send_message(target.account_id, target.chat_id, &payload)
-                    .await
-                {
-                    Ok(r) if !r.success => {
-                        app_warn!(
-                            "channel",
-                            "worker",
-                            "split-mode pre-round send failed: {}",
-                            r.error.unwrap_or_default()
-                        );
-                    }
-                    Err(e) => {
-                        app_warn!(
-                            "channel",
-                            "worker",
-                            "split-mode pre-round send error: {}",
-                            e
-                        );
-                    }
-                    _ => {}
-                }
+                send_text_chunks(plugin, &pre_target, &round.text, None, &[]).await;
                 metrics.text_chars += round.text.chars().count();
                 tokio::time::sleep(std::time::Duration::from_millis(50)).await;
             }
@@ -1151,7 +1123,7 @@ pub(super) fn merge_preview_round_texts(rounds: &[crate::chat_engine::RoundOutpu
 /// Text routing is decided by `preview`:
 /// - `Card { broken: false, .. }`: write the **entire** raw response into the
 ///   card element in one shot (cardkit elements hold ~100k chars, far above
-///   any IM `max_message_length`), then close streaming. On any failure
+///   any IM per-send byte ceiling), then close streaming. On any failure
 ///   (response oversize, update error, etc.) the card is closed best-effort
 ///   and we fall through to plain text chunks below.
 /// - Anything else (`Message`, `Card{broken:true}`, `None`): split the
@@ -1194,7 +1166,7 @@ pub(super) async fn send_final_reply(
             Some(PreviewHandle::Card { .. }) => None,
             other => other,
         };
-        send_text_chunks(plugin, target, response, chunk_preview).await;
+        send_text_chunks(plugin, target, response, chunk_preview, &[]).await;
     }
 
     deliver_media_to_chat(
@@ -1258,16 +1230,15 @@ pub(crate) async fn deliver_media_to_chat(
 
     if let Some(text) = build_media_fallback_lines(&fallback_items) {
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-        let payload = ReplyPayload {
-            text: Some(text),
+        // Route through send_text_chunks so an oversized URL list (lots of
+        // attachments × long URLs) is split per the channel's chunk ceiling.
+        let target = DeliveryTarget {
+            account_id,
+            chat_id,
+            thread_id,
             reply_to_message_id: None,
-            thread_id: thread_id.map(|s| s.to_string()),
-            parse_mode: None,
-            buttons: Vec::new(),
-            media: Vec::new(),
-            draft_id: None,
         };
-        let _ = plugin.send_message(account_id, chat_id, &payload).await;
+        send_text_chunks(plugin, &target, &text, None, &[]).await;
     }
 }
 
@@ -1301,7 +1272,7 @@ mod tests {
             supports_media: supported,
             supports_typing: false,
             supports_buttons: false,
-            max_message_length: None,
+            streaming_preview_max_bytes: None,
             supports_card_stream: false,
         }
     }
@@ -1369,5 +1340,149 @@ mod tests {
         let it = mk_item("x.pdf", "application/pdf", MediaKind::File);
         let out = to_outbound_media(&it, MediaType::Document);
         assert!(matches!(out.data, MediaData::FilePath(_)));
+    }
+
+    use crate::chat_engine::RoundOutput;
+    use anyhow::Result;
+    use async_trait::async_trait;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Mutex;
+    use tokio::sync::mpsc;
+    use tokio_util::sync::CancellationToken;
+
+    struct CountingPlugin {
+        max_bytes: usize,
+        sends: Mutex<Vec<String>>,
+        send_count: AtomicUsize,
+    }
+
+    impl CountingPlugin {
+        fn new(max_bytes: usize) -> Self {
+            Self {
+                max_bytes,
+                sends: Mutex::new(Vec::new()),
+                send_count: AtomicUsize::new(0),
+            }
+        }
+    }
+
+    #[async_trait]
+    impl ChannelPlugin for CountingPlugin {
+        fn meta(&self) -> ChannelMeta {
+            ChannelMeta {
+                id: ChannelId::Custom("test".to_string()),
+                display_name: "Test".to_string(),
+                description: String::new(),
+                version: "0".to_string(),
+            }
+        }
+
+        fn capabilities(&self) -> ChannelCapabilities {
+            let mut c = caps(Vec::new());
+            c.chat_types = vec![ChatType::Dm];
+            c.streaming_preview_max_bytes = Some(self.max_bytes);
+            c
+        }
+
+        async fn start_account(
+            &self,
+            _account: &ChannelAccountConfig,
+            _inbound_tx: mpsc::Sender<MsgContext>,
+            _cancel: CancellationToken,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn stop_account(&self, _account_id: &str) -> Result<()> {
+            Ok(())
+        }
+
+        async fn send_message(
+            &self,
+            _account_id: &str,
+            _chat_id: &str,
+            payload: &ReplyPayload,
+        ) -> Result<DeliveryResult> {
+            let n = self.send_count.fetch_add(1, Ordering::SeqCst) + 1;
+            if let Some(text) = payload.text.as_ref() {
+                self.sends.lock().unwrap().push(text.clone());
+            }
+            Ok(DeliveryResult::ok(format!("msg-{}", n)))
+        }
+
+        async fn send_typing(&self, _account_id: &str, _chat_id: &str) -> Result<()> {
+            Ok(())
+        }
+
+        async fn probe(&self, _account: &ChannelAccountConfig) -> Result<ChannelHealth> {
+            Ok(ChannelHealth::default())
+        }
+
+        fn check_access(&self, _account: &ChannelAccountConfig, _msg: &MsgContext) -> bool {
+            true
+        }
+
+        fn markdown_to_native(&self, markdown: &str) -> String {
+            markdown.to_string()
+        }
+
+        async fn validate_credentials(&self, _credentials: &serde_json::Value) -> Result<String> {
+            Ok("test-bot".to_string())
+        }
+    }
+
+    #[tokio::test]
+    async fn deliver_split_chunks_pre_final_round_text() {
+        // 2 rounds. Pre-final narration = 200 chars, max chunk = 100 bytes.
+        // Final round = short narration, no media. Validates the regression
+        // where pre-final round used to raw `send_message` past the byte
+        // ceiling on non-streaming channels.
+        let plugin_concrete = Arc::new(CountingPlugin::new(100));
+        let plugin: Arc<dyn ChannelPlugin> = plugin_concrete.clone();
+        let target = DeliveryTarget {
+            account_id: "acc",
+            chat_id: "chat",
+            thread_id: None,
+            reply_to_message_id: None,
+        };
+        let pre_final_text = "A".repeat(200);
+        let rounds = vec![
+            RoundOutput {
+                text: pre_final_text.clone(),
+                medias: Vec::new(),
+            },
+            RoundOutput {
+                text: "final.".to_string(),
+                medias: Vec::new(),
+            },
+        ];
+        let caps = plugin.capabilities();
+
+        let _ = deliver_split(&plugin, &target, &rounds, "fallback", None, 0, &caps).await;
+
+        let sends = plugin_concrete.sends.lock().unwrap().clone();
+
+        // Pre-final 200 bytes / 100 byte ceiling => >=2 chunks.
+        // Final 1 chunk. Total >= 3 send_message calls.
+        assert!(
+            sends.len() >= 3,
+            "expected >=3 send_message calls, got {}: {:?}",
+            sends.len(),
+            sends.iter().map(|s| s.len()).collect::<Vec<_>>()
+        );
+        for (i, s) in sends.iter().enumerate() {
+            assert!(
+                s.len() <= 100,
+                "chunk {} exceeded 100 bytes: {} bytes",
+                i,
+                s.len()
+            );
+        }
+        // Concatenated pre-final chunks should reconstruct the original text
+        // (chunk_text trims leading whitespace between chunks; our input is
+        // pure 'A's so no whitespace effects).
+        let prefinal_chunks: String = sends.iter().take(sends.len() - 1).cloned().collect();
+        assert_eq!(prefinal_chunks, pre_final_text);
+        assert_eq!(sends.last().unwrap(), "final.");
     }
 }

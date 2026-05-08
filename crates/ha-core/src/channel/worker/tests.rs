@@ -22,7 +22,7 @@ fn caps(
         supports_media: Vec::new(),
         supports_typing: true,
         supports_buttons: false,
-        max_message_length: Some(4096),
+        streaming_preview_max_bytes: Some(4096),
         supports_card_stream,
     }
 }
