@@ -12,6 +12,10 @@ interface UseSessionPaginationParams {
   hasMoreAfterRef: React.MutableRefObject<Map<string, boolean>>
   oldestDbIdRef: React.MutableRefObject<Map<string, number>>
   newestDbIdRef: React.MutableRefObject<Map<string, number>>
+  /** Per-session high-watermark of the user's accumulated load-more depth.
+   *  Bumped here on each successful before/after page; reset to 0 by
+   *  `resetToLatest`. Owner: useChatSession. */
+  userPaginatedDepthRef: React.MutableRefObject<Map<string, number>>
   /** Used by `materializeMessages` to find the parent session's agentId
    *  without round-tripping the full session list on every page. */
   sessionsRef: React.MutableRefObject<SessionMeta[]>
@@ -50,6 +54,7 @@ export function useSessionPagination({
   hasMoreAfterRef,
   oldestDbIdRef,
   newestDbIdRef,
+  userPaginatedDepthRef,
   sessionsRef,
   setSessions,
   setMessages,
@@ -130,6 +135,11 @@ export function useSessionPagination({
       oldestDbIdRef.current.set(curSid, olderMsgs[0].id)
       hasMoreRef.current.set(curSid, hasMoreBefore)
       setHasMore(hasMoreBefore)
+      // Bump paginate high-watermark — feeds the dynamic message-cap
+      // calculation in capMessagesAndSyncCursors so user-pulled history
+      // doesn't get reclaimed by the next send.
+      const prevDepth = userPaginatedDepthRef.current.get(curSid) ?? 0
+      userPaginatedDepthRef.current.set(curSid, prevDepth + olderDisplay.length)
 
       setMessages((prev) => {
         const merged = [...olderDisplay, ...prev]
@@ -194,6 +204,10 @@ export function useSessionPagination({
       sessionCacheRef.current.set(curSid, merged)
       newestDbIdRef.current.set(curSid, newerMsgs[newerMsgs.length - 1].id)
       hasMoreAfterRef.current.set(curSid, hasMoreA)
+      // Forward paginate also counts toward the high-watermark — these
+      // are rows the user actively reached for, not free-flowing stream.
+      const prevDepth = userPaginatedDepthRef.current.get(curSid) ?? 0
+      userPaginatedDepthRef.current.set(curSid, prevDepth + fresh.length)
       if (currentSessionIdRef.current === curSid) {
         setMessages(merged)
         setHasMoreAfter(hasMoreA)
@@ -235,6 +249,9 @@ export function useSessionPagination({
       sessionCacheRef.current.set(curSid, display)
       hasMoreRef.current.set(curSid, hasMoreBefore)
       hasMoreAfterRef.current.set(curSid, false)
+      // User abandoned their paginate position — clear the high-watermark
+      // so the dynamic cap returns to the default ceiling.
+      userPaginatedDepthRef.current.set(curSid, 0)
       if (latest.length > 0) {
         oldestDbIdRef.current.set(curSid, latest[0].id)
         newestDbIdRef.current.set(curSid, latest[latest.length - 1].id)

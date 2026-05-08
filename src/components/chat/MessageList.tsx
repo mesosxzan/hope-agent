@@ -146,7 +146,9 @@ export default function MessageList({
       displayedStart !== 0 &&
       (messages.length < prevLength || displayedStart >= messages.length)
     ) {
-      setDisplayedStart(0)
+      // Snap to tail; on a head-trim resetting to 0 would mount every
+      // surviving bubble in a single frame.
+      setDisplayedStart(Math.max(0, messages.length - MAX_DOM_MESSAGES))
     }
   }
   // Refs mirror state/props for the scroll listener which is bound in an

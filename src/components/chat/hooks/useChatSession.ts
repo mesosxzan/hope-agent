@@ -4,10 +4,14 @@ import { getTransport } from "@/lib/transport-provider"
 import { useTranslation } from "react-i18next"
 import { logger } from "@/lib/logger"
 import { notify } from "@/lib/notifications"
-import { materializeMessages } from "../chatUtils"
+import {
+  capMessagesAndSyncCursors,
+  materializeMessages,
+  reloadAndMergeSessionMessages,
+} from "../chatUtils"
 import { useSessionPagination } from "./useSessionPagination"
 import { useChannelStreaming } from "./useChannelStreaming"
-import { PAGE_SIZE } from "./constants"
+import { PAGE_SIZE, SESSION_CACHE_LRU_LIMIT } from "./constants"
 import type {
   Message,
   AvailableModel,
@@ -67,6 +71,12 @@ export interface UseChatSessionReturn {
   loadingSessionsRef: React.MutableRefObject<Set<string>>
   hasMoreRef: React.MutableRefObject<Map<string, boolean>>
   oldestDbIdRef: React.MutableRefObject<Map<string, number>>
+  /** Bound a session's `messages` array to the dynamic cap; used by
+   *  `useChatStream` after appending a user msg / assistant placeholder. */
+  capMessagesForSession: (sessionId: string, msgs: Message[]) => Message[]
+  /** Bump session in LRU; used at session-cache write sites that don't
+   *  otherwise route through `handleSwitchSession`. */
+  touchSessionCacheLru: (sessionId: string) => void
 
   // Handlers
   reloadSessions: () => Promise<void>
@@ -142,6 +152,10 @@ export function useChatSession({
   const hasMoreAfterRef = useRef<Map<string, boolean>>(new Map())
   const oldestDbIdRef = useRef<Map<string, number>>(new Map())
   const newestDbIdRef = useRef<Map<string, number>>(new Map())
+  const userPaginatedDepthRef = useRef<Map<string, number>>(new Map())
+  // De-dupes background reload-and-merge calls so rapid A→B→A switches
+  // don't issue redundant DB reads for the same sid.
+  const inFlightReloadsRef = useRef<Set<string>>(new Set())
   // Mirror of `messages` so `jumpToMessage` can synchronously check whether
   // a target message is already loaded without stale-closure hazards.
   const messagesRef = useRef<Message[]>([])
@@ -189,6 +203,7 @@ export function useChatSession({
     hasMoreAfterRef,
     oldestDbIdRef,
     newestDbIdRef,
+    userPaginatedDepthRef,
     sessionsRef,
     setSessions,
     setMessages,
@@ -255,27 +270,91 @@ export function useChatSession({
     [],
   )
 
-  // Drop every locally-cached trace of a session — used both by explicit
-  // delete and by the incognito close-on-leave purge so the two paths stay
-  // in lockstep and we don't leak entries in any of the per-session refs.
-  const evictSessionLocal = useCallback((sessionId: string) => {
+  // Per-session ref cleanup shared by explicit-delete / incognito purge /
+  // LRU evict. Touches refs only — sidebar state and loading flags are
+  // owned by callers that need them (only `evictSessionLocal` does).
+  const clearPerSessionRefs = useCallback((sessionId: string) => {
     sessionCacheRef.current.delete(sessionId)
-    loadingSessionsRef.current.delete(sessionId)
     hasMoreRef.current.delete(sessionId)
     hasMoreAfterRef.current.delete(sessionId)
     oldestDbIdRef.current.delete(sessionId)
     newestDbIdRef.current.delete(sessionId)
-    setLoadingSessionIds((prev) => {
-      if (!prev.has(sessionId)) return prev
-      const next = new Set(prev)
-      next.delete(sessionId)
-      return next
-    })
-    setSessions((prev) => {
-      const next = prev.filter((s) => s.id !== sessionId)
-      return next.length === prev.length ? prev : next
-    })
+    userPaginatedDepthRef.current.delete(sessionId)
   }, [])
+
+  const evictSessionLocal = useCallback(
+    (sessionId: string) => {
+      clearPerSessionRefs(sessionId)
+      loadingSessionsRef.current.delete(sessionId)
+      setLoadingSessionIds((prev) => {
+        if (!prev.has(sessionId)) return prev
+        const next = new Set(prev)
+        next.delete(sessionId)
+        return next
+      })
+      setSessions((prev) => {
+        const next = prev.filter((s) => s.id !== sessionId)
+        return next.length === prev.length ? prev : next
+      })
+    },
+    [clearPerSessionRefs],
+  )
+
+  // Bump `sessionId` to the tail of the LRU (Map preserves insertion order
+  // — `delete + set` re-orders) and evict the oldest non-protected entries
+  // until we're back under cap. Protected: the active session, and any
+  // session that's both streaming AND still has cache (the `&& has(sid)`
+  // half avoids the "ghost streaming after evict" case where
+  // loadingSessions still references a sid we already dropped).
+  // If every remaining entry is protected, accept temporary overflow.
+  const touchSessionCacheLru = useCallback(
+    (sessionId: string) => {
+      const cache = sessionCacheRef.current
+      if (cache.has(sessionId)) {
+        const v = cache.get(sessionId)!
+        cache.delete(sessionId)
+        cache.set(sessionId, v)
+      }
+      while (cache.size > SESSION_CACHE_LRU_LIMIT) {
+        let evicted = false
+        for (const k of cache.keys()) {
+          const isCurrent = k === currentSessionIdRef.current
+          const isLiveStreaming =
+            loadingSessionsRef.current.has(k) && cache.has(k)
+          if (isCurrent || isLiveStreaming) continue
+          clearPerSessionRefs(k)
+          evicted = true
+          break
+        }
+        if (!evicted) break
+      }
+    },
+    [clearPerSessionRefs],
+  )
+
+  // Post-append hook handed to `useChatStream` so the streaming hook can
+  // bound its messages array without learning the topology of the cap's
+  // per-session refs. Returns `msgs` unchanged when under cap.
+  const capMessagesForSession = useCallback(
+    (sessionId: string, msgs: Message[]): Message[] => {
+      const result = capMessagesAndSyncCursors(
+        sessionId,
+        msgs,
+        userPaginatedDepthRef.current.get(sessionId) ?? 0,
+        oldestDbIdRef,
+        hasMoreRef,
+      )
+      // cap fired (result shorter)? Mirror hasMoreRef into the React
+      // state of the active session — MessageList's "Load More"
+      // affordance reads state, not the ref. Non-current sessions pick
+      // it up on the next handleSwitchSession.
+      if (result !== msgs && currentSessionIdRef.current === sessionId) {
+        setHasMore(true)
+      }
+      return result
+    },
+    [setHasMore],
+  )
 
   const purgeIncognitoSession = useCallback(
     (sessionIdToLeave: string | null) => {
@@ -456,7 +535,9 @@ export function useChatSession({
       const version = ++switchVersionRef.current
 
       // If target session is in cache and we don't need to jump to a specific
-      // message, restore immediately.
+      // message, restore immediately + kick a background reload-and-merge
+      // so any external-channel updates (IM / CLI / cron) made while we
+      // were away converge into the cached view within ~1 RTT.
       const cached = sessionCacheRef.current.get(sessionId)
       if (targetMessageId === undefined && cached) {
         setMessages(cached)
@@ -464,6 +545,31 @@ export function useChatSession({
         setHasMoreAfter(hasMoreAfterRef.current.get(sessionId) ?? false)
         setLoading(loadingSessionsRef.current.has(sessionId))
         setCurrentSessionId(sessionId)
+        touchSessionCacheLru(sessionId)
+        // Background reload — pushes the merged result into the view only
+        // if we're still on this session AND it isn't streaming (streaming
+        // owns the array during a turn; a stale DB batch would clobber
+        // dbId-upgraded placeholders). Cache write inside the helper is
+        // unconditional and safe. The in-flight guard collapses redundant
+        // DB reads when the user rapidly cycles back to the same session.
+        if (!inFlightReloadsRef.current.has(sessionId)) {
+          inFlightReloadsRef.current.add(sessionId)
+          void reloadAndMergeSessionMessages({
+            sessionId,
+            pageSize: PAGE_SIZE,
+            sessionCacheRef,
+            setMessages: (msgs) => {
+              if (
+                currentSessionIdRef.current === sessionId &&
+                !loadingSessionsRef.current.has(sessionId)
+              ) {
+                setMessages(msgs)
+              }
+            },
+          }).finally(() => {
+            inFlightReloadsRef.current.delete(sessionId)
+          })
+        }
       } else {
         try {
           let msgs: SessionMessage[]
@@ -502,11 +608,14 @@ export function useChatSession({
             oldestDbIdRef.current.set(sessionId, msgs[0].id)
             newestDbIdRef.current.set(sessionId, msgs[msgs.length - 1].id)
           }
+          // Cache miss = fresh build, paginate high-watermark restarts at 0.
+          userPaginatedDepthRef.current.set(sessionId, 0)
           setMessages(displayMessages)
           setHasMore(hasMoreBefore)
           setHasMoreAfter(hasMoreAfterFlag)
           setLoading(loadingSessionsRef.current.has(sessionId))
           setCurrentSessionId(sessionId)
+          touchSessionCacheLru(sessionId)
         } catch (e) {
           logger.error("session", "ChatScreen::switchSession", "Failed to load session", {
             sessionId,
@@ -598,6 +707,7 @@ export function useChatSession({
       onSidebarAggregatesChanged,
       setHasMore,
       setHasMoreAfter,
+      touchSessionCacheLru,
     ],
   )
 
@@ -823,6 +933,8 @@ export function useChatSession({
     loadingSessionsRef,
     hasMoreRef,
     oldestDbIdRef,
+    capMessagesForSession,
+    touchSessionCacheLru,
     reloadSessions,
     reloadAgents,
     handleSwitchSession,

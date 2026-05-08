@@ -697,6 +697,8 @@ export default function ChatScreen({
     loadingSessionsRef: session.loadingSessionsRef,
     setLoadingSessionIds: session.setLoadingSessionIds,
     sessionCacheRef: session.sessionCacheRef,
+    capMessagesForSession: session.capMessagesForSession,
+    touchSessionCacheLru: session.touchSessionCacheLru,
     sessions: session.sessions,
     agents: session.agents,
     activeModel,

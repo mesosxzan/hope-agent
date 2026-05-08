@@ -11,6 +11,7 @@ import type {
 } from "@/types/chat"
 import { getTransport } from "@/lib/transport-provider"
 import { hasToolError } from "./message/executionStatus"
+import { MAX_MESSAGES, KEEP_AFTER_CAP } from "./hooks/constants"
 
 /** Parse `__MEDIA_ITEMS__<json>\n<text>` header from a tool result, if present.
  *  Returns the structured items; falls back to undefined on malformed JSON. */
@@ -618,7 +619,47 @@ export function mergeMessagesByDbId(existing: Message[], fresh: Message[]): Mess
       break
     }
   }
+  // Fast-path: nothing actually changed. Returning `existing` lets
+  // `setMessages(existing)` callers hit React's same-reference bail-out
+  // (the cache-hit background reload-and-merge path takes this every
+  // time the user toggles back to a session whose DB hasn't moved).
+  if (
+    newFresh.length === 0 &&
+    merged.length === existing.length &&
+    merged.every((m, i) => m === existing[i])
+  ) {
+    return existing
+  }
   merged.push(...newFresh)
 
   return merged
+}
+
+/**
+ * Bound a session's `messages` array to a runaway-protection ceiling.
+ * Effective cap is dynamic: `MAX_MESSAGES + paginated`, where `paginated` is
+ * the user's accumulated load-more depth — anything actively pulled in stays
+ * headroom rather than being immediately reclaimed.
+ *
+ * On overflow, retains the tail (`KEEP_AFTER_CAP + paginated`) and syncs
+ * `oldestDbIdRef` to the new head + flips `hasMoreRef` true so the dropped
+ * prefix is recoverable via the existing load-more path.
+ */
+export function capMessagesAndSyncCursors(
+  sessionId: string,
+  msgs: Message[],
+  paginated: number,
+  oldestDbIdRef: React.MutableRefObject<Map<string, number>>,
+  hasMoreRef: React.MutableRefObject<Map<string, boolean>>,
+): Message[] {
+  const effectiveCap = MAX_MESSAGES + paginated
+  if (msgs.length <= effectiveCap) return msgs
+  const keepLen = KEEP_AFTER_CAP + paginated
+  const kept = msgs.slice(msgs.length - keepLen)
+  const head = kept[0]
+  if (head && typeof head.dbId === "number") {
+    oldestDbIdRef.current.set(sessionId, head.dbId)
+  }
+  hasMoreRef.current.set(sessionId, true)
+  return kept
 }

@@ -1,4 +1,4 @@
-export const PAGE_SIZE = 30
+export const PAGE_SIZE = 100
 export const SESSION_PAGE_SIZE = 50
 
 /** Cap on the result set returned by `search_sessions_cmd` /
@@ -6,3 +6,17 @@ export const SESSION_PAGE_SIZE = 50
  *  query" hint. Shared between the sidebar global search and the in-chat
  *  find-in-page bar so behaviour stays consistent. */
 export const SEARCH_LIMIT = 200
+
+/** Per-session message-cache LRU capacity. The active session is always
+ *  protected; non-active sessions evict in FIFO order beyond this limit. */
+export const SESSION_CACHE_LRU_LIMIT = 5
+
+/** Default ceiling for an in-memory session's `messages` array (bubble
+ *  count, not byte size). Acts as a runaway-protection floor; the effective
+ *  cap is dynamic = MAX_MESSAGES + userPaginatedDepth so anything the user
+ *  actively pulled in via load-more stays headroom. */
+export const MAX_MESSAGES = 1000
+
+/** When the dynamic cap is exceeded, retain the tail of this length plus
+ *  the user's paginate high-watermark. */
+export const KEEP_AFTER_CAP = 800

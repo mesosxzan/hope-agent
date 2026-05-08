@@ -70,6 +70,14 @@ export interface UseChatStreamOptions {
   loadingSessionsRef: React.MutableRefObject<Set<string>>
   setLoadingSessionIds: React.Dispatch<React.SetStateAction<Set<string>>>
   sessionCacheRef: React.MutableRefObject<Map<string, Message[]>>
+  /** Bound the messages array post-append. Returns `msgs` unchanged when
+   *  under cap. Optional — QuickChat / Window paths don't participate in
+   *  the main-app LRU/cap and can omit. */
+  capMessagesForSession?: (sessionId: string, msgs: Message[]) => Message[]
+  /** Bumps the LRU position of `sessionId`. Called on cache writes that
+   *  don't otherwise route through `handleSwitchSession` (new-session
+   *  rename in particular). */
+  touchSessionCacheLru?: (sessionId: string) => void
   sessions: { id: string; title?: string | null; workingDir?: string | null }[]
   agents: AgentSummaryForSidebar[]
   activeModel: ActiveModel | null
@@ -132,6 +140,8 @@ export function useChatStream({
   loadingSessionsRef,
   setLoadingSessionIds,
   sessionCacheRef,
+  capMessagesForSession,
+  touchSessionCacheLru,
   sessions,
   agents,
   activeModel,
@@ -350,7 +360,13 @@ export function useChatStream({
       ...(options?.isPlanTrigger && { isPlanTrigger: true }),
       ...(options?.planComment && { planComment: options.planComment }),
     }
-    setMessages((prev) => [...prev, optimisticUserMessage])
+    const sidForCap = currentSessionIdRef.current
+    setMessages((prev) => {
+      const next = [...prev, optimisticUserMessage]
+      return sidForCap && capMessagesForSession
+        ? capMessagesForSession(sidForCap, next)
+        : next
+    })
     setLoading(true)
 
     // Process attached files: images → base64 data, non-images → save to disk via Rust
@@ -410,15 +426,20 @@ export function useChatStream({
     // transition via `mergeMessagesByDbId`; see `messageStableId` for how the
     // row key consumes it.
     const assistantPlaceholderTimestamp = new Date().toISOString()
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "assistant",
-        content: "",
-        timestamp: assistantPlaceholderTimestamp,
-        _clientId: assistantPlaceholderClientId,
-      },
-    ])
+    setMessages((prev) => {
+      const next: Message[] = [
+        ...prev,
+        {
+          role: "assistant",
+          content: "",
+          timestamp: assistantPlaceholderTimestamp,
+          _clientId: assistantPlaceholderClientId,
+        },
+      ]
+      return sidForCap && capMessagesForSession
+        ? capMessagesForSession(sidForCap, next)
+        : next
+    })
 
     let targetSessionId = currentSessionId
     let keepExistingStreamLoading = false
@@ -441,6 +462,11 @@ export function useChatStream({
           sessionCacheRef.current.delete("__pending__")
           sessionCacheRef.current.set(event.session_id, current)
         }
+        // Promote the freshly-created session into the LRU. Without this,
+        // a new chat written via this rename path would skip the LRU
+        // bookkeeping done by `handleSwitchSession` and could be evicted
+        // before the user even sees the first response.
+        touchSessionCacheLru?.(event.session_id)
         loadingSessionsRef.current.add(event.session_id)
         setLoadingSessionIds(new Set(loadingSessionsRef.current))
         setCurrentSessionId(event.session_id)
@@ -503,8 +529,12 @@ export function useChatStream({
         }
       }
 
-      // Track loading state for this session
-      const freshMessages = [
+      // Track loading state for this session. The cache write must mirror
+      // what `setMessages` produced — without re-capping here, the first
+      // streaming frame's `updateSessionMessages` would read the
+      // uncapped array back and `setMessages` it, undoing the cap on
+      // every send.
+      const freshMessages: Message[] = [
         ...messages,
         optimisticUserMessage,
         {
@@ -514,12 +544,17 @@ export function useChatStream({
           _clientId: assistantPlaceholderClientId,
         },
       ]
+      const cappedFreshMessages =
+        targetSessionId && capMessagesForSession
+          ? capMessagesForSession(targetSessionId, freshMessages)
+          : freshMessages
       if (targetSessionId) {
         loadingSessionsRef.current.add(targetSessionId)
         setLoadingSessionIds(new Set(loadingSessionsRef.current))
-        sessionCacheRef.current.set(targetSessionId, freshMessages)
+        sessionCacheRef.current.set(targetSessionId, cappedFreshMessages)
+        touchSessionCacheLru?.(targetSessionId)
       } else {
-        sessionCacheRef.current.set("__pending__", freshMessages)
+        sessionCacheRef.current.set("__pending__", cappedFreshMessages)
       }
 
       const modelOverride = activeModel
