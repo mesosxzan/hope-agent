@@ -366,6 +366,7 @@ ha-core 主要领域：`agent/` `chat_engine/` `context_compact/` `memory/` `ski
 - **架构文档强制**：子系统边界 / 数据流 / 持久化格式 / 跨模块 contract 改动须更新对应 `docs/architecture/`；新增架构级能力（新子系统 / 协议层）须同 PR 新建文档并登记到 `docs/README.md`
 - **README 双语同步**：根目录 `README.md`（中文）+ `README.en.md`（英文），任一改动同次提交同步另一份
 - **Release Notes 双语同步**：每版本 `vX.Y.Z.md` + `vX.Y.Z.en.md`，顶部互加 `简体中文 · English` 切换链接
+- **CHANGELOG entry 单行**：每条 changelog 一句话讲用户感知 + `(#PR)` 引用，**不放**文件路径 / 数据结构 / 单测数 / 实现取舍——那些写 PR description 或 [`docs/architecture/`](docs/architecture/)。涉及契约 / 红线变更可加一行用户操作影响（如「首次启动自动迁移」），仍不展开实现。Release notes 可以稍长一段，但同样面向用户视角而不是实现叙事
 
 ### Review Followups 登记（强制）
 

@@ -7,23 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-05-09
+
+维护版本，主修 v0.1.0 在纯净 Windows 上启动报 `MSVCP140_1.dll` / `VCRUNTIME140.dll` 缺失，外加几个独立的修复与治理基线。
+
 ### Changed
 
-- **Windows 安装包自动安装 VC++ 2015-2022 Redistributable**：之前 hope-agent.exe 在没装过 VC++ 运行库的纯净 Windows 上启动会弹「由于找不到 MSVCP140_1.dll，无法继续执行代码」（v0.1.0 多用户实测踩中）。NSIS 安装器现在内嵌 `vc_redist.x64.exe`（CI 通过 `pnpm fetch:vcredist` 从 `aka.ms/vs/17/release/vc_redist.x64.exe` 拉取），主程序装完后 POSTINSTALL hook 静默 `/install /quiet /norestart`——Microsoft 官方安装器在已最新系统上是 idempotent（秒退），无需手动检测；安装后自动 Delete 节省磁盘。仅 Windows 平台带这个文件——通过新增的 [`src-tauri/tauri.windows.conf.json`](src-tauri/tauri.windows.conf.json) 平台特定配置注入 `bundle.resources` + `bundle.windows.nsis.installerHooks`，macOS / Linux bundle 完全不受影响。涉及 [`src-tauri/windows/installer-hooks.nsh`](src-tauri/windows/installer-hooks.nsh)（NSIS POSTINSTALL hook）/ [`scripts/fetch-vcredist.mjs`](scripts/fetch-vcredist.mjs)（下载脚本，Node 20+ `fetch` + `Readable.fromWeb` + `pipeline`，含大小校验 ≥ 10 MB）/ [`.github/workflows/release.yml`](.github/workflows/release.yml)（Windows job 加 `Fetch VC++ Redistributable` 步）/ [`.gitignore`](.gitignore)（`src-tauri/resources/vc_redist.x64.exe` 不入仓）。
+- Windows 安装包内嵌 VC++ 2015-2022 Redistributable + Rust `+crt-static` 静态链接 C runtime，修复 v0.1.0 在纯净 Windows 启动报 `MSVCP140_1.dll` 缺失 (#131)
+- 默认 Agent ID 从 `"default"` 改名为 `"ha-main"` (#130)。**首次启动自动迁移**：磁盘目录 / SQLite `agent_id` 列 / `config.json` / cron payload 全部 rename，落 sentinel 防重跑
+- OSS 治理基线：补 `SECURITY.md` / `CONTRIBUTING.md` 中英双语、`CODEOWNERS` 锁关键路径、`[workspace.package]` 统一 MIT 元数据
 
-- **Rust 自身静态链接 C runtime（`+crt-static`）**：新增 [`src-tauri/.cargo/config.toml`](src-tauri/.cargo/config.toml) 给 `x86_64-pc-windows-msvc` 与 `aarch64-pc-windows-msvc` 两个 target 加 `rustflags = ["-C", "target-feature=+crt-static"]`，让 Rust 自身代码不再依赖 `VCRUNTIME140.dll` / `MSVCP140.dll` 等动态 C runtime 库——即使用户机器从未装过 VC++ Redistributable 也能跑 hope-agent.exe，跟 NSIS hook 内嵌 vcredist 形成双保险（hook 仍然兜底 native sys crate 引入的独立 C++ 依赖）。代价：Windows 二进制体积 +几 MB。
+### Fixed
 
-### Security
-
-- **CI 校验 vcredist 来源签名**：[`.github/workflows/release.yml`](.github/workflows/release.yml) Windows job 在 `pnpm fetch:vcredist` 后增加 `Verify VC++ Redistributable Authenticode signature` 步——用 PowerShell `Get-AuthenticodeSignature` 校验下载文件的 Authenticode 状态为 `Valid` 且签名 subject 含 `CN=Microsoft Corporation`，校验不过即 fail build。防止 `aka.ms` 短链 / Microsoft CDN 被中间人攻击时，把篡改后的 exe 打进 release 并在用户机器上提权执行。
-
-- **NSIS hook 接受 vcredist 退出码、失败时弹错误对话框**：[`installer-hooks.nsh`](src-tauri/windows/installer-hooks.nsh) 之前 `ExecWait` 拿到退出码 `$0` 后未做任何判断，下载损坏 / 杀毒拦截 / 磁盘满等场景会被静默吞掉，hope-agent 安装看似成功但启动仍报 DLL 缺失。现在显式接受 `0`（已装）/ `1638`（已是最新）/ `3010`（成功但需重启）三个 Microsoft 标准成功码，其它码 `DetailPrint` 失败码 + 弹 `MessageBox` 告知用户「Hope Agent 已装但 vcredist 失败」并附 `aka.ms` 手动下载链接。
-
-- **停止发布 Windows MSI artifact**：[`src-tauri/tauri.windows.conf.json`](src-tauri/tauri.windows.conf.json) 加 `bundle.targets: ["nsis"]`，Windows release 不再产出 WiX `*.msi`（之前会同时产 `*.msi` + `*.msi.sig` × 2 语种共 4 个 artifact）。原因：`installerHooks` 仅对 NSIS 生效，MSI 走 WiX 没有等价的 vcredist 嵌入 / POSTINSTALL 入口，下载 MSI 的用户仍会撞 DLL 缺失。Hope Agent 当前阶段没有需要 MSI 的企业组策略 / IT 部署场景，统一走 NSIS `*-setup.exe`；如需企业部署，后续单独评估 WiX merge module 或 bootstrapper。
+- `local_llm` watchdog 在没装 Ollama 的机器上不再每 60s 刷屏「Ollama is unreachable」 (#127)
+- OpenClaw 导入兼容性：接受 legacy `model` 字符串值，`MEMORY.md` + SQLite memory chunks 正确导入到 Hope memory (#128)
+- 设置面板若干窄容器下「Test Connection」/「Add」按钮被挤压变形 (#132)
+- `useSessionPagination` 三个 `useCallback` 补缺失依赖对齐 `react-hooks/exhaustive-deps` (#129)
 
 ### Documentation
 
-- **README Windows 启动 DLL 缺失提示**：根目录 [`README.md`](README.md) + [`README.en.md`](README.en.md) 在 macOS「已损坏 / 无法验证开发者」段后追加 Windows blockquote，遇到 `MSVCP140_1.dll` / `VCRUNTIME140.dll` 缺失时引导用户安装 VC++ 2015-2022 Redistributable。本期同时落地了安装器内嵌方案（见 Changed 段），对 v0.1.0 老安装包用户继续作为兜底说明保留。
+- README 中英双语补 macOS 启动报「已损坏 / 无法验证开发者」（`xattr` + `codesign`）与 Windows 启动报 DLL 缺失的处理说明
+- README 缘起段强化「跨设备、跨入口接续」动机，简化安装表述
+
+### Security
+
+- CI 校验下载的 `vc_redist.x64.exe` Authenticode 签名，防 `aka.ms` 短链 / CDN 中间人攻击
+- NSIS POSTINSTALL hook 显式接受 vcredist 退出码，失败弹对话框附 `aka.ms` 手动下载链接，不再静默吞错
+
+### Removed
+
+- 不再发布 Windows MSI 安装包，统一走 NSIS `*-setup.exe`——`installerHooks` 仅对 NSIS 生效，MSI 仍会撞 DLL 缺失
 
 ## [0.1.0] - 2026-05-08
 
