@@ -9,9 +9,19 @@
 //! - **Last reviewed**: 2026-05-05
 
 pub mod api;
+pub mod api_approval;
+pub mod api_bitable;
+pub mod api_calendar;
+pub mod api_contact;
+pub mod api_docx;
+pub mod api_drive;
+pub mod api_hire;
+pub mod api_wiki;
 pub mod auth;
 pub mod data_cache;
 pub mod format;
+pub mod inbound_events;
+pub mod inbound_media;
 pub mod media;
 pub mod proto;
 pub mod ws_event;
@@ -162,7 +172,9 @@ impl ChannelPlugin for FeishuPlugin {
                 MediaType::Photo,
                 MediaType::Video,
                 MediaType::Audio,
+                MediaType::Voice,
                 MediaType::Document,
+                MediaType::Sticker,
             ],
             supports_typing: false,
             supports_buttons: true,
@@ -174,7 +186,7 @@ impl ChannelPlugin for FeishuPlugin {
     async fn start_account(
         &self,
         account: &ChannelAccountConfig,
-        inbound_tx: mpsc::Sender<MsgContext>,
+        inbound_tx: mpsc::Sender<InboundEvent>,
         cancel: CancellationToken,
     ) -> Result<()> {
         let (app_id, app_secret, domain) = Self::extract_credentials(&account.credentials)?;
@@ -449,6 +461,26 @@ impl ChannelPlugin for FeishuPlugin {
         let api = FeishuApi::new(auth);
         let info = api.get_bot_info().await?;
         Ok(info.app_name)
+    }
+
+    async fn materialize_pending_media(
+        &self,
+        account: &ChannelAccountConfig,
+        msg: &mut MsgContext,
+    ) -> Result<()> {
+        let pending = inbound_media::take_pending_refs(msg);
+        if pending.is_empty() {
+            return Ok(());
+        }
+        let api = self.get_account(&account.id).await?;
+        for parsed in &pending {
+            if let Some(m) =
+                inbound_media::materialize_inbound(&api, &msg.message_id, parsed, &account.id).await
+            {
+                msg.media.push(m);
+            }
+        }
+        Ok(())
     }
 }
 

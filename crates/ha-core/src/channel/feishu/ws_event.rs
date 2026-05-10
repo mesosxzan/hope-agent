@@ -14,6 +14,8 @@ use crate::channel::ws;
 
 use super::api::FeishuApi;
 use super::data_cache::DataCache;
+use super::inbound_events;
+use super::inbound_media;
 use super::proto::{Frame, Header};
 use super::HOPE_CALLBACK_KEY;
 
@@ -76,7 +78,6 @@ struct MessageInfo {
     chat_id: Option<String>,
     chat_type: Option<String>,
     content: Option<String>,
-    #[allow(dead_code)]
     message_type: Option<String>,
     #[serde(default)]
     mentions: Option<Vec<MentionInfo>>,
@@ -120,7 +121,7 @@ pub async fn run_feishu_gateway(
     api: Arc<FeishuApi>,
     account_id: String,
     bot_open_id: String,
-    inbound_tx: mpsc::Sender<MsgContext>,
+    inbound_tx: mpsc::Sender<InboundEvent>,
     cancel: CancellationToken,
 ) {
     let mut reconnect_attempts: usize = 0;
@@ -425,7 +426,7 @@ async fn handle_frame(
     cache: &DataCache,
     account_id: &str,
     bot_open_id: &str,
-    inbound_tx: &mpsc::Sender<MsgContext>,
+    inbound_tx: &mpsc::Sender<InboundEvent>,
 ) -> anyhow::Result<Option<Duration>> {
     let frame =
         Frame::decode(bytes).map_err(|e| anyhow::anyhow!("Failed to decode pbbp2 frame: {}", e))?;
@@ -523,7 +524,7 @@ async fn handle_data_frame(
     cache: &DataCache,
     account_id: &str,
     bot_open_id: &str,
-    inbound_tx: &mpsc::Sender<MsgContext>,
+    inbound_tx: &mpsc::Sender<InboundEvent>,
 ) -> anyhow::Result<()> {
     let ty = find_header(&frame, HK_TYPE).unwrap_or("");
     if ty != TY_EVENT && ty != TY_CARD {
@@ -577,13 +578,33 @@ async fn handle_data_frame(
             Ok(())
         }
         _ => {
-            app_debug!(
-                "channel",
-                "feishu:gateway",
-                "[{}] Ignoring event type: {}",
-                account_id,
-                event_type
-            );
+            // Try the non-message event dispatcher (reactions / recalls /
+            // read receipts / membership / chat lifecycle). Returns false
+            // if the event_type isn't one we surface yet — fall through to
+            // the debug log so unknown events stay diagnosable.
+            if let Some(event_data) = parsed.event {
+                let recognized = inbound_events::try_dispatch_non_message(
+                    event_type, event_data, account_id, inbound_tx,
+                )
+                .await;
+                if !recognized {
+                    app_debug!(
+                        "channel",
+                        "feishu:gateway",
+                        "[{}] Ignoring event type: {}",
+                        account_id,
+                        event_type
+                    );
+                }
+            } else {
+                app_debug!(
+                    "channel",
+                    "feishu:gateway",
+                    "[{}] Ignoring event type with empty payload: {}",
+                    account_id,
+                    event_type
+                );
+            }
             Ok(())
         }
     };
@@ -634,11 +655,19 @@ async fn send_ack(conn: &mut ws::WsConnection, src: Frame, code: i32) -> anyhow:
 }
 
 /// Process an `im.message.receive_v1` event and forward as MsgContext.
+///
+/// Media parsing happens here (cheap, sync) but downloads are deferred —
+/// the parsed refs ride along inside the outgoing `MsgContext.raw` and the
+/// dispatcher invokes `ChannelPlugin::materialize_pending_media` only after
+/// access + mention gating clears. This keeps the WS event-data ack on
+/// schedule (the gateway expects sub-second turnaround) and avoids
+/// downloading attachments from messages that were never going to be
+/// processed (e.g. a non-mentioned image in a group chat).
 async fn handle_message_event(
     event_data: serde_json::Value,
     account_id: &str,
     bot_open_id: &str,
-    inbound_tx: &mpsc::Sender<MsgContext>,
+    inbound_tx: &mpsc::Sender<InboundEvent>,
 ) -> anyhow::Result<()> {
     let evt: MessageReceiveEvent = serde_json::from_value(event_data.clone())
         .map_err(|e| anyhow::anyhow!("Failed to parse message receive event: {}", e))?;
@@ -670,6 +699,15 @@ async fn handle_message_event(
             .map(|t| clean_mention_tags(&t))
     });
 
+    // Parse media refs (sync, no I/O). Actual download is deferred to
+    // the dispatcher via `ChannelPlugin::materialize_pending_media`.
+    let pending_media = match (message.message_type.as_deref(), message.content.as_deref()) {
+        (Some(msg_type), Some(content_str)) if !message_id.is_empty() => {
+            inbound_media::parse_message_media(msg_type, content_str, account_id)
+        }
+        _ => Vec::new(),
+    };
+
     // Check if the bot was mentioned in this message
     let was_mentioned = message
         .mentions
@@ -683,6 +721,9 @@ async fn handle_message_event(
             })
         })
         .unwrap_or(false);
+
+    let mut raw = event_data;
+    inbound_media::embed_pending_refs(&mut raw, pending_media);
 
     let msg = MsgContext {
         channel_id: ChannelId::Feishu,
@@ -700,10 +741,10 @@ async fn handle_message_event(
         reply_to_message_id: None,
         timestamp: chrono::Utc::now(),
         was_mentioned,
-        raw: event_data,
+        raw,
     };
 
-    if let Err(e) = inbound_tx.send(msg).await {
+    if let Err(e) = inbound_tx.send(InboundEvent::Message(msg)).await {
         app_warn!(
             "channel",
             "feishu:gateway",
@@ -766,7 +807,7 @@ fn clean_mention_tags(text: &str) -> String {
 async fn handle_card_action(
     event_data: &serde_json::Value,
     account_id: &str,
-    inbound_tx: &mpsc::Sender<MsgContext>,
+    inbound_tx: &mpsc::Sender<InboundEvent>,
 ) {
     let Some(value) = extract_hope_callback(event_data) else {
         app_warn!(
@@ -809,7 +850,7 @@ async fn inject_slash_callback(
     rest: &str,
     event_data: &serde_json::Value,
     account_id: &str,
-    inbound_tx: &mpsc::Sender<MsgContext>,
+    inbound_tx: &mpsc::Sender<InboundEvent>,
 ) {
     let chat_id = event_str_at(event_data, "/context/open_chat_id");
     let sender_id = event_str_at(event_data, "/operator/open_id");
@@ -1012,10 +1053,14 @@ mod tests {
             }
         });
 
-        let (tx, mut rx) = mpsc::channel::<MsgContext>(1);
+        let (tx, mut rx) = mpsc::channel::<InboundEvent>(1);
         inject_slash_callback("think low", &event, "feishu-acc1", &tx).await;
 
-        let msg = rx.try_recv().expect("expected synthesized inbound message");
+        let event = rx.try_recv().expect("expected synthesized inbound event");
+        let msg = match event {
+            InboundEvent::Message(m) => m,
+            other => panic!("expected Message variant, got {:?}", other),
+        };
         assert!(matches!(msg.channel_id, ChannelId::Feishu));
         assert_eq!(msg.account_id, "feishu-acc1");
         assert_eq!(msg.chat_id, "oc_chat456");
@@ -1035,7 +1080,7 @@ mod tests {
             "context": {},
         });
 
-        let (tx, mut rx) = mpsc::channel::<MsgContext>(1);
+        let (tx, mut rx) = mpsc::channel::<InboundEvent>(1);
         inject_slash_callback("think low", &event, "acc", &tx).await;
         // Empty chat_id — must NOT push a half-baked MsgContext (would confuse
         // the worker downstream).

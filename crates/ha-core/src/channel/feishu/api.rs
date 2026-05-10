@@ -110,8 +110,15 @@ impl FeishuApi {
         }
     }
 
+    /// The Feishu base URL (`https://open.feishu.cn` etc.), exposed to
+    /// sibling `api_<module>.rs` files so they can build endpoint URLs
+    /// without duplicating domain resolution.
+    pub(super) fn base_url(&self) -> &str {
+        &self.base_url
+    }
+
     /// Get an authorized request builder with the current access token.
-    async fn authorized_request(
+    pub(super) async fn authorized_request(
         &self,
         method: reqwest::Method,
         url: &str,
@@ -128,7 +135,11 @@ impl FeishuApi {
     /// messages so callers can disambiguate ("card create" vs "delete
     /// message"). Returns `Ok(None)` when the response carries no `data`
     /// (some endpoints like update / delete legitimately omit it on success).
-    async fn parse_envelope<T>(&self, resp: reqwest::Response, label: &str) -> Result<Option<T>>
+    pub(super) async fn parse_envelope<T>(
+        &self,
+        resp: reqwest::Response,
+        label: &str,
+    ) -> Result<Option<T>>
     where
         T: serde::de::DeserializeOwned,
     {
@@ -350,9 +361,128 @@ impl FeishuApi {
         Ok(data.file_key)
     }
 
+    /// GET /open-apis/im/v1/messages/{message_id}/resources/{key}?type={image|file}
+    ///
+    /// Download the binary content of a resource referenced by an inbound
+    /// message. `resource_type` must be `"image"` for `image_key` references
+    /// (image messages) and `"file"` for `file_key` references (file / audio
+    /// / video / sticker messages).
+    /// Download an `im/v1/messages/.../resources/...` attachment directly
+    /// to `dest`, streaming each HTTP chunk to disk so the full body never
+    /// materializes in memory — a single user-sent video can be hundreds
+    /// of MB. Returns the on-disk byte count on success. On any failure
+    /// (network, HTTP error, cap overrun) the partial file at `dest` is
+    /// removed so we never leave a half-written attachment that callers
+    /// could mistake for a complete download.
+    pub async fn download_resource_to_file(
+        &self,
+        message_id: &str,
+        key: &str,
+        resource_type: &str,
+        dest: &std::path::Path,
+    ) -> Result<u64> {
+        use futures_util::StreamExt;
+        use tokio::io::AsyncWriteExt;
+
+        let url = format!(
+            "{}/open-apis/im/v1/messages/{}/resources/{}?type={}",
+            self.base_url, message_id, key, resource_type
+        );
+        let resp = self
+            .authorized_request(reqwest::Method::GET, &url)
+            .await?
+            .send()
+            .await
+            .map_err(|e| anyhow!("Failed to download Feishu resource '{}': {}", key, e))?;
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp
+                .text()
+                .await
+                .map_err(|e| anyhow!("Failed to read Feishu resource error body: {}", e))?;
+            return Err(anyhow!(
+                "Feishu resource download HTTP {} (key='{}', type='{}'): {}",
+                status,
+                key,
+                resource_type,
+                crate::truncate_utf8(&body, 512)
+            ));
+        }
+
+        // Reject early if the server advertises a body over the cap —
+        // saves us opening a file for clearly oversize attachments.
+        if let Some(len) = resp.content_length() {
+            if len > super::inbound_media::INBOUND_DOWNLOAD_MAX_BYTES {
+                return Err(anyhow!(
+                    "Feishu resource '{}' size {} bytes exceeds {} cap",
+                    key,
+                    len,
+                    super::inbound_media::INBOUND_DOWNLOAD_MAX_BYTES
+                ));
+            }
+        }
+
+        let mut file = tokio::fs::File::create(dest).await.map_err(|e| {
+            anyhow!(
+                "Failed to open destination {:?} for Feishu resource '{}': {}",
+                dest,
+                key,
+                e
+            )
+        })?;
+
+        let mut total: u64 = 0;
+        let mut stream = resp.bytes_stream();
+        while let Some(chunk) = stream.next().await {
+            let chunk = match chunk {
+                Ok(c) => c,
+                Err(e) => {
+                    abort_partial_download(dest).await;
+                    return Err(anyhow!(
+                        "Failed to read Feishu resource bytes (key='{}'): {}",
+                        key,
+                        e
+                    ));
+                }
+            };
+            let next_total = total.saturating_add(chunk.len() as u64);
+            if next_total > super::inbound_media::INBOUND_DOWNLOAD_MAX_BYTES {
+                drop(file);
+                abort_partial_download(dest).await;
+                return Err(anyhow!(
+                    "Feishu resource '{}' exceeds {} byte cap mid-stream",
+                    key,
+                    super::inbound_media::INBOUND_DOWNLOAD_MAX_BYTES
+                ));
+            }
+            if let Err(e) = file.write_all(&chunk).await {
+                drop(file);
+                abort_partial_download(dest).await;
+                return Err(anyhow!(
+                    "Failed to write Feishu resource '{}' to {:?}: {}",
+                    key,
+                    dest,
+                    e
+                ));
+            }
+            total = next_total;
+        }
+        if let Err(e) = file.flush().await {
+            drop(file);
+            abort_partial_download(dest).await;
+            return Err(anyhow!(
+                "Failed to flush Feishu resource '{}' to {:?}: {}",
+                key,
+                dest,
+                e
+            ));
+        }
+        Ok(total)
+    }
+
     /// Generic multipart POST: send `form`, decode `{code, msg, data}`, return `data`.
     /// `label` only appears in error messages to disambiguate image vs file uploads.
-    async fn upload_multipart<T: serde::de::DeserializeOwned>(
+    pub(super) async fn upload_multipart<T: serde::de::DeserializeOwned>(
         &self,
         url: &str,
         form: reqwest::multipart::Form,
@@ -779,7 +909,44 @@ impl FeishuApi {
     }
 }
 
-fn build_part(
+/// Best-effort cleanup of a partially-written download. `download_resource_to_file`
+/// uses this on every error path so we never leave a truncated file at
+/// `dest` that callers could mistake for a complete download.
+async fn abort_partial_download(dest: &std::path::Path) {
+    if let Err(e) = tokio::fs::remove_file(dest).await {
+        if e.kind() != std::io::ErrorKind::NotFound {
+            app_warn!(
+                "channel",
+                "feishu",
+                "Failed to clean up partial inbound download {:?}: {}",
+                dest,
+                e
+            );
+        }
+    }
+}
+
+/// Append a percent-encoded query string to `url`. No-op for empty `params`;
+/// otherwise writes `?k1=v1&k2=v2…`. Sibling `api_<module>.rs` modules use
+/// this so each endpoint's pagination / filter assembly stays identical.
+pub(super) fn append_query(url: &mut String, params: &[(&str, String)]) {
+    if params.is_empty() {
+        return;
+    }
+    url.push('?');
+    let mut first = true;
+    for (k, v) in params {
+        if !first {
+            url.push('&');
+        }
+        first = false;
+        url.push_str(k);
+        url.push('=');
+        url.push_str(&urlencoding::encode(v));
+    }
+}
+
+pub(super) fn build_part(
     bytes: Vec<u8>,
     filename: &str,
     mime: &str,
@@ -847,5 +1014,43 @@ mod tests {
             card_stream_error_from_code(99999, "unknown"),
             CardStreamError::Other(_)
         ));
+    }
+}
+
+#[cfg(test)]
+pub(super) mod test_support {
+    //! Shared wiremock fixtures for `api_*.rs` tests. Each sibling test
+    //! module mounts the auth-token endpoint and builds a [`FeishuApi`]
+    //! pointed at the mock server — extracted here so the boilerplate
+    //! lives in one place.
+
+    use std::sync::Arc;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    use super::FeishuApi;
+    use crate::channel::feishu::auth::FeishuAuth;
+
+    /// Mount the `/open-apis/auth/v3/tenant_access_token/internal/` endpoint
+    /// on `server` and return a [`FeishuApi`] pointed at it. The token
+    /// returned (`"t-fake-token"`) is what subsequent tests can match
+    /// against in the `Authorization: Bearer …` header if they care.
+    pub async fn mock_api(server: &MockServer) -> FeishuApi {
+        Mock::given(method("POST"))
+            .and(path("/open-apis/auth/v3/tenant_access_token/internal/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 0,
+                "msg": "ok",
+                "tenant_access_token": "t-fake-token",
+                "expire": 7200
+            })))
+            .mount(server)
+            .await;
+        let domain = server.uri();
+        FeishuApi::new(Arc::new(FeishuAuth::new(
+            "cli_test",
+            "secret_test",
+            &domain,
+        )))
     }
 }
