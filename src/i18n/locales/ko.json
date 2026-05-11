@@ -459,6 +459,27 @@
       "titleBarInherited": "프로젝트에서 상속됨",
       "titleBarSession": "작업 디렉터리",
       "truncated": "첫 항목만 표시합니다 — 이 디렉터리는 브라우저에 모두 표시하기에 너무 큽니다."
+    },
+    "exportSession": {
+      "menuItem": "대화 내보내기",
+      "dialogTitle": "대화 내보내기",
+      "dialogHint": "형식을 선택하고 포함할 항목을 체크하세요.",
+      "formatLabel": "형식",
+      "formatMarkdown": "Markdown",
+      "formatJson": "JSON",
+      "formatHtml": "HTML",
+      "contentLabel": "포함 항목",
+      "includeTools": "도구 호출 포함",
+      "includeToolsHint": "도구 인수·결과 및 파일 변경 사항.",
+      "includeThinking": "사고 과정 포함",
+      "includeThinkingHint": "모델의 추론 단계(생각의 흐름).",
+      "exportButton": "내보내기",
+      "exporting": "내보내는 중…",
+      "exported": "완료",
+      "failedShort": "실패",
+      "savedTo": "{{path}} 에 내보냈습니다",
+      "downloaded": "{{filename}} 을(를) 다운로드했습니다",
+      "failed": "대화 내보내기에 실패했습니다."
     }
   },
   "codexAuth": {

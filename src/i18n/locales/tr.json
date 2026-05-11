@@ -459,6 +459,27 @@
       "titleBarInherited": "Projeden devralındı",
       "titleBarSession": "Çalışma dizini",
       "truncated": "Yalnızca ilk girdiler gösteriliyor — bu dizin tarayıcının tamamını göstermesi için çok büyük."
+    },
+    "exportSession": {
+      "menuItem": "Sohbeti dışa aktar",
+      "dialogTitle": "Sohbeti dışa aktar",
+      "dialogHint": "Bir biçim seçin ve nelerin dahil edileceğini işaretleyin.",
+      "formatLabel": "Biçim",
+      "formatMarkdown": "Markdown",
+      "formatJson": "JSON",
+      "formatHtml": "HTML",
+      "contentLabel": "İçerik",
+      "includeTools": "Araç çağrılarını dahil et",
+      "includeToolsHint": "Araç argümanları, sonuçları ve dosya değişiklikleri.",
+      "includeThinking": "Düşünme adımlarını dahil et",
+      "includeThinkingHint": "Modelin akıl yürütme blokları (düşünce zinciri).",
+      "exportButton": "Dışa aktar",
+      "exporting": "Dışa aktarılıyor…",
+      "exported": "Tamamlandı",
+      "failedShort": "Hata",
+      "savedTo": "{{path}} konumuna aktarıldı",
+      "downloaded": "{{filename}} indirildi",
+      "failed": "Sohbet dışa aktarılamadı."
     }
   },
   "codexAuth": {

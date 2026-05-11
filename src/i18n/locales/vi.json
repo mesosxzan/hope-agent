@@ -459,6 +459,27 @@
       "titleBarInherited": "Kế thừa từ dự án",
       "titleBarSession": "Thư mục làm việc",
       "truncated": "Chỉ hiển thị các mục đầu tiên — thư mục này quá lớn để trình duyệt hiển thị hết."
+    },
+    "exportSession": {
+      "menuItem": "Xuất cuộc trò chuyện",
+      "dialogTitle": "Xuất cuộc trò chuyện",
+      "dialogHint": "Chọn định dạng và tích chọn nội dung cần đưa vào.",
+      "formatLabel": "Định dạng",
+      "formatMarkdown": "Markdown",
+      "formatJson": "JSON",
+      "formatHtml": "HTML",
+      "contentLabel": "Nội dung",
+      "includeTools": "Bao gồm lệnh gọi công cụ",
+      "includeToolsHint": "Tham số, kết quả công cụ và thay đổi tệp.",
+      "includeThinking": "Bao gồm quá trình suy luận",
+      "includeThinkingHint": "Khối suy luận của mô hình (chuỗi suy nghĩ).",
+      "exportButton": "Xuất",
+      "exporting": "Đang xuất…",
+      "exported": "Đã xuất",
+      "failedShort": "Lỗi",
+      "savedTo": "Đã xuất tới {{path}}",
+      "downloaded": "Đã tải {{filename}}",
+      "failed": "Không thể xuất cuộc trò chuyện."
     }
   },
   "codexAuth": {

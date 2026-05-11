@@ -459,6 +459,27 @@
       "titleBarInherited": "繼承自專案",
       "titleBarSession": "目前工作目錄",
       "truncated": "僅顯示前若干條——該目錄條目過多，瀏覽器無法全部展示。"
+    },
+    "exportSession": {
+      "menuItem": "匯出對話",
+      "dialogTitle": "匯出對話",
+      "dialogHint": "選擇匯出格式,並勾選需要包含的內容。",
+      "formatLabel": "格式",
+      "formatMarkdown": "Markdown",
+      "formatJson": "JSON",
+      "formatHtml": "HTML",
+      "contentLabel": "包含內容",
+      "includeTools": "包含工具呼叫",
+      "includeToolsHint": "工具參數、執行結果與檔案變更。",
+      "includeThinking": "包含思考過程",
+      "includeThinkingHint": "模型在每輪回覆前的推理過程。",
+      "exportButton": "匯出",
+      "exporting": "匯出中…",
+      "exported": "已匯出",
+      "failedShort": "失敗",
+      "savedTo": "已匯出至 {{path}}",
+      "downloaded": "已下載 {{filename}}",
+      "failed": "匯出失敗。"
     }
   },
   "codexAuth": {

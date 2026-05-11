@@ -459,6 +459,27 @@
       "titleBarInherited": "Diwarisi daripada projek",
       "titleBarSession": "Direktori kerja",
       "truncated": "Hanya entri pertama dipaparkan — direktori ini terlalu besar untuk pelayar memaparkan keseluruhannya."
+    },
+    "exportSession": {
+      "menuItem": "Eksport perbualan",
+      "dialogTitle": "Eksport perbualan",
+      "dialogHint": "Pilih format dan tetapkan apa yang hendak disertakan.",
+      "formatLabel": "Format",
+      "formatMarkdown": "Markdown",
+      "formatJson": "JSON",
+      "formatHtml": "HTML",
+      "contentLabel": "Kandungan",
+      "includeTools": "Sertakan panggilan alat",
+      "includeToolsHint": "Argumen, hasil dan perubahan fail.",
+      "includeThinking": "Sertakan proses pemikiran",
+      "includeThinkingHint": "Blok penaakulan model (rantaian pemikiran).",
+      "exportButton": "Eksport",
+      "exporting": "Mengeksport…",
+      "exported": "Selesai",
+      "failedShort": "Gagal",
+      "savedTo": "Dieksport ke {{path}}",
+      "downloaded": "Dimuat turun {{filename}}",
+      "failed": "Gagal mengeksport perbualan."
     }
   },
   "codexAuth": {

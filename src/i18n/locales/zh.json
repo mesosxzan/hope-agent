@@ -459,6 +459,27 @@
       "titleBarInherited": "继承自项目",
       "titleBarSession": "当前工作目录",
       "truncated": "仅显示前若干条——该目录条目过多，浏览器无法全部展示。"
+    },
+    "exportSession": {
+      "menuItem": "导出对话",
+      "dialogTitle": "导出对话",
+      "dialogHint": "选择导出格式,并勾选需要包含的内容。",
+      "formatLabel": "格式",
+      "formatMarkdown": "Markdown",
+      "formatJson": "JSON",
+      "formatHtml": "HTML",
+      "contentLabel": "包含内容",
+      "includeTools": "包含工具调用",
+      "includeToolsHint": "工具参数、执行结果与文件改动。",
+      "includeThinking": "包含思考过程",
+      "includeThinkingHint": "模型在每轮回答前的推理过程。",
+      "exportButton": "导出",
+      "exporting": "导出中…",
+      "exported": "已导出",
+      "failedShort": "失败",
+      "savedTo": "已导出至 {{path}}",
+      "downloaded": "已下载 {{filename}}",
+      "failed": "导出失败。"
     }
   },
   "codexAuth": {

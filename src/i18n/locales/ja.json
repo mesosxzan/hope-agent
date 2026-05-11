@@ -459,6 +459,27 @@
       "titleBarInherited": "プロジェクトから継承",
       "titleBarSession": "作業ディレクトリ",
       "truncated": "先頭のエントリのみ表示しています — このディレクトリは大きすぎて全件を表示できません。"
+    },
+    "exportSession": {
+      "menuItem": "会話をエクスポート",
+      "dialogTitle": "会話のエクスポート",
+      "dialogHint": "形式を選び、含める内容にチェックを入れてください。",
+      "formatLabel": "形式",
+      "formatMarkdown": "Markdown",
+      "formatJson": "JSON",
+      "formatHtml": "HTML",
+      "contentLabel": "含める内容",
+      "includeTools": "ツール呼び出しを含める",
+      "includeToolsHint": "ツールの引数・結果・ファイル差分。",
+      "includeThinking": "思考過程を含める",
+      "includeThinkingHint": "モデルの推論ブロック(思考の連鎖)。",
+      "exportButton": "エクスポート",
+      "exporting": "エクスポート中…",
+      "exported": "エクスポート済み",
+      "failedShort": "失敗",
+      "savedTo": "{{path}} にエクスポートしました",
+      "downloaded": "{{filename}} をダウンロードしました",
+      "failed": "会話のエクスポートに失敗しました。"
     }
   },
   "codexAuth": {

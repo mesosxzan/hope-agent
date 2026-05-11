@@ -459,6 +459,27 @@
       "titleBarInherited": "Inherited from project",
       "titleBarSession": "Working directory",
       "truncated": "Only the first entries are shown — this directory is larger than the browser can display."
+    },
+    "exportSession": {
+      "menuItem": "Export conversation",
+      "dialogTitle": "Export conversation",
+      "dialogHint": "Choose a format and select what to include.",
+      "formatLabel": "Format",
+      "formatMarkdown": "Markdown",
+      "formatJson": "JSON",
+      "formatHtml": "HTML",
+      "contentLabel": "Content",
+      "includeTools": "Include tool calls",
+      "includeToolsHint": "Tool arguments and results, with file diffs.",
+      "includeThinking": "Include thinking",
+      "includeThinkingHint": "The model's reasoning blocks (chain-of-thought).",
+      "exportButton": "Export",
+      "exporting": "Exporting…",
+      "exported": "Exported",
+      "failedShort": "Failed",
+      "savedTo": "Exported to {{path}}",
+      "downloaded": "Downloaded {{filename}}",
+      "failed": "Failed to export the conversation."
     }
   },
   "codexAuth": {

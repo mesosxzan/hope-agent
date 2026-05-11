@@ -12,6 +12,8 @@ import type {
   PickedImage,
   DirListing,
   FileSearchResponse,
+  ExportSessionArgs,
+  ExportSessionResult,
 } from "@/lib/transport";
 import type { MediaItem } from "@/types/chat";
 
@@ -642,6 +644,32 @@ function appendQueryParams(url: string, params: Record<string, unknown>): string
   return url.includes("?") ? `${url}&${qs}` : `${url}?${qs}`;
 }
 
+/**
+ * Best-effort parse of an RFC 6266 / RFC 5987 `Content-Disposition` header.
+ * Prefers `filename*=UTF-8''<percent-encoded>` (which the server emits for
+ * non-ASCII titles) and falls back to the ASCII `filename="..."`.
+ */
+function parseDispositionFilename(disposition: string): string | null {
+  if (!disposition) return null;
+  const star = disposition.match(/filename\*\s*=\s*([^;]+)/i);
+  if (star) {
+    const value = star[1].trim();
+    const m = value.match(/^([^']*)'([^']*)'(.+)$/);
+    if (m) {
+      try {
+        return decodeURIComponent(m[3]);
+      } catch {
+        // fall through to ASCII fallback
+      }
+    }
+  }
+  const ascii = disposition.match(/filename\s*=\s*"([^"]+)"/i);
+  if (ascii) return ascii[1];
+  const bare = disposition.match(/filename\s*=\s*([^;]+)/i);
+  if (bare) return bare[1].trim();
+  return null;
+}
+
 function normalizeCommandResponse(command: string, value: unknown): unknown {
   if (
     command === "list_sessions_cmd" &&
@@ -1057,6 +1085,29 @@ export class HttpTransport implements Transport {
     // Response already has camelCase keys and matches `DirListing` exactly;
     // assert the shape and return without a per-entry remap.
     return (await res.json()) as DirListing;
+  }
+
+  async exportSession(args: ExportSessionArgs): Promise<ExportSessionResult | null> {
+    const url = new URL(
+      `${this.baseUrl}/api/sessions/${encodeURIComponent(args.sessionId)}/export`,
+    );
+    url.searchParams.set("format", args.format);
+    url.searchParams.set("includeThinking", String(args.includeThinking));
+    url.searchParams.set("includeTools", String(args.includeTools));
+    const headers: Record<string, string> = {};
+    if (this.apiKey) headers["Authorization"] = `Bearer ${this.apiKey}`;
+    const res = await fetch(url.toString(), { method: "GET", headers });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(text || `export failed: ${res.status}`);
+    }
+    const disposition = res.headers.get("content-disposition") ?? "";
+    const filename =
+      parseDispositionFilename(disposition) ??
+      args.defaultFilename ??
+      `session.${args.format}`;
+    const blob = await res.blob();
+    return { filename, blob };
   }
 
   async searchFiles(root: string, q: string, limit?: number): Promise<FileSearchResponse> {

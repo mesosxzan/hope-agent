@@ -459,6 +459,27 @@
       "titleBarInherited": "Heredado del proyecto",
       "titleBarSession": "Directorio de trabajo",
       "truncated": "Sólo se muestran las primeras entradas — este directorio es demasiado grande para el navegador."
+    },
+    "exportSession": {
+      "menuItem": "Exportar conversación",
+      "dialogTitle": "Exportar conversación",
+      "dialogHint": "Elige un formato y selecciona qué incluir.",
+      "formatLabel": "Formato",
+      "formatMarkdown": "Markdown",
+      "formatJson": "JSON",
+      "formatHtml": "HTML",
+      "contentLabel": "Contenido",
+      "includeTools": "Incluir llamadas a herramientas",
+      "includeToolsHint": "Argumentos, resultados y cambios en archivos.",
+      "includeThinking": "Incluir razonamiento",
+      "includeThinkingHint": "Bloques de razonamiento del modelo (cadena de pensamiento).",
+      "exportButton": "Exportar",
+      "exporting": "Exportando…",
+      "exported": "Exportado",
+      "failedShort": "Error",
+      "savedTo": "Exportado a {{path}}",
+      "downloaded": "Descargado {{filename}}",
+      "failed": "No se pudo exportar la conversación."
     }
   },
   "codexAuth": {

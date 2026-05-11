@@ -459,6 +459,27 @@
       "titleBarInherited": "موروث من المشروع",
       "titleBarSession": "دليل العمل",
       "truncated": "يتم عرض أول مجموعة من العناصر فقط — هذا الدليل أكبر من أن يعرضه المتصفح كاملاً."
+    },
+    "exportSession": {
+      "menuItem": "تصدير المحادثة",
+      "dialogTitle": "تصدير المحادثة",
+      "dialogHint": "اختر تنسيقًا وحدّد ما تريد تضمينه.",
+      "formatLabel": "التنسيق",
+      "formatMarkdown": "Markdown",
+      "formatJson": "JSON",
+      "formatHtml": "HTML",
+      "contentLabel": "المحتوى",
+      "includeTools": "تضمين استدعاءات الأدوات",
+      "includeToolsHint": "وسيطات الأدوات ونتائجها وتغييرات الملفات.",
+      "includeThinking": "تضمين التفكير",
+      "includeThinkingHint": "كتل تفكير النموذج (سلسلة الأفكار).",
+      "exportButton": "تصدير",
+      "exporting": "جارٍ التصدير…",
+      "exported": "تم التصدير",
+      "failedShort": "فشل",
+      "savedTo": "تم التصدير إلى {{path}}",
+      "downloaded": "تم تنزيل {{filename}}",
+      "failed": "تعذّر تصدير المحادثة."
     }
   },
   "codexAuth": {

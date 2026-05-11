@@ -459,6 +459,27 @@
       "titleBarInherited": "Наследовано от проекта",
       "titleBarSession": "Рабочий каталог",
       "truncated": "Показаны только первые записи — каталог слишком велик для отображения целиком."
+    },
+    "exportSession": {
+      "menuItem": "Экспортировать беседу",
+      "dialogTitle": "Экспорт беседы",
+      "dialogHint": "Выберите формат и отметьте, что включить.",
+      "formatLabel": "Формат",
+      "formatMarkdown": "Markdown",
+      "formatJson": "JSON",
+      "formatHtml": "HTML",
+      "contentLabel": "Включить",
+      "includeTools": "Включить вызовы инструментов",
+      "includeToolsHint": "Аргументы, результаты и изменения файлов.",
+      "includeThinking": "Включить рассуждения",
+      "includeThinkingHint": "Блоки рассуждений модели (цепочка мыслей).",
+      "exportButton": "Экспорт",
+      "exporting": "Экспорт…",
+      "exported": "Готово",
+      "failedShort": "Ошибка",
+      "savedTo": "Сохранено в {{path}}",
+      "downloaded": "Скачано {{filename}}",
+      "failed": "Не удалось экспортировать беседу."
     }
   },
   "codexAuth": {

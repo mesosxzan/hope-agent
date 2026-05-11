@@ -460,6 +460,7 @@ pub fn run() {
             commands::session::mark_session_read_cmd,
             commands::session::mark_session_read_batch_cmd,
             commands::session::mark_all_sessions_read_cmd,
+            commands::session::export_session_cmd,
             // Project management
             commands::project::list_projects_cmd,
             commands::project::get_project_cmd,
