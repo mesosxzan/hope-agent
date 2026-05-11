@@ -118,12 +118,15 @@ jobs:
           git config user.name  "hope-agent-bot"
           git config user.email "hope-agent-bot@users.noreply.github.com"
 
-          if git diff --quiet Casks/hope-agent.rb; then
+          # Stage first so the diff check sees both new and modified files.
+          # `git diff` alone ignores untracked paths, which made the first
+          # sync (when Casks/hope-agent.rb did not exist yet) silently skip.
+          git add Casks/hope-agent.rb
+          if git diff --cached --quiet; then
             echo "No cask changes for $TAG; skipping push."
             exit 0
           fi
 
-          git add Casks/hope-agent.rb
           git commit -m "hope-agent ${{ steps.ver.outputs.version }}
 
           DMG sha256: ${{ steps.sha.outputs.sha256 }}
