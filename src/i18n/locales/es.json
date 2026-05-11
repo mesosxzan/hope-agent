@@ -3612,6 +3612,7 @@
     "webSearchNeedsConfig": "Requiere configuración",
     "webSearchNeedsKey": "Requiere clave",
     "webSearchProviderBrave": "Brave Search",
+    "webSearchProviderBocha": "Bocha AI Search",
     "webSearchProviderDDG": "DuckDuckGo",
     "webSearchProviderGoogle": "Google Custom Search",
     "webSearchProviderGrok": "Grok (X.AI)",
