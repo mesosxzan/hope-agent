@@ -36,7 +36,6 @@ function parseMediaItemsHeader(result: string): MediaItem[] | undefined {
  *  sub-agent result, cron trigger, plan-mode approve/resume) rather than as
  *  a user/assistant bubble. */
 export function isCenteredSystemMessage(msg: Message): boolean {
-  if (isUserAlignedMessage(msg)) return false
   return (
     msg.role === "event" ||
     !!msg.isSubagentResult ||
@@ -499,15 +498,20 @@ export async function reloadAndMergeSessionMessages(params: {
   setMessages: (msgs: Message[]) => void
 }): Promise<void> {
   const { sessionId, pageSize, sessionCacheRef, setMessages } = params
-  const existing = sessionCacheRef.current.get(sessionId) ?? []
-  const limit = Math.max(pageSize, existing.length)
+  const existingAtRequestStart = sessionCacheRef.current.get(sessionId) ?? []
+  const limit = Math.max(pageSize, existingAtRequestStart.length)
   try {
     const [msgs] = await getTransport().call<[SessionMessage[], number, boolean]>(
       "load_session_messages_latest_cmd",
       { sessionId, limit },
     )
     const fresh = parseSessionMessages(msgs)
-    const merged = mergeMessagesByDbId(existing, fresh)
+    const existing = sessionCacheRef.current.get(sessionId) ?? existingAtRequestStart
+    const merged = preserveMessagesAppendedDuringReload(
+      mergeMessagesByDbId(existing, fresh),
+      existingAtRequestStart,
+      existing,
+    )
     sessionCacheRef.current.set(sessionId, merged)
     setMessages(merged)
   } catch {
@@ -515,6 +519,57 @@ export async function reloadAndMergeSessionMessages(params: {
     // the next session switch — swallowing here matches the pre-refactor
     // behavior on each of the three call sites.
   }
+}
+
+function hasStableMessageIdentity(msg: Message): boolean {
+  return typeof msg.dbId === "number" || !!msg._clientId
+}
+
+function stableMessageIdentityMatches(a: Message, b: Message): boolean {
+  if (
+    typeof a.dbId === "number" &&
+    typeof b.dbId === "number" &&
+    a.dbId === b.dbId
+  ) {
+    return true
+  }
+  return !!a._clientId && !!b._clientId && a._clientId === b._clientId
+}
+
+function sameTransientMessage(a: Message, b: Message): boolean {
+  if (a === b) return true
+  if (stableMessageIdentityMatches(a, b)) return true
+  if (hasStableMessageIdentity(a) || hasStableMessageIdentity(b)) return false
+  return a.role === b.role && a.timestamp === b.timestamp && a.content === b.content
+}
+
+function messagesAppendedAfterSnapshot(
+  snapshot: Message[],
+  latest: Message[],
+): Message[] {
+  if (latest.length <= snapshot.length) return []
+  for (let i = 0; i < snapshot.length; i++) {
+    if (!sameTransientMessage(snapshot[i], latest[i])) return []
+  }
+  return latest.slice(snapshot.length)
+}
+
+function preserveMessagesAppendedDuringReload(
+  merged: Message[],
+  snapshotAtRequestStart: Message[],
+  latestExisting: Message[],
+): Message[] {
+  const appended = messagesAppendedAfterSnapshot(snapshotAtRequestStart, latestExisting)
+  if (appended.length === 0) return merged
+
+  const missing = appended.filter(
+    (msg) =>
+      !merged.some(
+        (mergedMsg) =>
+          mergedMsg === msg || stableMessageIdentityMatches(mergedMsg, msg),
+      ),
+  )
+  return missing.length > 0 ? [...merged, ...missing] : merged
 }
 
 // Compare two Message snapshots for the purpose of preserving the existing
