@@ -89,7 +89,7 @@ volumes:
 
 ## 浏览器自动化
 
-镜像内置了 Debian trixie 仓库的 `chromium`（约增加 250 MB 镜像体积），让 `profile.op=launch headless=true` 在容器内开箱即用。Agent 调用浏览器工具时会自动用 headless 模式启动这个 Chromium，无需额外配置。
+镜像内置了 Debian trixie 仓库的 `chromium`（约增加 250 MB 镜像体积）。容器内默认带 `HA_DEPLOYMENT=docker`，所以 Agent 调用浏览器工具时会自动用 headless 模式启动这个 Chromium，并附加容器所需的 sandbox 兼容参数，无需额外配置。
 
 如果你的部署不需要浏览器能力（例如纯 IM 机器人），可以 fork 仓库后从 [`Dockerfile`](../../Dockerfile) 的 runtime 阶段移除 `chromium` 及其依赖（`fonts-liberation` / `libnss3` / `libgbm1` / `libxss1`），重建后镜像更小。
 

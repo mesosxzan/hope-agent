@@ -21,6 +21,15 @@ use crate::paths::{browser_profile_dir, browser_profiles_dir};
 pub struct BrowserProfileInfo {
     pub name: String,
     pub path: String,
+    /// True for built-in profiles (`managed`, `user_attach`).
+    pub is_builtin: bool,
+    /// True when this profile data directory is managed by the settings panel
+    /// and can be removed from there.
+    pub can_delete: bool,
+    /// Resolved profile default after config + environment fallback.
+    pub headless: bool,
+    /// True when cookies / logins are meant to survive disconnect.
+    pub persistent: bool,
     /// Disk size (bytes) of the profile directory, best-effort.
     pub size_bytes: u64,
     /// Last modified timestamp of the profile directory (unix secs), if known.
@@ -56,8 +65,15 @@ pub struct BrowserStatus {
 pub struct LaunchOptions {
     pub profile: Option<String>,
     pub executable_path: Option<String>,
+    /// `None` = inherit the profile's configured default (per-profile
+    /// `headless` in settings, then the environment default). `Some(_)` is a
+    /// one-shot override from this specific call. Previously a bare
+    /// `bool` with `#[serde(default)]`, which silently degraded every
+    /// browser-launch coming in over HTTP/UI without an explicit headless
+    /// field into `headless=false` — broke server / Docker deployments
+    /// whose profile is configured headless.
     #[serde(default)]
-    pub headless: bool,
+    pub headless: Option<bool>,
 }
 
 // ── Profile management ──────────────────────────────────────────────────
@@ -129,36 +145,54 @@ pub async fn list_profiles() -> Result<Vec<BrowserProfileInfo>> {
         }
     };
 
+    let mut names: std::collections::BTreeSet<String> = crate::browser::profile::list_profiles()
+        .into_iter()
+        .map(|p| p.name)
+        .collect();
+
+    if let Ok(entries) = std::fs::read_dir(&root) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let name = match path.file_name().and_then(|n| n.to_str()) {
+                Some(n) => n.to_string(),
+                None => continue,
+            };
+            if validate_profile_name(&name).is_ok() {
+                names.insert(name);
+            }
+        }
+    }
+
     let mut out = Vec::new();
-    let entries = match std::fs::read_dir(&root) {
-        Ok(e) => e,
-        Err(_) => return Ok(out),
-    };
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if !path.is_dir() {
-            continue;
-        }
-        let name = match path.file_name().and_then(|n| n.to_str()) {
-            Some(n) => n.to_string(),
-            None => continue,
-        };
+    for name in names {
         if validate_profile_name(&name).is_err() {
-            // Skip anything that doesn't look like a profile we manage
+            // Skip config leftovers that do not look like a profile we manage.
             continue;
         }
+        let resolved = crate::browser::profile::resolve_profile(&name)?;
+        let path = resolved.user_data_dir.clone();
+        let default_dir = browser_profile_dir(&name)?;
+        let is_builtin = name == crate::browser::profile::BUILTIN_MANAGED
+            || name == crate::browser::profile::BUILTIN_USER_ATTACH;
+        let can_delete = !is_builtin && default_dir.exists();
         let size = dir_size_bytes(&path);
         let last = last_modified_secs(&path);
         let is_active = active_profile.as_deref() == Some(name.as_str());
         out.push(BrowserProfileInfo {
             name,
             path: path.to_string_lossy().to_string(),
+            is_builtin,
+            can_delete,
+            headless: resolved.headless,
+            persistent: resolved.persistent,
             size_bytes: size,
             last_used_at: last,
             is_active,
         });
     }
-    out.sort_by_key(|p| p.name.to_lowercase());
     Ok(out)
 }
 
@@ -173,6 +207,10 @@ pub async fn create_profile(name: &str) -> Result<BrowserProfileInfo> {
     Ok(BrowserProfileInfo {
         name: name.to_string(),
         path: dir.to_string_lossy().to_string(),
+        is_builtin: false,
+        can_delete: true,
+        headless: crate::browser::profile::default_headless_for_environment(),
+        persistent: true,
         size_bytes: 0,
         last_used_at: last_modified_secs(&dir),
         is_active: false,
@@ -181,6 +219,11 @@ pub async fn create_profile(name: &str) -> Result<BrowserProfileInfo> {
 
 pub async fn delete_profile(name: &str) -> Result<()> {
     validate_profile_name(name)?;
+    if name == crate::browser::profile::BUILTIN_MANAGED
+        || name == crate::browser::profile::BUILTIN_USER_ATTACH
+    {
+        return Err(anyhow!("Built-in profile '{}' cannot be deleted", name));
+    }
 
     // Reject if this profile is currently connected — user must disconnect first.
     {
@@ -205,10 +248,23 @@ pub async fn delete_profile(name: &str) -> Result<()> {
 // ── Lifecycle ───────────────────────────────────────────────────────────
 
 async fn collect_tabs() -> Vec<BrowserTabInfo> {
-    let st = get_browser_state().lock().await;
-    let mut tabs = Vec::with_capacity(st.pages.len());
-    let active = st.active_page_id.clone();
-    for (target_id, page) in st.pages.iter() {
+    // Snapshot phase: hold the lock only long enough to clone the active
+    // tab id + page handles. The CDP round-trips (`page.url()`,
+    // `page.evaluate("document.title")`) happen with the lock released so
+    // a slow tab doesn't queue every other browser_state consumer (the
+    // settings BrowserPanel polls this every refresh).
+    let (active, handles) = {
+        let st = get_browser_state().lock().await;
+        let active = st.active_page_id.clone();
+        let handles: Vec<(String, chromiumoxide::Page)> = st
+            .pages
+            .iter()
+            .map(|(id, page)| (id.clone(), page.clone()))
+            .collect();
+        (active, handles)
+    };
+    let mut tabs = Vec::with_capacity(handles.len());
+    for (target_id, page) in &handles {
         let url = page.url().await.ok().flatten().unwrap_or_default();
         let title: String = page
             .evaluate("document.title")
@@ -220,7 +276,7 @@ async fn collect_tabs() -> Vec<BrowserTabInfo> {
             target_id: target_id.clone(),
             url,
             title,
-            is_active: active.as_deref() == Some(target_id),
+            is_active: active.as_deref() == Some(target_id.as_str()),
         });
     }
     tabs
@@ -233,12 +289,15 @@ pub async fn get_status() -> Result<BrowserStatus> {
     let (connected, profile, connection_url, mode) = {
         let st = get_browser_state().lock().await;
         let connected = st.is_connected();
+        // `chrome_child.is_some()` is the source of truth for whether we
+        // own the Chrome process. `connection_url` is now populated in both
+        // launch and connect paths so it can't disambiguate the two.
         let mode = if !connected {
             None
-        } else if st.connection_url.is_some() {
-            Some("connect".to_string())
-        } else {
+        } else if st.has_chrome_child() {
             Some("launch".to_string())
+        } else {
+            Some("connect".to_string())
         };
         (
             connected,
@@ -251,10 +310,7 @@ pub async fn get_status() -> Result<BrowserStatus> {
     let tabs = if connected {
         // Best-effort refresh so the panel shows tabs opened via the real
         // Chrome window; swallow errors and keep returning whatever we have.
-        let _ = {
-            let mut st = get_browser_state().lock().await;
-            st.refresh_pages().await
-        };
+        let _ = crate::browser_state::refresh_pages_unlocked().await;
         collect_tabs().await
     } else {
         Vec::new()
@@ -273,29 +329,46 @@ pub async fn get_status() -> Result<BrowserStatus> {
 pub async fn launch(opts: LaunchOptions) -> Result<BrowserStatus> {
     if let Some(p) = opts.profile.as_deref() {
         validate_profile_name(p)?;
-        let dir = browser_profile_dir(p)?;
-        std::fs::create_dir_all(&dir)?;
     }
 
-    // Drop any cached backend that points at the previous Chrome handle
-    // before tearing it down — otherwise the tool layer would keep
-    // returning an `Arc<dyn BrowserBackend>` whose chrome-devtools-mcp
-    // subprocess is talking to a closed CDP socket. A concurrent
-    // `acquire_backend` racing during the disconnect/launch window will
-    // block on `BROWSER_STATE.lock()` until the new Chrome is ready, then
-    // observe the correct state — no second reset needed.
+    let profile_name = opts
+        .profile
+        .clone()
+        .unwrap_or_else(crate::browser::profile::default_profile_name);
+    let resolved = crate::browser::profile::resolve_profile(&profile_name)?;
+
+    // `opts.headless = None` means "inherit profile default"; only
+    // `Some(_)` overrides. This matters for HTTP / server deployments where
+    // the profile is configured headless and the request body omits the
+    // field — without the fallback the profile default would be silently
+    // ignored and the launch would try headful in a no-display container.
+    let headless = opts.headless.unwrap_or(resolved.headless);
+
     crate::browser::reset_backend().await;
     {
         let mut st = get_browser_state().lock().await;
-        if st.browser.is_some() {
+        if st.needs_cleanup() {
             st.disconnect().await;
         }
-        st.launch(
-            opts.executable_path.as_deref(),
-            opts.headless,
-            opts.profile.as_deref(),
-        )
-        .await?;
+        let exec_override = opts
+            .executable_path
+            .clone()
+            .filter(|s| !s.trim().is_empty())
+            .or_else(|| resolved.executable.clone());
+        let port = match resolved.port {
+            Some(p) => p,
+            None => crate::browser::spawn::pick_managed_port().await?,
+        };
+        let extra = resolved.extra_args.clone();
+        let spec = crate::browser::spawn::LaunchSpec {
+            profile: &resolved.name,
+            executable: exec_override.as_deref(),
+            user_data_dir: &resolved.user_data_dir,
+            port,
+            headless,
+            extra_args: &extra,
+        };
+        st.spawn_chrome_and_connect(spec).await?;
     }
 
     app_info!(
@@ -303,24 +376,23 @@ pub async fn launch(opts: LaunchOptions) -> Result<BrowserStatus> {
         "ui",
         "Launched browser profile={:?} headless={}",
         opts.profile,
-        opts.headless
+        headless
     );
     get_status().await
 }
 
 pub async fn connect(debug_url: &str) -> Result<BrowserStatus> {
+    // Shared scheme + SSRF guard so settings UI / HTTP / tool path all reject
+    // the same set of dodgy debug URLs. Previously only checked the scheme
+    // here, which would happily pass a public IP / private LAN address into
+    // `Browser::connect` and bypass the SSRF policy.
+    crate::browser::validate_cdp_endpoint_url(debug_url).await?;
     let url = debug_url.trim();
-    if url.is_empty() {
-        return Err(anyhow!("Debug URL is required"));
-    }
-    if !(url.starts_with("http://") || url.starts_with("https://")) {
-        return Err(anyhow!("Debug URL must start with http:// or https://"));
-    }
 
     crate::browser::reset_backend().await;
     {
         let mut st = get_browser_state().lock().await;
-        if st.browser.is_some() {
+        if st.needs_cleanup() {
             st.disconnect().await;
         }
         st.connect(url).await?;
@@ -334,7 +406,7 @@ pub async fn disconnect() -> Result<BrowserStatus> {
     crate::browser::reset_backend().await;
     {
         let mut st = get_browser_state().lock().await;
-        if st.browser.is_some() {
+        if st.needs_cleanup() {
             st.disconnect().await;
         }
     }

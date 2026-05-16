@@ -7,7 +7,6 @@ import { formatBytes } from "@/lib/format"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { IconTip } from "@/components/ui/tooltip"
-import { RadioPills } from "@/components/ui/radio-pills"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Select,
@@ -50,6 +49,10 @@ import {
 interface BrowserProfileInfo {
   name: string
   path: string
+  isBuiltin: boolean
+  canDelete: boolean
+  headless: boolean
+  persistent: boolean
   sizeBytes: number
   lastUsedAt: number | null
   isActive: boolean
@@ -78,12 +81,19 @@ interface LaunchOptions {
 }
 
 type BrowserMode = "managed" | "user_attach"
-type BackendPref = "auto" | "cdp" | "mcp"
 
+// Browser config is partly UI-managed (`defaultMode` lives here only as a
+// remembered tab preference) and partly opaque to this panel — `profiles`,
+// `defaultProfile`, `heartbeatIntervalSecs`, `launchCircuit` etc. live in
+// `AppConfig.browser` and are configured via `config.json` until full inline
+// CRUD lands. We must round-trip those fields unchanged: `browser_set_config`
+// replaces `AppConfig.browser` wholesale, so dropping a field here deletes it
+// in the backend. The index signature lets us read the server JSON whole and
+// echo it back without naming every key.
 interface BrowserConfig {
-  backend?: BackendPref
   defaultMode?: BrowserMode
-  userAttach?: { lastSpawnedPort?: number }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any
 }
 
 interface ProbeUserChromeReport {
@@ -92,25 +102,15 @@ interface ProbeUserChromeReport {
   version?: string
 }
 
-interface SystemChromeReport {
-  brand: string
-  executable: string
-  userDataDir: string
-}
-
 interface RuntimeChromiumReport {
   revision: number
   binaryPath: string
 }
 
 interface BrowserDoctorReport {
-  nodeAvailable: boolean
-  nodeVersion?: string
-  activeBackend?: string
-  preference: BackendPref
   probe: ProbeUserChromeReport
   chromeAlreadyRunning: boolean
-  systemChrome?: SystemChromeReport
+  systemChromePath?: string
   runtimeChromium?: RuntimeChromiumReport
 }
 
@@ -163,9 +163,8 @@ export default function BrowserPanel() {
   // Delete confirm
   const [pendingDelete, setPendingDelete] = useState<BrowserProfileInfo | null>(null)
 
-  // New: Mode + Backend pref + doctor state
+  // Mode + doctor state
   const [browserCfg, setBrowserCfg] = useState<BrowserConfig>({
-    backend: "auto",
     defaultMode: "managed",
   })
   const [savingCfg, setSavingCfg] = useState<boolean>(false)
@@ -197,16 +196,23 @@ export default function BrowserPanel() {
     if (st.status === "fulfilled") setStatus(st.value)
     if (pf.status === "fulfilled") setProfiles(pf.value)
     if (cfg.status === "fulfilled") {
-      const c = cfg.value
+      // Keep the full config snapshot so unrelated fields (profiles,
+      // heartbeatIntervalSecs, launchCircuit, etc.) survive the next
+      // `browser_set_config` round-trip.
       setBrowserCfg({
-        backend: (c.backend ?? "auto") as BackendPref,
-        defaultMode: (c.defaultMode ?? "managed") as BrowserMode,
-        userAttach: c.userAttach,
+        ...cfg.value,
+        defaultMode: (cfg.value.defaultMode ?? "managed") as BrowserMode,
       })
     }
     if (doc.status === "fulfilled") setDoctor(doc.value)
     if (pf.status === "fulfilled" && !selectedProfile && pf.value.length > 0) {
-      setSelectedProfile(pf.value[0].name)
+      const configuredDefault =
+        cfg.status === "fulfilled" && typeof cfg.value.defaultProfile === "string"
+          ? cfg.value.defaultProfile
+          : "managed"
+      const initialProfile = pf.value.find((p) => p.name === configuredDefault) ?? pf.value[0]
+      setSelectedProfile(initialProfile.name)
+      setHeadless(initialProfile.headless)
     }
     if (firstError) {
       logger.error("settings", "BrowserPanel", `Partial refresh failure: ${firstError.reason}`)
@@ -324,10 +330,11 @@ export default function BrowserPanel() {
     setCreating(true)
     setError(null)
     try {
-      await getTransport().call("browser_create_profile", { name })
+      const created = await getTransport().call<BrowserProfileInfo>("browser_create_profile", { name })
       setNewProfileName("")
       await refresh()
       setSelectedProfile(name)
+      setHeadless(created.headless)
     } catch (e) {
       logger.error("settings", "BrowserPanel", `Create profile failed: ${e}`)
       setError(String(e))
@@ -361,10 +368,7 @@ export default function BrowserPanel() {
   const persistCfg = async (next: BrowserConfig) => {
     // Radio bursts produce same-value clicks; short-circuit so we don't
     // hammer config saves + autosave backups + toast spam.
-    if (
-      next.backend === browserCfg.backend &&
-      next.defaultMode === browserCfg.defaultMode
-    ) {
+    if (next.defaultMode === browserCfg.defaultMode) {
       return false
     }
     setBrowserCfg(next)
@@ -385,20 +389,6 @@ export default function BrowserPanel() {
     void persistCfg({ ...browserCfg, defaultMode: mode })
   }
 
-  const onBackendChange = (pref: BackendPref) => {
-    void (async () => {
-      const changed = await persistCfg({ ...browserCfg, backend: pref })
-      if (changed) {
-        toast(t("settings.browser.backendChangeHint"), {
-          action: {
-            label: t("settings.browser.reconnectNow"),
-            onClick: () => onDisconnect(),
-          },
-        })
-      }
-    })()
-  }
-
   const openConfirmSpawn = () => {
     // Use the cached doctor snapshot for the modal copy. The doctor refresh
     // runs on panel mount + every user "Refresh" click, so this is rarely
@@ -416,21 +406,11 @@ export default function BrowserPanel() {
       )
       toast.success(t("settings.browser.spawnUserChrome.spawned", { port: result.port }))
       setConfirmSpawn(null)
-      // Poll the debug port instead of guessing a fixed sleep — Chrome cold
-      // start ranges from a few hundred ms (warm disk) to several seconds
-      // (cold + large user-data-dir). 10 × 300ms = 3s upper bound is enough
-      // for any reasonable boot; if Chrome never comes up the user sees
-      // the existing error path on Connect.
-      for (let i = 0; i < 10; i++) {
-        await new Promise((r) => setTimeout(r, 300))
-        try {
-          const doc = await getTransport().call<BrowserDoctorReport>("browser_doctor")
-          if (doc.probe.found) break
-        } catch {
-          // probe failed transiently; keep polling
-        }
-      }
-      onConnect(result.debugUrl)
+      // `spawn_user_chrome` now performs spawn + connect server-side and
+      // retains the Chrome process handle inside `BrowserState`. Calling
+      // `browser_connect` here would `disconnect()` first and kill the
+      // process we just launched. Just refresh the UI to pick up the new
+      // connection state.
       void refresh()
     } catch (e) {
       logger.error("settings", "BrowserPanel", `spawn-user-chrome failed: ${e}`)
@@ -481,11 +461,6 @@ export default function BrowserPanel() {
                 <div className="text-xs text-muted-foreground truncate">{statusText}</div>
               )}
             </div>
-            {doctor?.activeBackend && (
-              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded">
-                {doctor.activeBackend}
-              </span>
-            )}
             <IconTip label={t("settings.browser.refresh")}>
               <span className="inline-flex">
                 <Button
@@ -578,7 +553,12 @@ export default function BrowserPanel() {
                 <label className="text-sm font-medium">{t("settings.browser.profileLabel")}</label>
                 <Select
                   value={selectedProfile || "__none__"}
-                  onValueChange={(v) => setSelectedProfile(v === "__none__" ? "" : v)}
+                  onValueChange={(v) => {
+                    const next = v === "__none__" ? "" : v
+                    setSelectedProfile(next)
+                    const profile = profiles.find((p) => p.name === next)
+                    if (profile) setHeadless(profile.headless)
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={t("settings.browser.profilePlaceholder")} />
@@ -703,7 +683,7 @@ export default function BrowserPanel() {
                     </div>
                     <IconTip
                       label={
-                        p.isActive
+                        !p.canDelete || p.isActive
                           ? t("settings.browser.deleteDisabledActive")
                           : t("settings.browser.delete")
                       }
@@ -714,7 +694,7 @@ export default function BrowserPanel() {
                           variant="ghost"
                           className="text-destructive hover:text-destructive"
                           onClick={() => setPendingDelete(p)}
-                          disabled={p.isActive}
+                          disabled={p.isActive || !p.canDelete}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -841,17 +821,15 @@ export default function BrowserPanel() {
               <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                 {t("settings.browser.runtimeStatusLabel")}
               </h3>
-              {doctor.systemChrome ? (
+              {doctor.systemChromePath ? (
                 <div className="rounded-md border border-green-500/40 bg-green-500/10 px-3 py-2.5 flex items-start gap-3 text-sm">
                   <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <div className="font-medium">
-                      {t("settings.browser.doctorSystemChrome", {
-                        brand: doctor.systemChrome.brand,
-                      })}
+                      {t("settings.browser.doctorSystemChrome")}
                     </div>
                     <div className="text-xs text-muted-foreground truncate">
-                      {doctor.systemChrome.executable}
+                      {doctor.systemChromePath}
                     </div>
                   </div>
                 </div>
@@ -916,32 +894,6 @@ export default function BrowserPanel() {
             </div>
           )}
 
-          {/* Backend section */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-              {t("settings.browser.backendLabel")}
-            </h3>
-            <RadioPills<BackendPref>
-              value={(browserCfg.backend ?? "auto") as BackendPref}
-              cols="grid-cols-3"
-              options={[
-                { value: "auto", label: t("settings.browser.backendAuto") },
-                { value: "cdp", label: t("settings.browser.backendForceCdp") },
-                { value: "mcp", label: t("settings.browser.backendForceMcp") },
-              ]}
-              onChange={onBackendChange}
-            />
-            {doctor && (
-              <p className="text-xs text-muted-foreground">
-                {doctor.nodeAvailable && doctor.nodeVersion
-                  ? t("settings.browser.nodeDetected", { version: doctor.nodeVersion })
-                  : t("settings.browser.nodeMissing")}
-              </p>
-            )}
-            <p className="text-[11px] text-muted-foreground">
-              {t("settings.browser.backendRestartHint")}
-            </p>
-          </div>
         </div>
       </div>
 

@@ -1,18 +1,15 @@
 //! Browser automation backend abstraction.
 //!
 //! Defines the [`BrowserBackend`] trait that hides "how we drive Chrome" from
-//! the 8-action LLM tool surface. Two implementations live next to this file:
+//! the 8-action LLM tool surface. One implementation lives next to this file:
 //!
 //! - [`super::cdp_backend::CdpBackend`] — direct CDP via `chromiumoxide` (zero
 //!   runtime dependencies, always available).
-//! - [`super::mcp_backend::ChromeMcpBackend`] — `chrome-devtools-mcp` over
-//!   stdio (Google official MCP server; requires Node.js >= 18).
 //!
-//! Selection happens at backend acquisition time via
-//! [`super::backend_select::select_backend`]; the result is cached so a given
-//! browser session sticks with one backend. LLM tool calls never see which
-//! backend is active — the [`backend_name`] hint exists only for telemetry,
-//! the [`BrowserPanel`](../../components/chat/BrowserPanel.tsx) badge, and
+//! The trait is kept as an extension point should we add Playwright /
+//! WebDriver / etc. later. LLM tool calls never see which backend is active —
+//! the [`backend_name`] hint exists only for telemetry, the
+//! [`BrowserPanel`](../../components/chat/BrowserPanel.tsx) badge, and
 //! diagnostics.
 
 use std::collections::HashMap;
@@ -33,18 +30,16 @@ pub struct TabInfo {
     pub is_active: bool,
 }
 
-/// Element reference inside a snapshot. Surface-stable across backends:
-/// CDP backend assigns sequential `ref_id`s, MCP backend maps
-/// `chrome-devtools-mcp`'s opaque `uid` → local `ref_id` via a per-snapshot
-/// table so LLMs always see `[ref=12]` style references.
+/// Element reference inside a snapshot. CDP backend assigns sequential
+/// `ref_id`s so LLMs always see `[ref=12]` style references.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ElementRef {
     pub ref_id: u32,
     pub role: String,
     pub text: String,
-    /// Backend-specific opaque locator (CSS selector for CDP; chrome-devtools-mcp
-    /// `uid` for MCP). The 8-action layer never inspects this; the backend
-    /// uses it internally to actually drive Chrome.
+    /// Backend-specific opaque locator (CSS selector for the CDP backend).
+    /// The 8-action layer never inspects this; the backend uses it
+    /// internally to actually drive Chrome.
     pub locator: String,
     #[serde(default)]
     pub depth: u32,
@@ -73,7 +68,9 @@ pub struct ScreenshotParams {
     pub format: ImageFormat,
     pub full_page: bool,
     pub quality: Option<u8>,
-    /// Optional crop to a specific element (by ref_id).
+    /// Reserved for future per-element cropping (`Page.captureScreenshot`
+    /// `clip`). The current CDP backend ignores this field — the tool
+    /// schema does not expose `ref` for `snapshot.format=screenshot`.
     pub ref_id: Option<u32>,
 }
 
@@ -122,7 +119,6 @@ pub struct PdfParams {
 pub enum ActKind {
     Click,
     DoubleClick,
-    Type,
     Hover,
     Drag,
     Select,
@@ -136,11 +132,15 @@ impl ActKind {
         Some(match s {
             "click" => ActKind::Click,
             "double_click" | "dblclick" => ActKind::DoubleClick,
-            "type" => ActKind::Type,
+            // `type` is an alias of `fill` — we never implemented true
+            // per-character keydown/keyup typing (chromiumoxide 0.9.1 has
+            // no high-level helper and our backend just called act_fill).
+            // Keep the alias so existing LLM tool calls don't error out,
+            // but the schema only advertises `fill` going forward.
+            "type" | "fill" => ActKind::Fill,
             "hover" => ActKind::Hover,
             "drag" => ActKind::Drag,
             "select" => ActKind::Select,
-            "fill" => ActKind::Fill,
             "press" => ActKind::Press,
             "upload" => ActKind::Upload,
             _ => return None,
@@ -155,7 +155,6 @@ pub struct ActParams {
     pub text: Option<String>,
     pub key: Option<String>,
     pub file_path: Option<String>,
-    pub modifiers: Option<Vec<String>>,
     pub values: Option<Vec<String>>,
 }
 
@@ -220,12 +219,32 @@ pub struct BackendStatus {
 /// frame capture, observe-buffer drain).
 #[async_trait]
 pub trait BrowserBackend: Send + Sync {
-    /// Stable identifier for telemetry / BrowserPanel badge. `"cdp"` or `"mcp"`.
+    /// Stable identifier for telemetry / BrowserPanel badge. Currently
+    /// always `"cdp"`; kept as a `&'static str` extension point should we
+    /// add Playwright / WebDriver in the future.
     fn backend_name(&self) -> &'static str;
 
     /// Best-effort connection check. Used by `status` action and for deciding
     /// whether to auto-launch.
+    ///
+    /// **Distinct from [`Self::is_alive`]**: this reports "is a browser
+    /// currently attached" (i.e. Chrome process running). It is allowed
+    /// and expected for a backend to return `false` here without being
+    /// broken — the next call would relaunch the browser. Do NOT use this
+    /// for cache-eviction.
     async fn is_connected(&self) -> bool;
+
+    /// Whether the backend instance itself is still usable. Returns `false`
+    /// only when the in-process state has become permanently broken so that
+    /// rebuilding the backend is the only way out. CDP backend is stateless
+    /// so it always returns `true` here; the underlying Chrome process
+    /// being absent is recoverable via `ensure_connected_or_launch_managed`.
+    ///
+    /// Used by [`super::backend_select::acquire_backend`] to decide
+    /// whether the cached backend can be reused or must be dropped.
+    async fn is_alive(&self) -> bool {
+        true
+    }
 
     /// Return current status snapshot (connected? active tab? tab list?).
     async fn status(&self) -> Result<BackendStatus>;

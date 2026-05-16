@@ -13,6 +13,8 @@ use std::path::{Path, PathBuf};
 
 use crate::paths;
 
+const READY_MARKER: &str = ".hope-agent-ready";
+
 /// Per-platform descriptor for fetching + unpacking the Chromium archive.
 #[derive(Debug, Clone)]
 pub struct RuntimeSpec {
@@ -159,7 +161,12 @@ where
     })?;
     let target_dir = paths::chromium_runtime_dir(spec.revision)?;
     let binary = target_dir.join(spec.binary_relpath);
+    if runtime_ready(&target_dir, &binary) {
+        return Ok(binary);
+    }
     if binary.exists() {
+        smoke_test_binary(&binary).await?;
+        write_ready_marker(&target_dir, &spec)?;
         return Ok(binary);
     }
 
@@ -177,17 +184,55 @@ where
     crate::security::ssrf::check_url(&archive_url, ssrf_cfg.browser(), &ssrf_cfg.trusted_hosts)
         .await?;
 
-    let archive_path = runtime_root.join(format!("{}.tmp.{}", spec.archive_name, spec.revision));
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let archive_path = runtime_root.join(format!(
+        "{}.tmp.{}.{}",
+        spec.archive_name, spec.revision, nonce
+    ));
+    let staging_dir = runtime_root.join(format!(".chromium-{}.{}.tmp", spec.revision, nonce));
 
-    download_streaming(&archive_url, &archive_path, &progress).await?;
-    extract_zip(&archive_path, &target_dir)?;
+    let install_result: Result<PathBuf> = async {
+        download_streaming(&archive_url, &archive_path, &progress).await?;
+        extract_zip(&archive_path, &staging_dir)?;
+        let staged_binary = staging_dir.join(spec.binary_relpath);
+
+        #[cfg(unix)]
+        chmod_executable(&staged_binary)?;
+
+        smoke_test_binary(&staged_binary).await?;
+        write_ready_marker(&staging_dir, &spec)?;
+
+        if target_dir.exists() {
+            std::fs::remove_dir_all(&target_dir).map_err(|e| {
+                anyhow!(
+                    "removing incomplete Chromium runtime {}: {}",
+                    target_dir.display(),
+                    e
+                )
+            })?;
+        }
+        std::fs::rename(&staging_dir, &target_dir).map_err(|e| {
+            anyhow!(
+                "promoting Chromium runtime {} -> {}: {}",
+                staging_dir.display(),
+                target_dir.display(),
+                e
+            )
+        })?;
+
+        Ok(target_dir.join(spec.binary_relpath))
+    }
+    .await;
+
     let _ = std::fs::remove_file(&archive_path);
+    if install_result.is_err() {
+        let _ = std::fs::remove_dir_all(&staging_dir);
+    }
 
-    #[cfg(unix)]
-    chmod_executable(&binary)?;
-
-    smoke_test_binary(&binary).await?;
-    Ok(binary)
+    install_result
 }
 
 async fn download_streaming<F>(url: &str, dest: &Path, progress: &F) -> Result<()>
@@ -195,7 +240,8 @@ where
     F: Fn(u64, Option<u64>) + Send + Sync,
 {
     use std::io::Write;
-    let resp = reqwest::Client::new()
+    let client = crate::provider::apply_proxy_for_url(reqwest::Client::builder(), url).build()?;
+    let resp = client
         .get(url)
         .send()
         .await
@@ -304,6 +350,21 @@ async fn smoke_test_binary(binary: &Path) -> Result<()> {
     Ok(())
 }
 
+fn runtime_ready(target_dir: &Path, binary: &Path) -> bool {
+    binary.exists() && target_dir.join(READY_MARKER).exists()
+}
+
+fn write_ready_marker(target_dir: &Path, spec: &RuntimeSpec) -> Result<()> {
+    std::fs::write(
+        target_dir.join(READY_MARKER),
+        format!(
+            "revision={}\nplatform={}\narchive={}\n",
+            spec.revision, spec.platform_key, spec.archive_name
+        ),
+    )?;
+    Ok(())
+}
+
 /// Quick path: the cached runtime binary path for the current platform.
 /// Returns `None` when nothing's been downloaded yet (or the platform
 /// isn't supported). Used by `build_launch_config` to short-circuit a
@@ -312,7 +373,7 @@ pub fn cached_binary_path() -> Option<PathBuf> {
     let spec = spec_for_current_platform()?;
     let dir = paths::chromium_runtime_dir(spec.revision).ok()?;
     let binary = dir.join(spec.binary_relpath);
-    if binary.exists() {
+    if runtime_ready(&dir, &binary) {
         Some(binary)
     } else {
         None
