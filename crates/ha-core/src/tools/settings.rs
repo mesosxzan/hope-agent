@@ -14,8 +14,19 @@ use crate::user_config;
 /// - `mcp_servers`: the per-server config holds OAuth tokens, command paths and
 ///   trust acknowledgements; writes must go through the GUI which also drives
 ///   the trust dialog and 0600 credential write.
-const BLOCKED_UPDATE_CATEGORIES: &[&str] =
-    &["active_model", "fallback_models", "channels", "mcp_servers"];
+const BLOCKED_UPDATE_CATEGORIES: &[&str] = &[
+    "active_model",
+    "fallback_models",
+    "channels",
+    "mcp_servers",
+    // STT subsystem — providers carry API keys + provider-specific secrets
+    // (e.g. Volcengine app_id / access_key, iFlytek app_id), and the active /
+    // fallback selection writes coordinate with the desktop voice-input
+    // flow + runtime engine cache. Writes must go through Settings → STT.
+    "stt_providers",
+    "active_stt_model",
+    "stt_fallback_models",
+];
 
 /// Risk classification for a settings category.
 /// The skill / model uses this to decide whether to double-confirm with the user.
@@ -66,7 +77,8 @@ fn risk_level(category: &str) -> &'static str {
         | "skills_auto_review"
         | "recall_summary"
         | "tool_call_narration"
-        | "teams" => "medium",
+        | "teams"
+        | "im_auto_transcribe" => "medium",
 
         // ── HIGH ───────────────────────────────────────────────
         "proxy" | "embedding" | "shortcuts" | "skills" | "server" | "acp_control" | "skill_env"
@@ -75,7 +87,14 @@ fn risk_level(category: &str) -> &'static str {
         // Read-only categories — no risk since they can't be mutated here.
         // `channels` and `mcp_servers` are categorized "low" for read because
         // the response is redacted before it reaches the model.
-        "active_model" | "fallback_models" | "channels" | "mcp_servers" | "all" => "low",
+        "active_model"
+        | "fallback_models"
+        | "channels"
+        | "mcp_servers"
+        | "stt_providers"
+        | "active_stt_model"
+        | "stt_fallback_models"
+        | "all" => "low",
 
         _ => "medium",
     }
@@ -138,8 +157,56 @@ fn side_effect_note(category: &str) -> Option<&'static str> {
         "dreaming" => Some(
             "Dreaming runs offline LLM consolidation cycles. Disabling stops idle / cron triggers entirely; promotion thresholds gate which candidates get pinned into long-term memory."
         ),
+        "stt_providers" => Some(
+            "Read-only via this tool. STT provider configs carry API keys (apiKey / authProfiles[*].apiKey) plus provider-specific secrets in `extra` (Volcengine app_id / access_key, iFlytek app_id, Azure region key, etc.). The response from get_settings redacts every secret-bearing field — writes must go through Settings → Speech-to-Text so credentials stay out of conversation logs."
+        ),
+        "active_stt_model" => Some(
+            "Read-only via this tool. STT active model selection — change it in Settings → Speech-to-Text so the desktop voice-input path picks up the new engine without an app restart."
+        ),
+        "stt_fallback_models" => Some(
+            "Read-only via this tool. STT failover chain — change it in Settings → Speech-to-Text."
+        ),
+        "im_auto_transcribe" => Some(
+            "Aggregate view + writer for IM-channel voice auto-transcribe. \
+             Read returns `{ imFallbackModel, accounts: [{ id, label, channelId, autoTranscribeVoice }] }`. \
+             Write accepts `{ imFallbackModel?: { providerId, modelId } | null, accounts?: [{ id, autoTranscribeVoice }] }`: \
+             every field is independently optional, so the model can toggle a single account without restating the fallback or vice versa. \
+             Enabling auto-transcribe consumes STT API quota for every inbound voice message; \
+             without `imFallbackModel` (or `stt.activeModel` as fallback), the dispatcher logs a warning per message and forwards the original audio unchanged. \
+             Original audio is always kept as an attachment alongside the transcript prefix."
+        ),
         _ => None,
     }
+}
+
+/// Redact API keys + `auth_profiles[*].apiKey` + each `extra` value from a
+/// `SttConfig.providers` JSON tree. `extra` keys (e.g. `app_id`, `region`) are
+/// preserved so the model can still describe what's configured; only the
+/// per-key value gets masked via `redact_string_field`.
+fn redact_stt_providers_value(mut value: Value) -> Value {
+    let Some(providers) = value.as_array_mut() else {
+        return value;
+    };
+    for provider in providers.iter_mut() {
+        let Some(obj) = provider.as_object_mut() else {
+            continue;
+        };
+        redact_string_field(obj, "apiKey");
+        if let Some(profiles) = obj.get_mut("authProfiles").and_then(|v| v.as_array_mut()) {
+            for profile in profiles.iter_mut() {
+                if let Some(p) = profile.as_object_mut() {
+                    redact_string_field(p, "apiKey");
+                }
+            }
+        }
+        if let Some(extra) = obj.get_mut("extra").and_then(|v| v.as_object_mut()) {
+            let keys: Vec<String> = extra.keys().cloned().collect();
+            for k in keys {
+                redact_string_field(extra, &k);
+            }
+        }
+    }
+    value
 }
 
 /// Redact secret-bearing fields from a `ChannelStoreConfig` JSON tree before
@@ -374,6 +441,30 @@ fn read_category(category: &str) -> Result<Value> {
             let templates = db.list_team_templates()?;
             Ok(serde_json::to_value(&templates)?)
         }
+        "stt_providers" => Ok(redact_stt_providers_value(serde_json::to_value(
+            &cfg.stt.providers,
+        )?)),
+        "active_stt_model" => Ok(json!({ "activeSttModel": cfg.stt.active_model })),
+        "stt_fallback_models" => Ok(json!({ "fallbackModels": cfg.stt.fallback_models })),
+        "im_auto_transcribe" => {
+            let accounts: Vec<Value> = cfg
+                .channels
+                .accounts
+                .iter()
+                .map(|a| {
+                    json!({
+                        "id": a.id,
+                        "label": a.label,
+                        "channelId": a.channel_id.to_string(),
+                        "autoTranscribeVoice": a.auto_transcribe_voice(),
+                    })
+                })
+                .collect();
+            Ok(json!({
+                "imFallbackModel": cfg.stt.im_fallback_model,
+                "accounts": accounts,
+            }))
+        }
         _ => bail!("Unknown settings category: '{category}'"),
     }
 }
@@ -449,6 +540,14 @@ fn get_all_overview() -> Result<String> {
             "accountCount": cfg.channels.accounts.len(),
             "defaultAgentId": cfg.channels.default_agent_id,
         },
+        "stt": {
+            "providerCount": cfg.stt.providers.len(),
+            "activeModel": cfg.stt.active_model,
+            "fallbackCount": cfg.stt.fallback_models.len(),
+            "imFallbackConfigured": cfg.stt.im_fallback_model.is_some(),
+            "imAutoTranscribeAccountCount":
+                cfg.channels.accounts.iter().filter(|a| a.auto_transcribe_voice()).count(),
+        },
     });
 
     // Expose risk classification so the model can decide when to double-confirm.
@@ -465,7 +564,7 @@ fn get_all_overview() -> Result<String> {
             "deferred_tools", "async_tools", "approval",
             "tool_result_disk_threshold", "ask_user_question_timeout", "plan",
             "skills_auto_review", "recall_summary", "tool_call_narration",
-            "teams"
+            "teams", "im_auto_transcribe"
         ],
         "high": [
             "proxy", "embedding", "shortcuts", "skills", "server",
@@ -473,7 +572,8 @@ fn get_all_overview() -> Result<String> {
             "smart_mode", "mcp_global"
         ],
         "read_only": [
-            "active_model", "fallback_models", "channels", "mcp_servers"
+            "active_model", "fallback_models", "channels", "mcp_servers",
+            "stt_providers", "active_stt_model", "stt_fallback_models"
         ],
     });
 
@@ -520,7 +620,52 @@ pub(crate) async fn tool_update_settings(args: &Value) -> Result<String> {
         return update_session_title_config(values);
     }
 
+    if category == "im_auto_transcribe" {
+        return update_im_auto_transcribe(values);
+    }
+
     update_app_config(category, values).await
+}
+
+/// Update STT IM auto-transcribe config: the global fallback model and any
+/// number of per-account `autoTranscribeVoice` toggles. Both top-level keys
+/// are optional and processed independently.
+fn update_im_auto_transcribe(values: &Value) -> Result<String> {
+    use crate::stt::ActiveSttModel;
+
+    // imFallbackModel can be missing (skip), `null` (clear), or `{providerId, modelId}` (set).
+    if let Some(fallback) = values.get("imFallbackModel") {
+        if fallback.is_null() {
+            crate::stt::set_im_fallback_stt_model(None, "skill")
+                .map_err(|e| anyhow::anyhow!("{}", e))?;
+        } else {
+            let sel: ActiveSttModel = serde_json::from_value(fallback.clone())
+                .map_err(|e| anyhow::anyhow!("imFallbackModel: {}", e))?;
+            crate::stt::set_im_fallback_stt_model(Some(sel), "skill")
+                .map_err(|e| anyhow::anyhow!("{}", e))?;
+        }
+    }
+
+    if let Some(accounts) = values.get("accounts").and_then(|v| v.as_array()) {
+        for entry in accounts {
+            let id = entry
+                .get("id")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow::anyhow!("accounts entry missing `id`"))?;
+            let Some(on) = entry.get("autoTranscribeVoice").and_then(|v| v.as_bool()) else {
+                continue;
+            };
+            crate::channel::accounts::set_account_auto_transcribe_voice(id, on, "skill")?;
+        }
+    }
+
+    let updated_value = read_category("im_auto_transcribe")?;
+    Ok(serde_json::to_string_pretty(&json!({
+        "category": "im_auto_transcribe",
+        "riskLevel": risk_level("im_auto_transcribe"),
+        "updated": true,
+        "settings": updated_value,
+    }))?)
 }
 
 fn update_user_config(values: &Value) -> Result<String> {

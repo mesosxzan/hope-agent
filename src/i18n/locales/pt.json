@@ -234,7 +234,9 @@
     "wechatScannedHint": "QR escaneado. Confirme o login no WeChat.",
     "whatsappBaseUrl": "URL do serviço bridge",
     "whatsappBridgeToken": "Token de autenticação (opcional)",
-    "whatsappHint": "Requer um serviço bridge do WhatsApp em execução. Aponte para sua URL HTTP API."
+    "whatsappHint": "Requer um serviço bridge do WhatsApp em execução. Aponte para sua URL HTTP API.",
+    "autoTranscribeVoice": "Transcrever mensagens de voz automaticamente",
+    "autoTranscribeVoiceHint": "Transcreve voz / áudio recebidos pelo subsistema STT configurado. Cada mensagem consome cota da API STT."
   },
   "chat": {
     "addWorkingDirectory": "Adicionar diretório de trabalho",
@@ -4418,5 +4420,47 @@
     "openaiChatDesc": "Serviços compatíveis com /v1/chat/completions",
     "openaiResponsesDesc": "Serviços compatíveis com /v1/responses",
     "selectApiType": "Selecione o Tipo de API"
+  },
+  "voice": {
+    "record": "Gravar voz",
+    "stop": "Parar",
+    "cancel": "Cancelar",
+    "processing": "Transcrevendo…",
+    "permissionDenied": "Permissão de microfone negada",
+    "noProvider": "Nenhum modelo de fala para texto configurado",
+    "failed": "Falha na transcrição de voz",
+    "empty": "Nenhuma fala detectada",
+    "settings": {
+      "tab": "Fala para texto",
+      "title": "Fala para texto",
+      "subtitle": "Entrada de voz no desktop + transcrição automática em canais IM. Gerencie provedores STT em nuvem e backends OpenAI-compatíveis auto-hospedados.",
+      "activeModel": "Modelo ativo",
+      "activeModelLabel": "Modelo de entrada de voz (desktop)",
+      "batchOnlyHint": "Apenas provedores compatíveis com OpenAI são listados — Deepgram / AssemblyAI / Azure / Volcengine / iFlytek são apenas WS em tempo real e ainda não suportam o fluxo \"gravar e depois transcrever\".",
+      "noModel": "Não configurado",
+      "imFallback": "Modelo de transcrição IM",
+      "imFallbackHint": "Usado por contas IM com autoTranscribeVoice ligado. Sem valor, usa o modelo do desktop.",
+      "imFallbackEmpty": "Usar modelo ativo do desktop",
+      "providers": "Provedores na nuvem",
+      "addProvider": "Adicionar provedor",
+      "editProvider": "Editar provedor",
+      "noProviders": "Nenhum provedor configurado. Adicione OpenAI Whisper, DashScope (Qwen3-ASR), Groq, Deepgram ou qualquer endpoint compatível com OpenAI.",
+      "disabled": "desativado",
+      "localBackends": "Backends locais",
+      "backendAlive": "Detectado",
+      "backendOffline": "Não rodando",
+      "probe": "Testar",
+      "providerName": "Nome de exibição",
+      "providerKind": "Protocolo",
+      "baseUrl": "Base URL",
+      "apiKey": "API Key",
+      "apiKeyMasked": "Vazio para manter a chave existente",
+      "models": "Modelos",
+      "modelsPlaceholder": "whisper-1\\tWhisper\\nqwen3-asr-flash\\tQwen3-ASR Flash",
+      "modelsHint": "Um modelo por linha. Formato: `model_id<TAB>nome`. TAB opcional.",
+      "enabled": "Habilitado",
+      "allowPrivate": "Permitir loopback / rede privada",
+      "allowPrivateHint": "Necessário para servidores locais em 127.0.0.1 / LAN."
+    }
   }
 }

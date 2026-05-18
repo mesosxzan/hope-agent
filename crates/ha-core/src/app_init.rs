@@ -807,6 +807,27 @@ pub async fn start_background_tasks() {
         // on every `config:changed { category: "dreaming" }`.
         crate::memory::dreaming::spawn_dreaming_cron_loop();
 
+        // STT streaming-session GC. Sweeps abandoned sessions every 5
+        // minutes — a front-end crash / lost connection between `start`
+        // and `finalize` would otherwise leak the upstream WS forever.
+        tokio::spawn(async {
+            let mut ticker = tokio::time::interval(std::time::Duration::from_secs(300));
+            ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            ticker.tick().await;
+            loop {
+                ticker.tick().await;
+                let evicted = crate::stt::SttSessionManager::global().gc_idle();
+                if evicted > 0 {
+                    app_info!(
+                        "stt",
+                        "session-gc",
+                        "evicted {} idle STT session(s)",
+                        evicted
+                    );
+                }
+            }
+        });
+
         // One-shot reconciler for orphan project-scoped memory rows. The
         // delete_project cascade touches both `session.db` and `memory.db` and
         // cannot wrap them in a single transaction, so a crash between the two

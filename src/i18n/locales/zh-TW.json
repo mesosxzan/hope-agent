@@ -234,7 +234,9 @@
     "wechatScannedHint": "已掃碼，請在微信中確認授權。",
     "whatsappBaseUrl": "橋接服務地址",
     "whatsappBridgeToken": "認證令牌（可選）",
-    "whatsappHint": "需要運行 WhatsApp 橋接服務，填寫其 HTTP API 地址"
+    "whatsappHint": "需要運行 WhatsApp 橋接服務，填寫其 HTTP API 地址",
+    "autoTranscribeVoice": "自動轉錄語音訊息",
+    "autoTranscribeVoiceHint": "透過 STT 子系統轉錄收到的語音 / 音訊；每則訊息會消耗 STT API 額度。"
   },
   "chat": {
     "addWorkingDirectory": "添加工作目錄",
@@ -4418,5 +4420,47 @@
     "openaiChatDesc": "兼容 /v1/chat/completions 的服務",
     "openaiResponsesDesc": "兼容 /v1/responses 的服務",
     "selectApiType": "選擇 API 類型"
+  },
+  "voice": {
+    "record": "錄音",
+    "stop": "停止",
+    "cancel": "取消",
+    "processing": "辨識中…",
+    "permissionDenied": "麥克風權限被拒絕",
+    "noProvider": "未設定語音辨識模型",
+    "failed": "語音辨識失敗",
+    "empty": "未偵測到語音",
+    "settings": {
+      "tab": "語音辨識",
+      "title": "語音辨識",
+      "subtitle": "桌面語音輸入與 IM 頻道自動轉錄。管理雲端 STT provider 與本地 OpenAI 相容後端。",
+      "activeModel": "預設模型",
+      "activeModelLabel": "桌面語音輸入模型",
+      "batchOnlyHint": "僅列出 OpenAI 相容的 Provider —— Deepgram / AssemblyAI / Azure / 火山豆包 / 訊飛目前僅支援即時 WS，無法用於「先錄音再轉錄」的批次流程。",
+      "noModel": "未設定",
+      "imFallback": "IM 自動轉錄模型",
+      "imFallbackHint": "用於開啟 autoTranscribeVoice 的 IM 帳號;未設定時回退到桌面預設模型。",
+      "imFallbackEmpty": "使用桌面預設模型",
+      "providers": "雲端 Provider",
+      "addProvider": "新增 Provider",
+      "editProvider": "編輯 Provider",
+      "noProviders": "尚未設定 Provider。可新增 OpenAI Whisper、阿里 DashScope (Qwen3-ASR)、Groq、Deepgram 或任意 OpenAI 相容端點。",
+      "disabled": "已停用",
+      "localBackends": "本地後端",
+      "backendAlive": "執行中",
+      "backendOffline": "未執行",
+      "probe": "偵測",
+      "providerName": "顯示名稱",
+      "providerKind": "協定類型",
+      "baseUrl": "Base URL",
+      "apiKey": "API Key",
+      "apiKeyMasked": "留空以保留原 key",
+      "models": "模型清單",
+      "modelsPlaceholder": "whisper-1\\tWhisper\\nqwen3-asr-flash\\tQwen3-ASR Flash",
+      "modelsHint": "每行一個模型,格式 `model_id<TAB>顯示名`,TAB 可省略。",
+      "enabled": "啟用",
+      "allowPrivate": "允許 loopback / 內網",
+      "allowPrivateHint": "本地 127.0.0.1 / 區網後端必須開啟。"
+    }
   }
 }

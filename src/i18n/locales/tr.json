@@ -234,7 +234,9 @@
     "wechatScannedHint": "QR tarandı. WeChat'te girişi onaylayın.",
     "whatsappBaseUrl": "Bridge servis URL'si",
     "whatsappBridgeToken": "Kimlik doğrulama tokenı (isteğe bağlı)",
-    "whatsappHint": "Çalışan bir WhatsApp bridge servisi gerektirir. HTTP API URL'sini gösterin."
+    "whatsappHint": "Çalışan bir WhatsApp bridge servisi gerektirir. HTTP API URL'sini gösterin.",
+    "autoTranscribeVoice": "Sesli mesajları otomatik yazıya dök",
+    "autoTranscribeVoiceHint": "Gelen ses / sesli mesajları yapılandırılmış STT alt sistemiyle yazıya döker. Her mesaj STT API kotanızdan tüketir."
   },
   "chat": {
     "addWorkingDirectory": "Çalışma dizini ekle",
@@ -4418,5 +4420,47 @@
     "openaiChatDesc": "/v1/chat/completions uyumlu servisler",
     "openaiResponsesDesc": "/v1/responses uyumlu servisler",
     "selectApiType": "API Türü Seçin"
+  },
+  "voice": {
+    "record": "Ses kaydet",
+    "stop": "Durdur",
+    "cancel": "İptal",
+    "processing": "Yazıya dökülüyor…",
+    "permissionDenied": "Mikrofon izni reddedildi",
+    "noProvider": "Konuşma tanıma modeli ayarlı değil",
+    "failed": "Ses yazıya dökme başarısız",
+    "empty": "Konuşma algılanmadı",
+    "settings": {
+      "tab": "Konuşma tanıma",
+      "title": "Konuşma tanıma",
+      "subtitle": "Masaüstü ses girişi + IM kanalı otomatik yazıya dökme. Bulut STT sağlayıcılarını ve kendi barındırdığınız OpenAI uyumlu arka uçları yönetin.",
+      "activeModel": "Etkin model",
+      "activeModelLabel": "Masaüstü ses girişi modeli",
+      "batchOnlyHint": "Yalnızca OpenAI uyumlu sağlayıcılar listelenir — Deepgram / AssemblyAI / Azure / Volcengine / iFlytek yalnızca gerçek zamanlı WS olduğundan henüz \"önce kaydet sonra yazıya dök\" akışını sunamaz.",
+      "noModel": "Ayarlı değil",
+      "imFallback": "IM otomatik yazıya dökme modeli",
+      "imFallbackHint": "autoTranscribeVoice etkin IM hesapları için. Boşsa masaüstü modeli kullanılır.",
+      "imFallbackEmpty": "Masaüstü etkin modelini kullan",
+      "providers": "Bulut sağlayıcıları",
+      "addProvider": "Sağlayıcı ekle",
+      "editProvider": "Sağlayıcı düzenle",
+      "noProviders": "Yapılandırılmış sağlayıcı yok. OpenAI Whisper, DashScope (Qwen3-ASR), Groq, Deepgram veya OpenAI uyumlu herhangi bir uç nokta ekleyin.",
+      "disabled": "devre dışı",
+      "localBackends": "Yerel arka uçlar",
+      "backendAlive": "Algılandı",
+      "backendOffline": "Çalışmıyor",
+      "probe": "Sorgula",
+      "providerName": "Görünen ad",
+      "providerKind": "Protokol",
+      "baseUrl": "Base URL",
+      "apiKey": "API Anahtarı",
+      "apiKeyMasked": "Mevcut anahtarı korumak için boş bırakın",
+      "models": "Modeller",
+      "modelsPlaceholder": "whisper-1\\tWhisper\\nqwen3-asr-flash\\tQwen3-ASR Flash",
+      "modelsHint": "Satır başına bir model. Biçim: `model_id<TAB>ad`. TAB isteğe bağlı.",
+      "enabled": "Etkin",
+      "allowPrivate": "loopback / özel ağa izin ver",
+      "allowPrivateHint": "127.0.0.1 / LAN'daki kendi barındırılan sunucular için gerekli."
+    }
   }
 }

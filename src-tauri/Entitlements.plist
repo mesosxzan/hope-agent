@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Microphone access for the voice-input feature. NSMicrophoneUsageDescription lives in Info.plist; this entitlement permits the sandbox to expose the device. -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <!-- Network client (already required for any LLM API call). -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <!-- Network server for the embedded HTTP/WS daemon. -->
+    <key>com.apple.security.network.server</key>
+    <true/>
+</dict>
+</plist>

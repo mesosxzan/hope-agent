@@ -245,6 +245,31 @@ pub async fn update_account(account_id: &str, params: UpdateAccountParams) -> Re
     Ok(())
 }
 
+/// Toggle `settings.autoTranscribeVoice` on a single account. Returns the
+/// previous value so callers can short-circuit "no change". Goes through
+/// `mutate_config` (unlike the legacy `update_account`) — this setting is
+/// purely behavioural and never restarts the channel listener.
+pub fn set_account_auto_transcribe_voice(
+    account_id: &str,
+    on: bool,
+    source: &'static str,
+) -> Result<bool> {
+    let account_id = account_id.to_string();
+    crate::config::mutate_config(("channels.auto_transcribe", source), move |store| {
+        let Some(account) = store
+            .channels
+            .accounts
+            .iter_mut()
+            .find(|a| a.id == account_id)
+        else {
+            anyhow::bail!("Account '{}' not found", account_id);
+        };
+        let was = account.auto_transcribe_voice();
+        account.set_auto_transcribe_voice(on);
+        Ok(was)
+    })
+}
+
 /// Stop, unregister, and clean up a channel account. For WeChat accounts this
 /// also removes the persisted iLink state on disk.
 pub async fn remove_account(account_id: &str) -> Result<()> {

@@ -1111,6 +1111,10 @@ fn build_router_with_cors(
             "/channel/accounts/{id}/test-message",
             post(routes::channel::send_test_message),
         )
+        .route(
+            "/channel/accounts/{id}/auto-transcribe",
+            put(routes::channel::set_auto_transcribe_voice),
+        )
         .route("/channel/health", get(routes::channel::health_all))
         .route(
             "/channel/sync-commands",
@@ -1447,7 +1451,71 @@ fn build_router_with_cors(
         .route("/dev/clear-cron", post(routes::dev::clear_cron))
         .route("/dev/clear-memory", post(routes::dev::clear_memory))
         .route("/dev/reset-config", post(routes::dev::reset_config))
-        .route("/dev/clear-all", post(routes::dev::clear_all));
+        .route("/dev/clear-all", post(routes::dev::clear_all))
+        // STT subsystem
+        .route(
+            "/stt/providers",
+            get(routes::stt::list_stt_providers).post(routes::stt::add_stt_provider),
+        )
+        .route(
+            "/stt/providers/{id}",
+            put(routes::stt::update_stt_provider).delete(routes::stt::delete_stt_provider),
+        )
+        .route(
+            "/stt/providers/reorder",
+            post(routes::stt::reorder_stt_providers),
+        )
+        .route(
+            "/stt/active-model",
+            get(routes::stt::get_active_stt_model)
+                .put(routes::stt::set_active_stt_model)
+                .delete(routes::stt::clear_active_stt_model),
+        )
+        .route(
+            "/stt/fallback-models",
+            get(routes::stt::get_stt_fallback_models).put(routes::stt::set_stt_fallback_models),
+        )
+        .route(
+            "/stt/im-fallback-model",
+            get(routes::stt::get_im_fallback_stt_model).put(routes::stt::set_im_fallback_stt_model),
+        )
+        .route(
+            "/stt/local-backends",
+            get(routes::stt::list_local_stt_backends),
+        )
+        .route(
+            "/stt/local-backends/{key}/probe",
+            get(routes::stt::probe_local_stt_backend),
+        )
+        .route(
+            "/stt/local-backends/{backendKey}/upsert",
+            post(routes::stt::upsert_local_stt_provider),
+        )
+        .route(
+            "/stt/transcribe",
+            post(routes::stt::stt_transcribe_blob)
+                // base64-encoded audio is ~4/3 of the decoded byte cap;
+                // round up to leave slop for JSON metadata + envelope.
+                .layer(DefaultBodyLimit::max(
+                    (ha_core::stt::MAX_BATCH_AUDIO_BYTES * 4 / 3) + 1024 * 1024,
+                )),
+        )
+        .route("/stt/sessions", post(routes::stt::stt_start_session))
+        .route(
+            "/stt/sessions/{id}/chunk",
+            post(routes::stt::stt_push_chunk)
+                // Per-chunk uplink — match the in-memory `MAX_WS_FRAME_BYTES`
+                // (1 MiB) deepgram is willing to accept.
+                .layer(DefaultBodyLimit::max(2 * 1024 * 1024)),
+        )
+        .route(
+            "/stt/sessions/{id}/finalize",
+            post(routes::stt::stt_finalize_session),
+        )
+        .route(
+            "/stt/sessions/{id}",
+            delete(routes::stt::stt_cancel_session),
+        );
 
     let ws_routes = Router::new().route("/events", get(ws::events::events_ws));
 

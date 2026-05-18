@@ -669,6 +669,12 @@ pub const SETTINGS_KEY_IM_REPLY_MODE: &str = "imReplyMode";
 /// slash command). Default `false` — reasoning stays out of IM messages.
 pub const SETTINGS_KEY_SHOW_THINKING: &str = "showThinking";
 
+/// Settings JSON key controlling whether incoming voice / audio messages
+/// are auto-transcribed by the STT subsystem before reaching the chat
+/// engine. Default `false` — transcription costs API quota per message,
+/// so the user has to opt in per account.
+pub const SETTINGS_KEY_AUTO_TRANSCRIBE_VOICE: &str = "autoTranscribeVoice";
+
 impl ChannelAccountConfig {
     /// Read `settings.imReplyMode`, falling back to `ImReplyMode::default()`
     /// when missing or unparseable.
@@ -713,6 +719,29 @@ impl ChannelAccountConfig {
         if let Some(obj) = self.settings.as_object_mut() {
             obj.insert(
                 SETTINGS_KEY_SHOW_THINKING.to_string(),
+                serde_json::Value::Bool(on),
+            );
+        }
+    }
+
+    /// Read `settings.autoTranscribeVoice`. Default `false` — opt-in
+    /// because each transcription consumes STT API quota.
+    pub fn auto_transcribe_voice(&self) -> bool {
+        self.settings
+            .get(SETTINGS_KEY_AUTO_TRANSCRIBE_VOICE)
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+    }
+
+    /// Write `settings.autoTranscribeVoice = on`. Creates the settings
+    /// object if it was previously `null` / non-object.
+    pub fn set_auto_transcribe_voice(&mut self, on: bool) {
+        if !self.settings.is_object() {
+            self.settings = serde_json::json!({});
+        }
+        if let Some(obj) = self.settings.as_object_mut() {
+            obj.insert(
+                SETTINGS_KEY_AUTO_TRANSCRIBE_VOICE.to_string(),
                 serde_json::Value::Bool(on),
             );
         }
@@ -858,5 +887,35 @@ mod tests {
         acc.set_show_thinking(false);
         assert_eq!(acc.settings["showThinking"], false);
         assert!(!acc.show_thinking());
+    }
+
+    #[test]
+    fn auto_transcribe_voice_defaults_to_false() {
+        assert!(!mk_account(serde_json::Value::Null).auto_transcribe_voice());
+        assert!(!mk_account(serde_json::json!({})).auto_transcribe_voice());
+        // Non-bool values fall back to default.
+        assert!(
+            !mk_account(serde_json::json!({"autoTranscribeVoice": "yes"})).auto_transcribe_voice()
+        );
+        assert!(
+            mk_account(serde_json::json!({"autoTranscribeVoice": true})).auto_transcribe_voice()
+        );
+    }
+
+    #[test]
+    fn set_auto_transcribe_voice_round_trip() {
+        let mut acc = mk_account(serde_json::Value::Null);
+        acc.set_auto_transcribe_voice(true);
+        assert!(acc.auto_transcribe_voice());
+
+        // Sibling keys preserved.
+        let mut acc = mk_account(serde_json::json!({"imReplyMode": "split"}));
+        acc.set_auto_transcribe_voice(true);
+        assert_eq!(acc.settings["imReplyMode"], "split");
+        assert!(acc.auto_transcribe_voice());
+
+        // Toggle back off.
+        acc.set_auto_transcribe_voice(false);
+        assert!(!acc.auto_transcribe_voice());
     }
 }

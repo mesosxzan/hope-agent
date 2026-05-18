@@ -39,7 +39,7 @@
     <key>NSLocalNetworkUsageDescription</key>
     <string>Hope Agent needs local network access to discover and connect to local services only when requested.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Hope Agent needs microphone access only when a user explicitly starts a voice input workflow.</string>
+    <string>Hope Agent uses the microphone to transcribe what you say into chat input. Audio is sent to the speech-to-text provider you configure in Settings → Speech-to-Text; nothing is recorded without an active recording session.</string>
     <key>NSNetworkVolumesUsageDescription</key>
     <string>Hope Agent needs network volume access only when a user asks it to work with files there.</string>
     <key>NSPhotoLibraryAddUsageDescription</key>

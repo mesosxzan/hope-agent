@@ -39,6 +39,8 @@ import PermissionModeSwitcher from "./PermissionModeSwitcher"
 import TemperatureSlider from "./TemperatureSlider"
 import AwarenessToggle from "./AwarenessToggle"
 import WorkingDirectoryButton from "./WorkingDirectoryButton"
+import { VoiceRecordButton } from "./VoiceRecordButton"
+import { useVoiceInput } from "./useVoiceInput"
 import TaskProgressPanel from "@/components/chat/tasks/TaskProgressPanel"
 import {
   shouldShowTaskProgressPanel,
@@ -152,6 +154,22 @@ export default function ChatInput({
     agentId: currentAgentId,
   }
   const slash = useSlashCommands(input, onInputChange, slashActions)
+  const voice = useVoiceInput()
+  // Read the latest `input` when transcription resolves — the user can keep
+  // typing during the STT round-trip, and capturing `input` in the closure
+  // would overwrite anything typed in the meantime.
+  const inputRef = useRef(input)
+  useEffect(() => {
+    inputRef.current = input
+  }, [input])
+  const handleVoiceStop = useCallback(async () => {
+    const text = await voice.stopAndTranscribe()
+    if (text) {
+      const current = inputRef.current
+      const sep = current.length > 0 && !current.endsWith(" ") ? " " : ""
+      onInputChange(current + sep + text)
+    }
+  }, [voice, onInputChange])
 
   // File mention `@` popper — only meaningful when a working dir is set.
   const mention = useFileMention(input, onInputChange, textareaRef, workingDir ?? null)
@@ -599,6 +617,24 @@ export default function ChatInput({
           {/* Send & Stop — kept in its own column so toolbar wrapping never
               orphans the send button onto a half-empty row. */}
           <div className="flex items-center gap-1 shrink-0">
+            <VoiceRecordButton
+              state={voice.state}
+              durationMs={voice.durationMs}
+              audioLevel={voice.audioLevel}
+              disabled={loading && !!pendingMessage}
+              onStart={() => void voice.start()}
+              onStop={() => void handleVoiceStop()}
+              onCancel={voice.cancel}
+            />
+            {voice.errorMessage && (
+              <span
+                className="text-xs text-destructive truncate max-w-[180px]"
+                role="status"
+                onAnimationEnd={voice.clearError}
+              >
+                {voice.errorMessage}
+              </span>
+            )}
             {loading && (
               <div className="animate-in fade-in-0 zoom-in-90 duration-150">
                 <IconTip label={t("chat.stopReply")}>

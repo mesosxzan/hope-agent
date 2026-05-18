@@ -96,6 +96,22 @@ pub async fn remove_account(Path(account_id): Path<String>) -> Result<Json<Value
     Ok(Json(json!({ "deleted": true })))
 }
 
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoTranscribeBody {
+    pub enabled: bool,
+}
+
+/// `PUT /api/channel/accounts/{id}/auto-transcribe`
+pub async fn set_auto_transcribe_voice(
+    Path(account_id): Path<String>,
+    Json(body): Json<AutoTranscribeBody>,
+) -> Result<Json<Value>, AppError> {
+    accounts::set_account_auto_transcribe_voice(&account_id, body.enabled, "http")
+        .map_err(|e| AppError::internal(e.to_string()))?;
+    Ok(Json(json!({ "updated": true })))
+}
+
 /// `POST /api/channel/accounts/{id}/start`
 pub async fn start_account(Path(account_id): Path<String>) -> Result<Json<Value>, AppError> {
     let account = ha_core::config::cached_config()

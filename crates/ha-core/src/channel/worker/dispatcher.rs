@@ -7,7 +7,7 @@ use crate::channel::registry::ChannelRegistry;
 use crate::channel::traits::ChannelPlugin;
 use crate::channel::types::*;
 
-use super::media::convert_inbound_media_to_attachments;
+use super::media::{convert_inbound_media_to_attachments, transcribe_inbound_voice_attachments};
 use super::pipeline::{
     await_stream_pipeline, deliver_rounds, spawn_stream_pipeline, DeliveryTarget,
 };
@@ -634,6 +634,21 @@ async fn handle_inbound_message(
 
     // 8. Convert inbound media to agent Attachments
     let attachments = convert_inbound_media_to_attachments(&msg.media, &session_id);
+
+    // 8a. Auto-transcribe voice / audio attachments when the account opts
+    // in. The prefix gets prepended to the engine message so the LLM sees
+    // a text version of the spoken content; the original audio is kept as
+    // an attachment so multimodal models (or downstream re-transcribe)
+    // can still fall back to listening. Failure is non-blocking — logged
+    // and dropped.
+    let engine_message = if account.auto_transcribe_voice() {
+        match transcribe_inbound_voice_attachments(&attachments, &store.language).await {
+            Some(prefix) => format!("{}{}", prefix, engine_message),
+            None => engine_message,
+        }
+    } else {
+        engine_message
+    };
     let reasoning_effort = session_db
         .get_session(&session_id)
         .ok()

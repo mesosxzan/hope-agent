@@ -76,6 +76,9 @@
         "section": "utils",
         "priority": "optional"
       }
+    },
+    "macOS": {
+      "entitlements": "Entitlements.plist"
     }
   },
   "plugins": {

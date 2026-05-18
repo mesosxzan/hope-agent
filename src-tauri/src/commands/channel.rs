@@ -83,6 +83,18 @@ pub async fn channel_remove_account(account_id: String) -> Result<(), CmdError> 
         .map_err(Into::into)
 }
 
+/// Toggle `settings.autoTranscribeVoice` on a single account. Goes through
+/// `mutate_config`; does not restart the channel listener.
+#[tauri::command]
+pub async fn channel_set_auto_transcribe_voice(
+    account_id: String,
+    enabled: bool,
+) -> Result<(), CmdError> {
+    accounts::set_account_auto_transcribe_voice(&account_id, enabled, "ui")
+        .map(|_| ())
+        .map_err(Into::into)
+}
+
 // ── Lifecycle ────────────────────────────────────────────────────
 
 #[tauri::command]

@@ -77,6 +77,7 @@ export default function EditAccountDialog({
   const [notifyStartup, setNotifyStartup] = useState(true)
   const [imReplyMode, setImReplyMode] = useState<ImReplyMode>(IM_REPLY_MODE_DEFAULT)
   const [showThinking, setShowThinking] = useState<boolean>(SHOW_THINKING_DEFAULT)
+  const [autoTranscribeVoice, setAutoTranscribeVoice] = useState<boolean>(false)
   const [groups, setGroups] = useState<Record<string, TelegramGroupConfig>>({})
   const [channels, setChannels] = useState<Record<string, TelegramChannelConfig>>({})
   const [saving, setSaving] = useState(false)
@@ -108,6 +109,11 @@ export default function EditAccountDialog({
       setNotifyStartup(account.notifyStartup ?? true)
       setImReplyMode(readImReplyMode(account))
       setShowThinking(readShowThinking(account))
+      setAutoTranscribeVoice(
+        Boolean(
+          (account.settings as Record<string, unknown> | null | undefined)?.autoTranscribeVoice,
+        ),
+      )
       setValidationResult(null)
       setValidationError(null)
       setSaveError(null)
@@ -138,54 +144,100 @@ export default function EditAccountDialog({
     setSaving(true)
     setSaveError(null)
     try {
-      const params: Record<string, unknown> = {
-        accountId: account.id,
-        label: label.trim(),
-        agentId: agentId || "",  // empty string = clear to default
-        autoApproveTools,
-        notifySessionEviction,
-        notifyStartup,
-        security: {
-          dmPolicy,
-          groupAllowlist: account.security.groupAllowlist,
-          userAllowlist,
-          adminIds: account.security.adminIds,
-          groupPolicy,
-          groups,
-          channels,
-        },
-      }
-      // Only send credentials if token was changed
-      const originalToken = (account.credentials as Record<string, string>).token ?? ""
-      // Start from existing settings so we never wipe sibling keys (transport,
-      // baseUrl, etc.) when the user only touched the IM reply mode toggle.
+      // autoTranscribeVoice is a pure behavior flag — routing it through the
+      // dedicated mutate_config command avoids the listener restart that
+      // channel_update_account performs. We strip it from `settingsBase`
+      // and decide below whether the legacy update is needed at all.
+      const originalAutoTranscribe = Boolean(
+        (account.settings as Record<string, unknown> | null | undefined)
+          ?.autoTranscribeVoice,
+      )
+      const autoTranscribeChanged = autoTranscribeVoice !== originalAutoTranscribe
+
       const settingsBase = {
         ...((account.settings as Record<string, unknown> | null | undefined) ?? {}),
         imReplyMode,
         showThinking,
       }
-      if (account.channelId === "wechat") {
-        if (wechatConnection) {
-          params.credentials = {
-            token: wechatConnection.botToken,
-            remoteAccountId: wechatConnection.remoteAccountId ?? null,
-            userId: wechatConnection.userId ?? null,
-          }
-          params.settings = {
-            ...settingsBase,
-            transport: "longpoll",
-            baseUrl: wechatConnection.baseUrl,
+      // Drop the key entirely so a saved snapshot of "untouched" account
+      // doesn't reintroduce the flag through this path.
+      delete (settingsBase as Record<string, unknown>).autoTranscribeVoice
+
+      // Decide whether anything besides autoTranscribeVoice needs to flow
+      // through channel_update_account (which restarts the listener).
+      const originalToken = (account.credentials as Record<string, string>).token ?? ""
+      const originalImReplyMode = readImReplyMode(account)
+      const originalShowThinking = readShowThinking(account)
+      const wechatChanged =
+        account.channelId === "wechat" && wechatConnection !== null
+      const otherFieldsChanged =
+        label.trim() !== account.label ||
+        (agentId || "") !== (account.agentId ?? "") ||
+        autoApproveTools !== (account.autoApproveTools ?? false) ||
+        notifySessionEviction !== (account.notifySessionEviction ?? true) ||
+        notifyStartup !== (account.notifyStartup ?? true) ||
+        token.trim() !== originalToken ||
+        wechatChanged ||
+        imReplyMode !== originalImReplyMode ||
+        showThinking !== originalShowThinking ||
+        JSON.stringify({ dmPolicy, userAllowlist, groupPolicy, groups, channels }) !==
+          JSON.stringify({
+            dmPolicy: account.security.dmPolicy,
+            userAllowlist: account.security.userAllowlist,
+            groupPolicy: account.security.groupPolicy ?? "open",
+            groups: account.security.groups ?? {},
+            channels: account.security.channels ?? {},
+          })
+
+      if (otherFieldsChanged) {
+        const params: Record<string, unknown> = {
+          accountId: account.id,
+          label: label.trim(),
+          agentId: agentId || "",
+          autoApproveTools,
+          notifySessionEviction,
+          notifyStartup,
+          security: {
+            dmPolicy,
+            groupAllowlist: account.security.groupAllowlist,
+            userAllowlist,
+            adminIds: account.security.adminIds,
+            groupPolicy,
+            groups,
+            channels,
+          },
+        }
+        if (account.channelId === "wechat") {
+          if (wechatConnection) {
+            params.credentials = {
+              token: wechatConnection.botToken,
+              remoteAccountId: wechatConnection.remoteAccountId ?? null,
+              userId: wechatConnection.userId ?? null,
+            }
+            params.settings = {
+              ...settingsBase,
+              transport: "longpoll",
+              baseUrl: wechatConnection.baseUrl,
+            }
+          } else {
+            params.settings = settingsBase
           }
         } else {
+          if (token.trim() !== originalToken) {
+            params.credentials = { token: token.trim() }
+          }
           params.settings = settingsBase
         }
-      } else {
-        if (token.trim() !== originalToken) {
-          params.credentials = { token: token.trim() }
-        }
-        params.settings = settingsBase
+        await getTransport().call("channel_update_account", params)
       }
-      await getTransport().call("channel_update_account", params)
+
+      if (autoTranscribeChanged) {
+        await getTransport().call("channel_set_auto_transcribe_voice", {
+          accountId: account.id,
+          enabled: autoTranscribeVoice,
+        })
+      }
+
       onSaved()
     } catch (e) {
       logger.error("channel", "ChannelPanel", "Failed to update channel account", e)
@@ -395,6 +447,22 @@ export default function EditAccountDialog({
             <Switch
               checked={notifyStartup}
               onCheckedChange={setNotifyStartup}
+            />
+          </div>
+
+          {/* Auto-transcribe inbound voice / audio messages via the STT
+              subsystem. Cost opt-in — every voice consumes STT quota
+              from `stt.imFallbackModel` (or `stt.activeModel`). */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>{t("channels.autoTranscribeVoice")}</Label>
+              <p className="text-xs text-muted-foreground">
+                {t("channels.autoTranscribeVoiceHint")}
+              </p>
+            </div>
+            <Switch
+              checked={autoTranscribeVoice}
+              onCheckedChange={setAutoTranscribeVoice}
             />
           </div>
 
