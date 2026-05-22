@@ -289,6 +289,8 @@ pub(crate) async fn tool_web_search(args: &Value) -> Result<String> {
     let mut results = Vec::new();
     let mut used_provider = String::new();
     let mut last_error: Option<anyhow::Error> = None;
+    let mut no_result_providers: Vec<String> = Vec::new();
+    let mut provider_errors: Vec<(String, String)> = Vec::new();
 
     for entry in &providers {
         let provider_id = &entry.id;
@@ -380,16 +382,19 @@ pub(crate) async fn tool_web_search(args: &Value) -> Result<String> {
                     provider_id,
                     query
                 );
+                no_result_providers.push(provider_id.to_string());
             }
             Err(e) => {
+                let error_message = e.to_string();
                 app_warn!(
                     "tool",
                     "web_search",
                     "Provider [{}] error for '{}': {}, trying next provider",
                     provider_id,
                     query,
-                    e
+                    error_message
                 );
+                provider_errors.push((provider_id.to_string(), error_message));
                 last_error = Some(e);
             }
         }
@@ -405,7 +410,11 @@ pub(crate) async fn tool_web_search(args: &Value) -> Result<String> {
                 e
             );
         }
-        return Ok(format!("No results found for: {}", query));
+        return Ok(format_empty_search_result(
+            query,
+            &no_result_providers,
+            &provider_errors,
+        ));
     }
 
     let mut output = format!("Search results for: {} (via {})\n\n", query, used_provider);
@@ -419,12 +428,67 @@ pub(crate) async fn tool_web_search(args: &Value) -> Result<String> {
             result.snippet
         ));
     }
+    let cache_output = output.clone();
+    append_provider_diagnostics(&mut output, &no_result_providers, &provider_errors);
 
     // Write to cache
     let ck = search_cache_key(&used_provider, query, count, &params);
-    write_search_cache(ck, output.clone(), config.cache_ttl_minutes);
+    write_search_cache(ck, cache_output, config.cache_ttl_minutes);
 
     Ok(output)
+}
+
+fn format_empty_search_result(
+    query: &str,
+    no_result_providers: &[String],
+    provider_errors: &[(String, String)],
+) -> String {
+    let mut output = if provider_errors.is_empty() {
+        format!("No results found for: {}\n", query)
+    } else if no_result_providers.is_empty() {
+        format!(
+            "Search failed for: {}\n\nNo configured search provider returned results.\n",
+            query
+        )
+    } else {
+        format!("No results found by available providers for: {}\n", query)
+    };
+
+    append_provider_diagnostics(&mut output, no_result_providers, provider_errors);
+
+    if !provider_errors.is_empty() {
+        output.push_str(
+            "\nProvider failures or rate limits are not the same as the web having no results.\n",
+        );
+    }
+
+    output
+}
+
+fn append_provider_diagnostics(
+    output: &mut String,
+    no_result_providers: &[String],
+    provider_errors: &[(String, String)],
+) {
+    if no_result_providers.is_empty() && provider_errors.is_empty() {
+        return;
+    }
+
+    output.push('\n');
+
+    if !no_result_providers.is_empty() {
+        output.push_str("Providers with no results:\n");
+        for provider in no_result_providers {
+            output.push_str(&format!("- {}\n", provider));
+        }
+    }
+
+    if !provider_errors.is_empty() {
+        output.push_str("Providers unavailable or failed:\n");
+        for (provider, error) in provider_errors {
+            output.push_str(&format!("- {}: {}\n", provider, error));
+        }
+    }
 }
 
 struct SearchResult {

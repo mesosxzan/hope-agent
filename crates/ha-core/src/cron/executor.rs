@@ -306,7 +306,10 @@ pub async fn build_and_run_agent_with_context(
                 )
                 .to_string(),
         ),
-        reasoning_effort: crate::agent::live_reasoning_effort(None).await,
+        reasoning_effort: agent_def
+            .as_ref()
+            .and_then(|def| def.config.model.reasoning_effort.clone())
+            .or(crate::agent::live_reasoning_effort(None).await),
         cancel: cancel.unwrap_or_else(|| Arc::new(AtomicBool::new(false))),
         plan_context_override: None,
         skill_allowed_tools: Vec::new(),
@@ -314,7 +317,7 @@ pub async fn build_and_run_agent_with_context(
         subagent_depth: 0,
         steer_run_id: None,
         auto_approve_tools: false,
-        follow_global_reasoning_effort: true,
+        follow_global_reasoning_effort: false,
         post_turn_effects: true,
         abort_on_cancel: false,
         persist_final_error_event: true,

@@ -147,13 +147,7 @@ export default function SessionItem({
             </div>
             {!isActive && displayUnreadCount > 0 && (
               <span
-                className="absolute -top-1 -right-1.5 z-10 min-w-[16px] h-[16px] px-0.5 rounded-full text-white text-[9px] font-bold flex items-center justify-center border border-background pointer-events-none leading-none"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #ff6b6b 0%, #ee3333 50%, #cc1111 100%)",
-                  boxShadow:
-                    "0 2px 6px rgba(220, 38, 38, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.25)",
-                }}
+                className="absolute -top-1 -right-1.5 z-10 flex h-[16px] min-w-[16px] items-center justify-center rounded-full border border-background bg-destructive px-0.5 text-[9px] font-semibold leading-none text-destructive-foreground tabular-nums pointer-events-none"
               >
                 {displayUnreadCount > 99 ? "99+" : displayUnreadCount}
               </span>

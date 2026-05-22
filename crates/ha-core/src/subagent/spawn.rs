@@ -373,6 +373,8 @@ fn execute_subagent(
 
         // Load agent config for model resolution
         let agent_def = crate::agent_loader::load_agent(&agent_id)?;
+        let effective_reasoning_effort =
+            reasoning_effort.or_else(|| agent_def.config.model.reasoning_effort.clone());
         let agent_model_config = if let Some(ref override_str) = model_override {
             let mut cfg = agent_def.config.model.clone();
             cfg.primary = Some(override_str.clone());
@@ -498,7 +500,7 @@ fn execute_subagent(
             resolved_temperature: agent_def.config.model.temperature.or(store.temperature),
             compact_config: store.compact.clone(),
             extra_system_context,
-            reasoning_effort,
+            reasoning_effort: effective_reasoning_effort,
             cancel,
             plan_context_override,
             skill_allowed_tools,

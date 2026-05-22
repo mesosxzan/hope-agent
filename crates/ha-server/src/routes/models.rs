@@ -45,6 +45,8 @@ pub struct SetReasoningEffortBody {
     pub effort: String,
     #[serde(default)]
     pub session_id: Option<String>,
+    #[serde(default)]
+    pub agent_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -105,8 +107,9 @@ pub async fn set_fallback_models(
 }
 
 /// `POST /api/models/reasoning-effort` — validate and persist the current
-/// Think / reasoning effort. When `sessionId` is supplied, it is also stored
-/// as a session-scoped override so switching conversations restores it.
+/// Think / reasoning effort. When `sessionId` is supplied, it is stored as a
+/// session-scoped override; when `agentId` is supplied, it is also stored as
+/// that agent's default for future conversations.
 pub async fn set_reasoning_effort(
     State(ctx): State<Arc<AppContext>>,
     Json(body): Json<SetReasoningEffortBody>,
@@ -118,16 +121,32 @@ pub async fn set_reasoning_effort(
             ha_core::agent::VALID_REASONING_EFFORTS
         )));
     }
-    if let Some(cell) = ha_core::get_reasoning_effort_cell() {
-        *cell.lock().await = body.effort.clone();
-    }
-    if let Some(session_id) = body
+    let session_id = body
         .session_id
         .as_deref()
-        .filter(|id| !id.trim().is_empty())
-    {
+        .map(str::trim)
+        .filter(|id| !id.is_empty());
+    let agent_id = body
+        .agent_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+        .map(str::to_string);
+
+    if session_id.is_some() || agent_id.is_none() {
+        if let Some(cell) = ha_core::get_reasoning_effort_cell() {
+            *cell.lock().await = body.effort.clone();
+        }
+    }
+    if let Some(session_id) = session_id {
         ctx.session_db
             .update_session_reasoning_effort(session_id, Some(&body.effort))?;
+    }
+    if let Some(agent_id) = agent_id {
+        ha_core::agent_loader::update_agent_reasoning_effort(&agent_id, &body.effort)?;
+        if let Some(bus) = ha_core::get_event_bus() {
+            bus.emit("agents:changed", json!({ "id": agent_id, "kind": "saved" }));
+        }
     }
     Ok(Json(json!({ "ok": true })))
 }

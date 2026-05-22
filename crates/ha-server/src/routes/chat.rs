@@ -185,6 +185,13 @@ pub async fn chat(
             .map_err(|e| AppError::bad_request(e.to_string()))?;
     }
 
+    // Load app/agent config before resolving per-turn settings.
+    let store = ha_core::config::cached_config();
+    let agent_def = ha_core::agent_loader::load_agent(&agent_id).ok();
+    let agent_default_effort = agent_def
+        .as_ref()
+        .and_then(|def| def.config.model.reasoning_effort.clone());
+
     let requested_effort = body
         .reasoning_effort
         .as_deref()
@@ -192,9 +199,15 @@ pub async fn chat(
         .filter(|effort| !effort.is_empty())
         .map(str::to_string);
     let session_effort = db.get_session(&sid)?.and_then(|meta| meta.reasoning_effort);
+    let global_effort = if let Some(cell) = ha_core::get_reasoning_effort_cell() {
+        cell.lock().await.clone()
+    } else {
+        "medium".to_string()
+    };
     let effort = requested_effort
         .or(session_effort)
-        .unwrap_or_else(|| "medium".to_string());
+        .or(agent_default_effort)
+        .unwrap_or(global_effort);
     if !ha_core::agent::is_valid_reasoning_effort(&effort) {
         return Err(AppError::bad_request(format!(
             "Invalid reasoning effort: {}. Valid: {:?}",
@@ -245,11 +258,7 @@ pub async fn chat(
     // Auto-generate fallback title from first user message (prefer display text so titles read naturally).
     let _ = session::ensure_first_message_title(&db, &sid, persisted_content);
 
-    // Load app config (cached after first call)
-    let store = ha_core::config::cached_config();
-
     // Resolve model chain
-    let agent_def = ha_core::agent_loader::load_agent(&agent_id).ok();
     let agent_model_config = agent_def
         .as_ref()
         .map(|def| def.config.model.clone())

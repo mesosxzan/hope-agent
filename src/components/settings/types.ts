@@ -244,7 +244,13 @@ export interface AgentConfig {
   description?: string | null
   emoji?: string | null
   avatar?: string | null
-  model: { primary?: string | null; fallbacks: string[]; planModel?: string | null; temperature?: number | null }
+  model: {
+    primary?: string | null
+    fallbacks: string[]
+    planModel?: string | null
+    temperature?: number | null
+    reasoningEffort?: string | null
+  }
   personality: PersonalityConfig
   capabilities: {
     maxToolRounds: number

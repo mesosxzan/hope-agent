@@ -169,6 +169,11 @@ pub struct AgentModelConfig {
     /// When set, overrides the global temperature. Can be further overridden at session level.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f64>,
+
+    /// Default Think / reasoning effort for this agent.
+    /// Session-level overrides still take priority.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning_effort: Option<String>,
 }
 
 // ── Filter Config ────────────────────────────────────────────────

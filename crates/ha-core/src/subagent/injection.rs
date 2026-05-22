@@ -347,7 +347,10 @@ pub(crate) async fn inject_and_run_parent(
                 .or(store.temperature),
             compact_config: store.compact.clone(),
             extra_system_context: None,
-            reasoning_effort: crate::agent::live_reasoning_effort(None).await,
+            reasoning_effort: parent_agent_def
+                .as_ref()
+                .and_then(|def| def.config.model.reasoning_effort.clone())
+                .or(crate::agent::live_reasoning_effort(None).await),
             cancel: cancel.clone(),
             plan_context_override: None,
             skill_allowed_tools: Vec::new(),

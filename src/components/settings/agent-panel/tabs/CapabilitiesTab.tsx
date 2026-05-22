@@ -33,6 +33,9 @@ const ASYNC_TOOL_POLICIES: ReadonlyArray<{ value: AsyncToolPolicy; i18nKey: stri
   { value: "never-background", i18nKey: "neverBackground" },
 ]
 const ASYNC_TOOL_POLICY_DEFAULT = ASYNC_TOOL_POLICIES[0].value
+const asyncToolPolicyI18nKey = (value: AsyncToolPolicy) =>
+  ASYNC_TOOL_POLICIES.find((policy) => policy.value === value)?.i18nKey ??
+  ASYNC_TOOL_POLICIES[0].i18nKey
 
 /** Collapsible section wrapper used by every tier block in this tab. */
 function CollapsibleSection({
@@ -134,6 +137,8 @@ export default function CapabilitiesTab({
   const [standardOpen, setStandardOpen] = useState(false)
   const [mcpOpen, setMcpOpen] = useState(false)
   const [skillsOpen, setSkillsOpen] = useState(false)
+  const asyncToolPolicyValue =
+    config.capabilities.asyncToolPolicy ?? ASYNC_TOOL_POLICY_DEFAULT
 
   const toolDisplayName = (tool: BuiltinTool) => {
     const name = tool.name
@@ -240,13 +245,19 @@ export default function CapabilitiesTab({
             {t("settings.agentAsyncToolPolicy.title")}
           </div>
           <Select
-            value={config.capabilities.asyncToolPolicy ?? ASYNC_TOOL_POLICY_DEFAULT}
+            value={asyncToolPolicyValue}
             onValueChange={(v) =>
               updateCapabilities({ asyncToolPolicy: v as AsyncToolPolicy })
             }
           >
             <SelectTrigger className="h-8 w-full text-sm">
-              <SelectValue />
+              <SelectValue>
+                {t(
+                  `settings.agentAsyncToolPolicy.${asyncToolPolicyI18nKey(
+                    asyncToolPolicyValue,
+                  )}.label`,
+                )}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {ASYNC_TOOL_POLICIES.map(({ value, i18nKey }) => (

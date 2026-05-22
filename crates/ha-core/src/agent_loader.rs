@@ -455,6 +455,20 @@ pub fn save_agent_config(id: &str, config: &AgentConfig) -> Result<()> {
     Ok(())
 }
 
+/// Persist this agent's default Think / reasoning effort.
+pub fn update_agent_reasoning_effort(id: &str, effort: &str) -> Result<()> {
+    if !crate::agent::is_valid_reasoning_effort(effort) {
+        anyhow::bail!(
+            "Invalid reasoning effort: {}. Valid: {:?}",
+            effort,
+            crate::agent::VALID_REASONING_EFFORTS
+        );
+    }
+    let mut def = load_agent(id)?;
+    def.config.model.reasoning_effort = Some(effort.to_string());
+    save_agent_config(id, &def.config)
+}
+
 // ── Save Agent Markdown ──────────────────────────────────────────
 
 /// Save a markdown file for the given agent.

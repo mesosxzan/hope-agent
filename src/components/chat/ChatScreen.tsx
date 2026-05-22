@@ -24,6 +24,7 @@ import type {
 } from "@/types/chat"
 import { normalizeEffortForModel } from "@/types/chat"
 import type { CommandResult } from "./slash-commands/types"
+import type { AgentConfig } from "@/components/settings/types"
 import ApprovalDialog from "@/components/chat/ApprovalDialog"
 import ChatSidebar from "@/components/chat/ChatSidebar"
 import ChatInput from "@/components/chat/ChatInput"
@@ -394,9 +395,9 @@ export default function ChatScreen({
           prev.reasoningEffort === effort ? prev : { ...prev, reasoningEffort: effort },
         )
       }
-      await handleEffortChange(effort, sid)
+      await handleEffortChange(effort, sid, session.currentAgentId)
     },
-    [handleEffortChange, session.currentSessionId, updateSessionMeta],
+    [handleEffortChange, session.currentAgentId, session.currentSessionId, updateSessionMeta],
   )
 
   const handleStartNewChat = useCallback(
@@ -471,12 +472,7 @@ export default function ChatScreen({
         getTransport().call<ActiveModel | null>("get_active_model"),
         getTransport().call<{ model: string; reasoning_effort: string }>("get_current_settings"),
         getTransport()
-          .call<{
-            name: string
-            model?: { primary?: string | null }
-            emoji?: string | null
-            avatar?: string | null
-          }>("get_agent_config", { id: currentAgentId })
+          .call<AgentConfig>("get_agent_config", { id: currentAgentId })
           .catch(() => null),
       ])
 
@@ -523,7 +519,10 @@ export default function ChatScreen({
             (m) => m.providerId === displayModel.providerId && m.modelId === displayModel.modelId,
           )
         : undefined
-      const effort = currentSessionMeta?.reasoningEffort ?? settings.reasoning_effort
+      const effort =
+        currentSessionMeta?.reasoningEffort ??
+        agentConfig?.model?.reasoningEffort ??
+        settings.reasoning_effort
       setReasoningEffort(normalizeEffortForModel(displayModelInfo, effort, t))
 
       if (agentConfig?.name) {
@@ -550,9 +549,9 @@ export default function ChatScreen({
       const [providerId, modelId] = key.split("::")
       if (!providerId || !modelId) return
       manualModelOverrideRef.current = { providerId, modelId }
-      await handleModelChange(key, currentSessionId)
+      await handleModelChange(key, currentSessionId, session.currentAgentId)
     },
-    [handleModelChange, currentSessionId],
+    [handleModelChange, currentSessionId, session.currentAgentId],
   )
 
   // Auto-show team panel when a team is created

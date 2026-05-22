@@ -654,7 +654,15 @@ async fn handle_inbound_message(
         .ok()
         .flatten()
         .and_then(|meta| meta.reasoning_effort)
+        .or_else(|| {
+            agent_def
+                .as_ref()
+                .and_then(|def| def.config.model.reasoning_effort.clone())
+        })
         .or(crate::agent::live_reasoning_effort(None).await);
+    if let Some(effort) = reasoning_effort.as_ref() {
+        let _ = session_db.update_session_reasoning_effort(&session_id, Some(effort));
+    }
     if let (Some(cell), Some(effort)) = (
         crate::get_reasoning_effort_cell(),
         reasoning_effort.as_ref(),

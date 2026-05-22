@@ -16,8 +16,16 @@ export interface UseModelStateReturn {
   setSessionTemperature: React.Dispatch<React.SetStateAction<number | null>>
   globalActiveModelRef: React.MutableRefObject<ActiveModel | null>
   applyModelForDisplay: (key: string) => void
-  handleModelChange: (key: string, sessionId?: string | null) => Promise<void>
-  handleEffortChange: (effort: string, sessionId?: string | null) => Promise<void>
+  handleModelChange: (
+    key: string,
+    sessionId?: string | null,
+    agentId?: string | null,
+  ) => Promise<void>
+  handleEffortChange: (
+    effort: string,
+    sessionId?: string | null,
+    agentId?: string | null,
+  ) => Promise<void>
 }
 
 export function useModelState(): UseModelStateReturn {
@@ -45,12 +53,17 @@ export function useModelState(): UseModelStateReturn {
     [availableModels, t],
   )
 
-  const handleEffortChange = useCallback(async (effort: string, sessionId?: string | null) => {
+  const handleEffortChange = useCallback(async (
+    effort: string,
+    sessionId?: string | null,
+    agentId?: string | null,
+  ) => {
     setReasoningEffort(effort)
     try {
       await getTransport().call("set_reasoning_effort", {
         effort,
         ...(sessionId ? { sessionId } : {}),
+        ...(agentId ? { agentId } : {}),
       })
     } catch (e) {
       logger.error("ui", "ChatScreen::effortChange", "Failed to set reasoning effort", e)
@@ -64,7 +77,7 @@ export function useModelState(): UseModelStateReturn {
   //   会自动把它落到 sessions 行
   // 全局默认模型现在只能由 Settings 里的 GlobalModelPanel 修改。
   const handleModelChange = useCallback(
-    async (key: string, sessionId?: string | null) => {
+    async (key: string, sessionId?: string | null, agentId?: string | null) => {
       const [providerId, modelId] = key.split("::")
       if (!providerId || !modelId) return
       setActiveModel({ providerId, modelId })
@@ -86,11 +99,13 @@ export function useModelState(): UseModelStateReturn {
         const normalized = normalizeEffortForModel(newModel, reasoningEffort, t)
         if (normalized !== reasoningEffort) {
           if (sessionId) {
-            handleEffortChange(normalized, sessionId)
+            handleEffortChange(normalized, sessionId, agentId)
+          } else if (agentId) {
+            handleEffortChange(normalized, null, agentId)
           } else {
             // 草稿模式（会话还没创建）：只更新本地 reasoningEffort，
-            // 不调 handleEffortChange——后者会把 effort 写到后端的全局 in-memory
-            // state，导致一次草稿切模型把 Think 默认泄漏到其它会话。
+            // 且没有 agentId 时不调 handleEffortChange，避免把 Think 默认泄漏
+            // 到其它会话。
             // 首次发消息时 chat_engine 会把 modelOverride + reasoningEffort 一起带
             // 上去，落到新创建的 sessions 行。
             setReasoningEffort(normalized)

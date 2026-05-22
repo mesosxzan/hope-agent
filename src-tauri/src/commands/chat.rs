@@ -187,6 +187,10 @@ pub async fn chat(
             meta.id
         }
     };
+    let agent_def = agent_loader::load_agent(&current_agent_id).ok();
+    let agent_default_effort = agent_def
+        .as_ref()
+        .and_then(|def| def.config.model.reasoning_effort.clone());
 
     let requested_effort = reasoning_effort
         .as_deref()
@@ -195,7 +199,10 @@ pub async fn chat(
         .map(str::to_string);
     let session_effort = db.get_session(&sid)?.and_then(|meta| meta.reasoning_effort);
     let global_effort = state.reasoning_effort.lock().await.clone();
-    let effort = requested_effort.or(session_effort).unwrap_or(global_effort);
+    let effort = requested_effort
+        .or(session_effort)
+        .or(agent_default_effort)
+        .unwrap_or(global_effort);
     if !ha_core::agent::is_valid_reasoning_effort(&effort) {
         return Err(CmdError::msg(format!(
             "Invalid reasoning effort: {}. Valid: {:?}",
@@ -394,7 +401,6 @@ pub async fn chat(
     // (`AssistantAgent::agent_caps`), where it folds into
     // `capability_toggles.send_notification` so the dispatcher gates the
     // tool consistently — no need to thread it through here.
-    let agent_def = agent_loader::load_agent(&current_agent_id).ok();
     let agent_model_config = agent_def
         .as_ref()
         .map(|def| def.config.model.clone())

@@ -119,18 +119,21 @@ function PresetModelSelect({
     )
   }
 
+  const selectedValue = value || options[0].value
+  const selectedOption = options.find((opt) => opt.value === selectedValue) ?? options[0]
+
   return (
     <div className="flex gap-1.5">
       <Select
-        value={value || options[0].value}
+        value={selectedValue}
         onValueChange={(v) => onChange(v)}
       >
         <SelectTrigger className="flex-1">
-          <SelectValue />
+          <SelectValue>{selectedOption.label}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {options.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value}>
+            <SelectItem key={opt.value} value={opt.value} textValue={opt.label}>
               <span className="text-xs">{opt.label}</span>
               <span className="text-[10px] text-muted-foreground ml-1.5">{opt.value}</span>
             </SelectItem>

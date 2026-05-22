@@ -45,7 +45,7 @@ pub(super) async fn search_duckduckgo(
             "web_search",
             "DDG rate-limit cooldown active, skipping"
         );
-        return Ok(Vec::new());
+        return Err(anyhow::anyhow!("DuckDuckGo rate-limit cooldown active"));
     }
 
     let client = build_ddg_client()?;
@@ -74,7 +74,7 @@ pub(super) async fn search_duckduckgo(
                     "DDG blocked ({}), skipping Lite fallback",
                     err_msg
                 );
-                Vec::new()
+                return Err(anyhow::anyhow!("DuckDuckGo unavailable: {}", err_msg));
             } else {
                 app_warn!(
                     "tool",

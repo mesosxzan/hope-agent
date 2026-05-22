@@ -296,13 +296,42 @@ pub(crate) async fn set_reasoning_effort_core(
 pub async fn set_reasoning_effort(
     effort: String,
     session_id: Option<String>,
+    agent_id: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<(), CmdError> {
-    set_reasoning_effort_core(&effort, &state).await?;
-    if let Some(session_id) = session_id.as_deref().filter(|id| !id.trim().is_empty()) {
+    let session_id = session_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|id| !id.is_empty());
+    let agent_id = agent_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+        .map(str::to_string);
+
+    if session_id.is_some() || agent_id.is_none() {
+        set_reasoning_effort_core(&effort, &state).await?;
+    } else if !ha_core::agent::is_valid_reasoning_effort(&effort) {
+        return Err(CmdError::msg(format!(
+            "Invalid reasoning effort: {}. Valid: {:?}",
+            effort,
+            ha_core::agent::VALID_REASONING_EFFORTS
+        )));
+    }
+
+    if let Some(session_id) = session_id {
         state
             .session_db
             .update_session_reasoning_effort(session_id, Some(&effort))?;
+    }
+    if let Some(agent_id) = agent_id {
+        ha_core::agent_loader::update_agent_reasoning_effort(&agent_id, &effort)?;
+        if let Some(bus) = ha_core::get_event_bus() {
+            bus.emit(
+                "agents:changed",
+                serde_json::json!({ "id": agent_id, "kind": "saved" }),
+            );
+        }
     }
     Ok(())
 }
