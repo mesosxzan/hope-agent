@@ -354,6 +354,11 @@ pub struct RecapConfig {
     /// `None` inherits the global default agent.
     #[serde(default)]
     pub analysis_agent: Option<String>,
+    /// Output language for generated reports. `None` or "auto" follows the
+    /// global UI language (`AppConfig.language`, which itself may be "auto" →
+    /// system locale). A specific locale code (e.g. "zh", "en") overrides it.
+    #[serde(default)]
+    pub language: Option<String>,
     /// Default time window (days) when no prior report exists.
     #[serde(default = "default_recap_default_range_days")]
     pub default_range_days: u32,
@@ -372,6 +377,7 @@ impl Default for RecapConfig {
     fn default() -> Self {
         Self {
             analysis_agent: None,
+            language: None,
             default_range_days: default_recap_default_range_days(),
             max_sessions_per_report: default_recap_max_sessions_per_report(),
             facet_concurrency: default_recap_facet_concurrency(),
@@ -622,6 +628,12 @@ pub struct AppConfig {
     /// Whether UI background effects (stars, weather) are enabled
     #[serde(default = "crate::default_true")]
     pub ui_effects_enabled: bool,
+    /// Prevent the host from idle-sleeping while the app runs (user setting,
+    /// default off). When on, the primary process holds an OS sleep assertion
+    /// (macOS `caffeinate -i` / Linux logind inhibitor / Windows
+    /// `ES_SYSTEM_REQUIRED`); the display may still turn off independently.
+    #[serde(default)]
+    pub prevent_sleep: bool,
     /// Sidebar visual density: "compact" (default) | "detailed"
     #[serde(default = "default_sidebar_ui_mode")]
     pub sidebar_ui_mode: String,
@@ -852,6 +864,7 @@ impl Default for AppConfig {
             theme: default_theme(),
             language: default_language(),
             ui_effects_enabled: true,
+            prevent_sleep: false,
             sidebar_ui_mode: default_sidebar_ui_mode(),
             proxy: ProxyConfig::default(),
             skill_prompt_budget: crate::skills::SkillPromptBudget::default(),
