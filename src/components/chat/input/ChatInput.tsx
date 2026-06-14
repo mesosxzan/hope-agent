@@ -70,6 +70,8 @@ import {
 } from "./toolbarOverflow"
 import MentionComposerInput from "./MentionComposerInput"
 import type { ComposerInputHandle } from "./composerInputHandle"
+import type { ContextUsageInfo } from "../chatUtils"
+import { contextUsageBarClass } from "../contextUsageColor"
 import type { AgentConfig } from "@/components/settings/types"
 
 interface ChatInputProps {
@@ -144,6 +146,40 @@ interface ChatInputProps {
   workspacePanelVisible?: boolean
   /** Larger centered presentation for a brand-new empty conversation. */
   hero?: boolean
+  /** Context-window fullness, rendered as a thin bar fused into the dock's
+   *  bottom border (green → amber → red). Null hides the bar. */
+  contextUsage?: ContextUsageInfo | null
+}
+
+/**
+ * Thin context-usage bar fused into the input dock's bottom border. The filled
+ * width tracks how full the context window is; color ramps green → yellow → red
+ * via the shared `contextUsageBarClass` (dependency-free leaf module, so the
+ * input dock stays clear of chatUtils' heavier runtime chain). Sits in the
+ * toolbar's `pb-2` padding zone (no buttons there), so its hover target never
+ * steals clicks. Clipped to the dock's rounded bottom corners.
+ */
+function ContextUsageBottomBar({ usage }: { usage: ContextUsageInfo }) {
+  const { t } = useTranslation()
+  const fill = contextUsageBarClass(usage.pct)
+  const width = Math.min(usage.pct, 100)
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="absolute inset-x-0 bottom-0 z-10 flex h-2 items-end">
+          <div className="h-[2px] w-full overflow-hidden rounded-b-input-dock">
+            <div
+              className={cn("h-full transition-[width] duration-500", fill)}
+              style={{ width: `${width}%` }}
+            />
+          </div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        {t("chat.statusContext")} · {usage.usedK}k/{usage.ctxK}k ({usage.pct}%)
+      </TooltipContent>
+    </Tooltip>
+  )
 }
 
 export default function ChatInput({
@@ -197,6 +233,7 @@ export default function ChatInput({
   onOpenWorkspace,
   workspacePanelVisible = false,
   hero = false,
+  contextUsage,
 }: ChatInputProps) {
   const { t } = useTranslation()
   const inputHandleRef = useRef<ComposerInputHandle>(null)
@@ -1239,6 +1276,9 @@ export default function ChatInput({
             </div>
           </AnimatedCollapse>
         </div>
+
+        {/* Context-usage hairline fused into the dock's bottom border. */}
+        {contextUsage ? <ContextUsageBottomBar usage={contextUsage} /> : null}
       </div>
     </div>
   )

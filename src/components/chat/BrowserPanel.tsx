@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { IconTip } from "@/components/ui/tooltip"
 import { RightPanelShell } from "./right-panel/RightPanelShell"
+import { PANEL_SCROLL_FADE } from "./right-panel/panelFade"
 
 // ── Types (mirror ha_core::browser::frame::BrowserFramePayload) ─────────
 
@@ -131,7 +132,7 @@ export default function BrowserPanel({
       contentKey="browser"
     >
       {/* Header */}
-      <div className="flex items-center gap-2 border-b border-border/60 px-3 py-2">
+      <div className="flex items-center gap-2 px-3 py-2">
         <Globe className="h-4 w-4 text-muted-foreground" />
         <div className="flex-1 truncate text-sm font-medium">
           {frame?.title || t("chat.browserPanel.idleTitle")}
@@ -177,13 +178,13 @@ export default function BrowserPanel({
 
       {/* URL bar */}
       {frame?.url && (
-        <div className="truncate border-b border-border/60 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+        <div className="truncate bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
           {frame.url}
         </div>
       )}
 
       {/* Frame */}
-      <div className="relative flex-1 overflow-auto bg-muted/30">
+      <div className={cn("relative flex-1 overflow-auto bg-muted/30", PANEL_SCROLL_FADE)}>
         {error ? (
           <div className="flex h-full items-center justify-center px-6 text-center text-sm text-destructive">
             {error}

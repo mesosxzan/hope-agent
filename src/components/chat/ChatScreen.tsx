@@ -62,6 +62,8 @@ import { useChatStream } from "./useChatStream"
 import { useChatStreamReattach } from "./hooks/useChatStreamReattach"
 import { usePlanMode } from "./plan-mode/usePlanMode"
 import { useTaskProgressSnapshot } from "./tasks/useTaskProgressSnapshot"
+import { computeContextUsage } from "./chatUtils"
+import { resolveCurrentModel } from "./sessionStatus"
 import { useDiffPanel } from "./diff-panel/useDiffPanel"
 import { DiffPanel } from "./diff-panel/DiffPanel"
 import { useFilePreview } from "./files/useFilePreview"
@@ -323,6 +325,13 @@ export default function ChatScreen({
   // Right side file-preview panel (Markdown links / attachments / workspace
   // files → in-app preview). Opened via `onPreviewFile` from the message tree.
   const filePreview = useFilePreview()
+  // Fullscreen toggle for the right-side preview panel (its RightPanelShell is
+  // owned here, unlike files/canvas which own their own). Reset whenever the
+  // preview isn't actively shown so it never reopens stuck-maximized.
+  const [filePreviewMaximized, setFilePreviewMaximized] = useState(false)
+  useEffect(() => {
+    if (!filePreview.showPanel || !filePreview.target) setFilePreviewMaximized(false)
+  }, [filePreview.showPanel, filePreview.target])
 
   // Workspace 面板：聚合任务进度 / 碰到的文件 / 引用来源。首次有内容时自动
   // 展开一次，用户关闭后本会话不再自动弹（dismissedRef 跟踪，仿 browser 面板）。
@@ -863,12 +872,13 @@ export default function ChatScreen({
       const modKey = e.metaKey || e.ctrlKey
       if (!modKey || e.altKey) return
       if (e.key.toLowerCase() !== "f") return
-      // Don't hijack the shortcut if the user is editing inside an
-      // unrelated contenteditable (e.g. a markdown canvas field). Free
-      // inputs (ChatInput textarea etc.) are fine to preempt since there
-      // is no browser find-in-page equivalent for chat history anyway.
+      // Don't hijack the shortcut while editing inside a genuine document
+      // editor (knowledge note / markdown canvas) where Cmd+F means
+      // find-in-document. The chat composer is itself a contenteditable
+      // (CM6) but has no find-in-page equivalent for chat history, so let
+      // the shortcut through there.
       const target = e.target as HTMLElement | null
-      if (target?.isContentEditable) return
+      if (target?.isContentEditable && !target.closest("[data-chat-composer]")) return
 
       if (e.shiftKey) {
         e.preventDefault()
@@ -891,8 +901,11 @@ export default function ChatScreen({
       if (!modKey || e.altKey || e.shiftKey || e.repeat) return
       if (e.key.toLowerCase() !== "n") return
 
+      // The chat composer is a contenteditable (CM6) but Cmd+N has no
+      // document-local meaning there, so only bail inside other editors
+      // (knowledge note / markdown canvas).
       const target = e.target as HTMLElement | null
-      if (target?.isContentEditable) return
+      if (target?.isContentEditable && !target.closest("[data-chat-composer]")) return
 
       e.preventDefault()
       void handleStartNewChatFromCurrentContext()
@@ -1146,6 +1159,13 @@ export default function ChatScreen({
   // ── Plan Mode Hook ─────────────────────────────────────────
   const planMode = usePlanMode(session.currentSessionId, planModeState, setPlanModeState)
   const taskProgressSnapshot = useTaskProgressSnapshot(session.currentSessionId, session.messages)
+  // Context-window fullness for the input-dock bottom bar. Derived from the
+  // active model's window + the latest assistant usage (shared helper, same
+  // numbers as the status popover / workspace session card).
+  const contextUsage = useMemo(() => {
+    const model = resolveCurrentModel(activeModel, availableModels)
+    return model ? computeContextUsage(session.messages, model.contextWindow) : null
+  }, [activeModel, availableModels, session.messages])
   const setPlanState = planMode.setPlanState
   const sendMessage = stream.handleSend
 
@@ -2285,6 +2305,7 @@ export default function ChatScreen({
                           : null
                       }
                       hero={emptySessionInputHero}
+                      contextUsage={contextUsage}
                     />
                   </div>
                 </div>
@@ -2442,6 +2463,13 @@ export default function ChatScreen({
                 permissionMode={stream.permissionMode}
                 planState={planMode.planState}
                 activeModel={activeModel}
+                agentName={session.agentName}
+                reasoningEffort={reasoningEffort}
+                availableModels={availableModels}
+                currentAgentId={session.currentAgentId}
+                onCommandAction={handleCommandAction}
+                onViewSystemPrompt={loadSystemPrompt}
+                systemPromptLoading={systemPromptLoading}
                 incognito={incognitoEnabled}
                 turnActive={
                   workspaceTaskExecutionState === "running" ||
@@ -2464,6 +2492,7 @@ export default function ChatScreen({
               onWidthChange={setRightPanelWidth}
               resizeLabel={t("filePreview.resizePanel", "Resize preview panel")}
               maxWidth={860}
+              maximized={filePreviewMaximized}
               reservedMainWidth={rightPanelReservedMainWidth}
               collapsed={rightPanelCollapsed}
               contentKey="preview"
@@ -2471,7 +2500,12 @@ export default function ChatScreen({
               <FilePreviewPanel
                 target={filePreview.target}
                 sessionId={session.currentSessionId}
-                onClose={filePreview.closePreview}
+                maximized={filePreviewMaximized}
+                onToggleMaximize={() => setFilePreviewMaximized((v) => !v)}
+                onClose={() => {
+                  setFilePreviewMaximized(false)
+                  filePreview.closePreview()
+                }}
               />
             </RightPanelShell>
           )}

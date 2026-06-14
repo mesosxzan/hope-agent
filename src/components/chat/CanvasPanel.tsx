@@ -413,7 +413,7 @@ export default function CanvasPanel({
       >
         {/* Title Bar */}
         <div
-          className="flex h-11 items-center gap-2 border-b border-border-soft bg-surface-panel/95 px-4 shrink-0"
+          className="flex h-11 items-center gap-2 bg-surface-panel/95 px-4 shrink-0"
           data-tauri-drag-region
         >
           <span className="text-sm font-medium truncate flex-1">{canvas.title}</span>
@@ -456,7 +456,7 @@ export default function CanvasPanel({
       {/* Title Bar */}
       <div
         className={cn(
-          "flex h-11 items-center gap-2 border-b border-border-soft bg-surface-panel px-4 shrink-0",
+          "flex h-11 items-center gap-2 bg-surface-panel px-4 shrink-0",
           maximized && "h-[72px] items-end pb-2 pt-7",
         )}
         data-tauri-drag-region
@@ -512,7 +512,9 @@ export default function CanvasPanel({
         </div>
       </div>
 
-      {/* iframe preview */}
+      {/* iframe preview — no scroll-fade mask: the iframe scrolls internally,
+          so a mask on this non-scrolling wrapper would permanently dim the live
+          canvas's top/bottom edge. */}
       <div className="flex-1 overflow-hidden bg-white dark:bg-surface-app">
         <iframe
           ref={iframeRef}

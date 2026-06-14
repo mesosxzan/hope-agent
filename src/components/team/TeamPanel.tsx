@@ -2,6 +2,7 @@ import { useState, useCallback } from "react"
 import { X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
+import { PANEL_SCROLL_FADE } from "../chat/right-panel/panelFade"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { getTransport } from "@/lib/transport-provider"
 import { RightPanelShell } from "@/components/chat/right-panel/RightPanelShell"
@@ -117,7 +118,10 @@ export function TeamPanel({
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="flex-1 overflow-y-auto px-3 pb-3">
+          <TabsContent
+            value="dashboard"
+            className={`flex-1 overflow-y-auto px-3 pb-3 ${PANEL_SCROLL_FADE}`}
+          >
             <TeamDashboard
               members={members}
               tasks={tasks}
@@ -126,7 +130,10 @@ export function TeamPanel({
             />
           </TabsContent>
 
-          <TabsContent value="tasks" className="flex-1 overflow-y-auto px-3 pb-3">
+          <TabsContent
+            value="tasks"
+            className={`flex-1 overflow-y-auto px-3 pb-3 ${PANEL_SCROLL_FADE}`}
+          >
             <TeamTaskBoard tasks={tasks} members={members} />
           </TabsContent>
 

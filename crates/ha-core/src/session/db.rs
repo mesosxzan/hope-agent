@@ -2744,6 +2744,10 @@ impl SessionDB {
             let _ = std::fs::remove_dir_all(att_dir);
         }
         self.cleanup_session_orphan_tables(session_id);
+        // Drop the Smart-mode "already edited" trust set for this session so it
+        // can't outlive the session (and doesn't accumulate in long-running
+        // server processes).
+        crate::permission::session_edits::clear(session_id);
 
         Ok(())
     }

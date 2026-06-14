@@ -166,7 +166,7 @@ export function RightPanelShell({
       </div>
       <div
         className={cn(
-          "flex h-full min-h-0 w-full flex-col overflow-hidden rounded-panel border border-border-soft bg-surface-panel shadow-panel transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[opacity,transform] [contain:layout_paint] motion-reduce:transition-none",
+          "flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-border-soft bg-surface-panel shadow-panel transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[opacity,transform] [contain:layout_paint] motion-reduce:transition-none",
           collapsed ? "translate-x-4 opacity-0" : "translate-x-0 opacity-100",
           bodyClassName,
         )}

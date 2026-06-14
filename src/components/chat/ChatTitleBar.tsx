@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from "react"
-import { getTransport } from "@/lib/transport-provider"
 import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 import { useAppVersion } from "@/lib/appMeta"
@@ -30,7 +29,14 @@ import {
 import { ExportSessionDialog } from "@/components/chat/export/ExportSessionDialog"
 import ChannelIcon from "@/components/common/ChannelIcon"
 import { formatCacheUsageDisplay, formatCompactTokenCount } from "./cacheUsageDisplay"
-import { formatMessageTime, getContextUsageTokens } from "./chatUtils"
+import { computeContextUsage, contextUsageBarClass, formatMessageTime } from "./chatUtils"
+import {
+  compactContextNow,
+  compactResultMessage,
+  computeCacheStats,
+  resolveCurrentModel,
+  runViewContext,
+} from "./sessionStatus"
 import { INCOGNITO_BADGE_LABEL_CLASSES } from "./input/incognitoStyles"
 import IncognitoToggle, { type IncognitoDisabledReason } from "./input/IncognitoToggle"
 import { logger } from "@/lib/logger"
@@ -243,11 +249,7 @@ export default function ChatTitleBar({
     sessionIdCopiedTimer.current = setTimeout(() => setSessionIdCopied(false), 1500)
   }, [currentSessionId])
 
-  const currentModel = activeModel
-    ? availableModels.find(
-        (x) => x.providerId === activeModel.providerId && x.modelId === activeModel.modelId,
-      )
-    : null
+  const currentModel = resolveCurrentModel(activeModel, availableModels)
   const activeRightPanel =
     rightPanels.find((panel) => panel.id === activeRightPanelId) ?? rightPanels[0] ?? null
   const rightPanelToggleLabel = rightPanelCollapsed
@@ -494,21 +496,10 @@ export default function ChatTitleBar({
                 )}
                 disabled={compacting || loading}
                 onClick={async () => {
+                  if (!currentSessionId) return
                   setCompacting(true)
                   try {
-                    const result = await getTransport().call<{
-                      tierApplied: number
-                      tokensBefore: number
-                      tokensAfter: number
-                      messagesAffected: number
-                    }>("compact_context_now", {
-                      sessionId: currentSessionId,
-                    })
-                    const saved = result.tokensBefore - result.tokensAfter
-                    const msg =
-                      result.messagesAffected > 0
-                        ? t("chat.compactDone", { saved, affected: result.messagesAffected })
-                        : t("chat.compactNoChange")
+                    const msg = compactResultMessage(t, await compactContextNow(currentSessionId))
                     if (compactToastTimer.current) clearTimeout(compactToastTimer.current)
                     setCompactToast({ success: true, message: msg })
                     compactToastTimer.current = setTimeout(() => setCompactToast(null), 3000)
@@ -577,7 +568,7 @@ export default function ChatTitleBar({
               {/* Model + Auth */}
               {(() => {
                 const modelLabel = currentModel
-                  ? `${currentModel.providerName}/${currentModel.modelId}`
+                  ? `${currentModel.providerName}/${currentModel.modelName || currentModel.modelId}`
                   : activeModel?.modelId || "—"
                 const apiType = currentModel?.apiType || "—"
                 const authLabel = apiType === "codex" ? "oauth" : "api-key"
@@ -601,19 +592,12 @@ export default function ChatTitleBar({
               {/* Context window usage. See `getContextUsageTokens` for the
                *  cumulative-vs-last-round rule. */}
               {(() => {
-                if (!currentModel) return null
-                const ctxK = Math.round(currentModel.contextWindow / 1000)
-                const lastAssistantWithUsage = [...messages]
-                  .reverse()
-                  .find((msg) => msg.role === "assistant" && getContextUsageTokens(msg.usage))
-                const usedTokens = getContextUsageTokens(lastAssistantWithUsage?.usage) ?? 0
-                const usedK = Math.round(usedTokens / 1000)
-                const pct =
-                  currentModel.contextWindow > 0
-                    ? Math.round((usedTokens / currentModel.contextWindow) * 100)
-                    : 0
-                const barColor =
-                  pct < 50 ? "bg-green-500/70" : pct < 80 ? "bg-yellow-500/70" : "bg-red-500/70"
+                const usage = currentModel
+                  ? computeContextUsage(messages, currentModel.contextWindow)
+                  : null
+                if (!usage) return null
+                const { usedTokens, usedK, ctxK, pct } = usage
+                const barColor = contextUsageBarClass(pct)
                 return (
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
@@ -633,26 +617,12 @@ export default function ChatTitleBar({
                         className="w-full mt-1 px-2 py-1 text-[11px] rounded-md border border-border/50 text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-50"
                         disabled={compacting || loading}
                         onClick={async () => {
+                          if (!currentSessionId) return
                           setCompacting(true)
                           try {
-                            const result = await getTransport().call<{
-                              tierApplied: number
-                              tokensBefore: number
-                              tokensAfter: number
-                              messagesAffected: number
-                            }>("compact_context_now", {
-                              sessionId: currentSessionId,
-                            })
-                            const saved = result.tokensBefore - result.tokensAfter
-                            const msg =
-                              result.messagesAffected > 0
-                                ? t("chat.compactDone", {
-                                    saved,
-                                    affected: result.messagesAffected,
-                                  })
-                                : t("chat.compactNoChange")
+                            const result = await compactContextNow(currentSessionId)
                             if (compactToastTimer.current) clearTimeout(compactToastTimer.current)
-                            setCompactToast({ success: true, message: msg })
+                            setCompactToast({ success: true, message: compactResultMessage(t, result) })
                             compactToastTimer.current = setTimeout(
                               () => setCompactToast(null),
                               3000,
@@ -680,16 +650,10 @@ export default function ChatTitleBar({
                     <button
                       className="w-full mt-1 px-2 py-1 text-[11px] rounded-md border border-border/50 text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors flex items-center justify-center gap-1"
                       onClick={async () => {
+                        if (!currentSessionId) return
                         try {
-                          const result = await getTransport().call<
-                            import("@/components/chat/slash-commands/types").CommandResult
-                          >("execute_slash_command", {
-                            sessionId: currentSessionId,
-                            agentId: currentAgentId,
-                            commandText: "/context",
-                          })
+                          const result = await runViewContext(currentSessionId, currentAgentId)
                           setShowStatus(false)
-                          result._slashCommandText = "/context"
                           onCommandAction?.(result)
                         } catch (e) {
                           logger.error("ui", "ChatTitleBar::viewContext", "View context failed", e)
@@ -704,15 +668,9 @@ export default function ChatTitleBar({
               })()}
               {/* Cache info (Anthropic) */}
               {(() => {
-                const lastAssistantWithUsage = [...messages]
-                  .reverse()
-                  .find((msg) => msg.role === "assistant" && msg.usage)
-                const u = lastAssistantWithUsage?.usage
-                if (!u || (u.cacheCreationInputTokens == null && u.cacheReadInputTokens == null))
-                  return null
-                const created = u.cacheCreationInputTokens || 0
-                const read = u.cacheReadInputTokens || 0
-                const lastInput = u.lastInputTokens
+                const cache = computeCacheStats(messages)
+                if (!cache) return null
+                const { created, read, lastInput } = cache
                 return (
                   <div className="space-y-1">
                     <div className="flex items-center justify-between gap-2">

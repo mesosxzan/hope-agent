@@ -108,6 +108,23 @@ pub(super) async fn resolve_tool_permission(
     crate::permission::engine::resolve_async(&resolve_ctx).await
 }
 
+/// Record the target path(s) of a `write` / `edit` / `apply_patch` call into
+/// the session-edit tracker so Smart mode won't re-prompt on later edits to the
+/// same file. No-op for non-edit tools (empty target list) and sessionless
+/// calls. Paths use the same canonical resolution as the permission engine.
+fn record_smart_session_edits(name: &str, args: &Value, ctx: &ToolExecContext) {
+    let Some(session_id) = ctx.session_id.as_deref() else {
+        return;
+    };
+    for path in crate::permission::rules::resolved_edit_target_paths(
+        name,
+        args,
+        Some(std::path::Path::new(ctx.default_path())),
+    ) {
+        crate::permission::session_edits::record(session_id, &path);
+    }
+}
+
 /// Load the user-configured tool timeout from config.json. Returns `None`
 /// when the user explicitly set 0 (disabled). The serde default in
 /// [`AppConfig`] provides the 300s fallback when the field is missing.
@@ -1539,7 +1556,19 @@ pub async fn execute_tool_with_context(
     }
 
     match result {
-        Ok(output) => maybe_persist_large_tool_result(name, output, ctx),
+        Ok(output) => {
+            // Smart mode only: remember a file the agent SUCCESSFULLY edited so
+            // re-edits in this session skip the prompt. Gated on success (a
+            // failed write/edit/apply_patch returns Err and is excluded) and on
+            // Smart mode (Default/YOLO/auto-approve edits must NOT leak forward
+            // into Smart's trusted set — only edits actually vetted under Smart
+            // count). Plan-mode-blocked edits returned Err before dispatch, so
+            // they never reach here either.
+            if ctx.session_mode == crate::permission::SessionMode::Smart {
+                record_smart_session_edits(name, args, ctx);
+            }
+            maybe_persist_large_tool_result(name, output, ctx)
+        }
         other => other,
     }
 }
