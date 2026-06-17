@@ -306,6 +306,106 @@ pub fn atomic_replace_binary(
     imp::atomic_replace_binary(target, source)
 }
 
+/// Outcome of [`redirect_updater_tmpdir_if_cross_volume`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UpdaterTmpdir {
+    /// No action: not macOS, not a `.app` bundle, or temp already on the
+    /// bundle's volume.
+    Unchanged,
+    /// The `tempfile` default temp dir was overridden onto the bundle's volume
+    /// (path returned).
+    Redirected(PathBuf),
+    /// A cross-volume install was detected but a same-volume temp dir could not
+    /// be staged (read-only mount such as a DMG, or an unwritable parent). The
+    /// desktop self-update will likely still fail with `EXDEV` — there is
+    /// nothing we can do from here; the caller should log a breadcrumb.
+    CrossVolumeUnfixable,
+}
+
+/// macOS desktop-updater cross-device (`EXDEV`) workaround.
+///
+/// `tauri-plugin-updater` stages the new `.app` under the default temp dir via
+/// `tempfile::Builder` and then `rename(2)`s both the current bundle out to a
+/// backup and the new bundle into place (`updater.rs::install_inner`). When the
+/// app runs from a different volume than the temp dir (external / secondary
+/// volume) the very first rename returns `EXDEV` ("Cross-device link (os error
+/// 18)") and the update aborts — the plugin treats any non-`PermissionDenied`
+/// rename error as fatal (no AppleScript / copy fallback on `EXDEV`), and unlike
+/// its Linux AppImage path it has no same-volume retry on macOS.
+///
+/// We pre-empt it: when the bundle's volume differs from the temp volume, point
+/// the `tempfile` crate's default temp dir at a directory on the bundle's own
+/// volume (via [`tempfile::env::override_temp_dir`]) so both of the plugin's
+/// renames stay intra-volume.
+///
+/// Scope: this overrides only the `tempfile` crate's in-process default — it
+/// does NOT mutate `$TMPDIR`, so spawned child processes (exec / hooks / MCP,
+/// which inherit and even whitelist `$TMPDIR`) keep the per-user system temp.
+/// It's set at startup (rather than wrapped around a single update call)
+/// because both desktop update entry points reach the plugin independently —
+/// the GUI "Check for Updates" menu path from JS ([`src/lib/desktopUpdater.ts`])
+/// and the `app_update` tool via `update_bridge`. The override is a no-op for
+/// the common case (app on the boot volume → same volume as the temp dir), so
+/// the (now in-process-only) temp-locality cost is paid solely by the rare
+/// cross-volume user. `override_temp_dir` is set-once and thread-safe, so
+/// `run()` panic-restart re-entry is harmless.
+#[cfg(target_os = "macos")]
+pub fn redirect_updater_tmpdir_if_cross_volume() -> UpdaterTmpdir {
+    use std::os::unix::fs::MetadataExt;
+
+    let resolve = || -> Option<UpdaterTmpdir> {
+        let exe = std::env::current_exe().ok()?;
+        // Innermost `.app` ancestor is the bundle root.
+        let app_root = exe
+            .ancestors()
+            .find(|p| p.extension().and_then(|e| e.to_str()) == Some("app"))?;
+        let install_parent = app_root.parent()?;
+        // The plugin renames temp ⇄ the bundle itself, so the device that must
+        // match is the bundle's own — not merely its parent's.
+        let bundle_dev = std::fs::metadata(app_root).ok()?.dev();
+        // Compare against the OS default temp (`std::env::temp_dir`), which is
+        // what `tempfile` falls back to when no override is set.
+        let tmp_dev = std::fs::metadata(std::env::temp_dir()).ok()?.dev();
+        if tmp_dev == bundle_dev {
+            // Temp already on the bundle's volume — the plugin's rename works.
+            return Some(UpdaterTmpdir::Unchanged);
+        }
+        // Cross-volume: stage the updater's temp on the bundle's own volume.
+        let updater_tmp = install_parent.join(".hope-agent-updater-tmp");
+        if std::fs::create_dir_all(&updater_tmp).is_err() {
+            // Read-only mount (e.g. a DMG) or unwritable parent — can't help.
+            return Some(UpdaterTmpdir::CrossVolumeUnfixable);
+        }
+        // Verify the staged dir actually landed on the bundle's volume (guard
+        // against firmlink / synthetic-mount edges where parent and the new dir
+        // report different devices) — otherwise redirecting wouldn't fix the
+        // rename and would relocate unrelated temp for nothing.
+        match std::fs::metadata(&updater_tmp).ok().map(|m| m.dev()) {
+            Some(dev) if dev == bundle_dev => {
+                // Process-local override for the `tempfile` crate only (the
+                // plugin stages via `tempfile::Builder`, which honors it). Does
+                // NOT touch `$TMPDIR`, so child processes are unaffected.
+                // Set-once: a later call (panic-restart re-entry) returns Err
+                // and is ignored.
+                let _ = tempfile::env::override_temp_dir(&updater_tmp);
+                Some(UpdaterTmpdir::Redirected(updater_tmp))
+            }
+            _ => Some(UpdaterTmpdir::CrossVolumeUnfixable),
+        }
+    };
+    // Failure to even resolve the bundle/devices → safe no-op.
+    resolve().unwrap_or(UpdaterTmpdir::Unchanged)
+}
+
+/// Non-macOS no-op: the desktop updater's `EXDEV` workaround is macOS-specific
+/// (the Linux AppImage path already retries on the install volume; the Windows
+/// installer is copied to temp and executed in place, never raw-renamed across
+/// volumes).
+#[cfg(not(target_os = "macos"))]
+pub fn redirect_updater_tmpdir_if_cross_volume() -> UpdaterTmpdir {
+    UpdaterTmpdir::Unchanged
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
