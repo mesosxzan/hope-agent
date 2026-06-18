@@ -6,7 +6,7 @@ use super::super::streaming_adapter::RoundOutcome;
 
 const CANCEL_POLL_INTERVAL: Duration = Duration::from_millis(100);
 
-pub(super) async fn wait_for_cancel(cancel: &Arc<AtomicBool>) {
+pub(in crate::agent) async fn wait_for_cancel(cancel: &Arc<AtomicBool>) {
     wait_for_cancel_flag(cancel.as_ref()).await;
 }
 

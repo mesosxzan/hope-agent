@@ -82,11 +82,20 @@ fn format_context_compacted(obj: &serde_json::Map<String, Value>) -> Option<Stri
     ) {
         return None;
     }
+    if tier == 4 {
+        return Some(
+            "📚 _Context was too long, so earlier context was compressed and the request will continue._".to_string(),
+        );
+    }
     let msgs = data.get("messages_affected").and_then(Value::as_u64);
     let body = match msgs {
-        Some(0) | None => format!("📚 _Context compacted (tier {tier})_"),
-        Some(1) => format!("📚 _Context compacted (tier {tier}, 1 msg)_"),
-        Some(n) => format!("📚 _Context compacted (tier {tier}, {n} msgs)_"),
+        Some(0) | None => {
+            "📚 _Earlier context was compressed so the conversation can continue._".to_string()
+        }
+        Some(1) => "📚 _Compressed 1 older message so the conversation can continue._".to_string(),
+        Some(n) => {
+            format!("📚 _Compressed {n} older messages so the conversation can continue._")
+        }
     };
     Some(body)
 }
@@ -205,7 +214,23 @@ mod tests {
         });
         assert_eq!(
             format_im_system_event(&event).as_deref(),
-            Some("📚 _Context compacted (tier 3, 12 msgs)_"),
+            Some("📚 _Compressed 12 older messages so the conversation can continue._"),
+        );
+    }
+
+    #[test]
+    fn context_compacted_tier_4_uses_emergency_wording_even_with_count() {
+        let event = json!({
+            "type": "context_compacted",
+            "data": {
+                "tier_applied": 4,
+                "messages_affected": 12,
+                "description": "emergency_compact",
+            }
+        });
+        assert_eq!(
+            format_im_system_event(&event).as_deref(),
+            Some("📚 _Context was too long, so earlier context was compressed and the request will continue._"),
         );
     }
 
@@ -220,7 +245,7 @@ mod tests {
         });
         assert_eq!(
             format_im_system_event(&event).as_deref(),
-            Some("📚 _Context compacted (tier 2, 1 msg)_"),
+            Some("📚 _Compressed 1 older message so the conversation can continue._"),
         );
     }
 
@@ -280,7 +305,7 @@ mod tests {
         });
         assert_eq!(
             format_im_system_event(&event).as_deref(),
-            Some("📚 _Context compacted (tier 3)_"),
+            Some("📚 _Earlier context was compressed so the conversation can continue._"),
         );
     }
 

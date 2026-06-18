@@ -28,7 +28,7 @@ interface CompactConfig {
   maxToolResultContextShare: number
   softTrimRatio: number
   hardClearRatio: number
-  keepLastAssistants: number
+  preserveRecentRounds: number
   minPrunableToolChars: number
   softTrimMaxChars: number
   softTrimHeadChars: number
@@ -36,7 +36,6 @@ interface CompactConfig {
   hardClearEnabled: boolean
   hardClearPlaceholder: string
   summarizationThreshold: number
-  preserveRecentTurns: number
   identifierPolicy: string
   identifierInstructions: string | null
   customInstructions: string | null
@@ -45,6 +44,7 @@ interface CompactConfig {
   summaryMaxTokens: number
   maxHistoryShare: number
   maxCompactionSummaryChars: number
+  maxCompactionInjectedContextShare: number
   reactiveMicrocompactEnabled: boolean
   reactiveTriggerRatio: number
 }
@@ -328,12 +328,12 @@ export default function ContextCompactPanel() {
                     onChange={(v) => update({ hardClearRatio: v })}
                   />
                   <NumberField
-                    label={t("settings.contextCompactKeepAssistants")}
-                    desc={t("settings.contextCompactKeepAssistantsDesc")}
-                    value={config.keepLastAssistants}
+                    label={t("settings.contextCompactPreserveRounds")}
+                    desc={t("settings.contextCompactPreserveRoundsDesc")}
+                    value={config.preserveRecentRounds}
                     min={1}
-                    max={10}
-                    onChange={(v) => update({ keepLastAssistants: v })}
+                    max={12}
+                    onChange={(v) => update({ preserveRecentRounds: v })}
                   />
                 </div>
               </div>
@@ -411,14 +411,6 @@ export default function ContextCompactPanel() {
                   max={0.95}
                   step={0.05}
                   onChange={(v) => update({ summarizationThreshold: v })}
-                />
-                <NumberField
-                  label={t("settings.contextCompactPreserveTurns")}
-                  desc={t("settings.contextCompactPreserveTurnsDesc")}
-                  value={config.preserveRecentTurns}
-                  min={1}
-                  max={12}
-                  onChange={(v) => update({ preserveRecentTurns: v })}
                 />
                 <div className="flex items-center justify-between gap-2">
                   <label className="text-sm">{t("settings.contextCompactIdentifierPolicy")}</label>
@@ -559,6 +551,15 @@ export default function ContextCompactPanel() {
                   min={10}
                   max={90}
                   onChange={(v) => update({ maxHistoryShare: v / 100 })}
+                />
+                <RatioInput
+                  label={t("settings.contextCompactMaxInjectedShare")}
+                  desc={t("settings.contextCompactMaxInjectedShareDesc")}
+                  value={config.maxCompactionInjectedContextShare}
+                  min={0.05}
+                  max={0.9}
+                  step={0.05}
+                  onChange={(v) => update({ maxCompactionInjectedContextShare: v })}
                 />
                 <div className="flex items-center justify-between px-0 py-1">
                   <label className="text-sm">

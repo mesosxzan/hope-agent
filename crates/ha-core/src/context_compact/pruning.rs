@@ -1,14 +1,18 @@
 // ── Tier 2: Context Pruning ──
 
+use super::boundary::RecentBoundary;
 use super::config::CompactConfig;
 use super::estimation::{
-    estimate_message_chars, extract_tool_name, get_tool_result_text, is_assistant_message,
-    is_tool_result, is_user_message, set_tool_result_text,
+    build_tool_id_to_name_map, estimate_message_chars, get_tool_name_for_result,
+    get_tool_result_text, is_tool_result, is_user_message, set_tool_result_text,
 };
+#[cfg(test)]
+use super::recent_boundary;
 use super::truncation::head_tail_truncate;
 use super::types::{PruneResult, ToolResultInfo};
 use super::CHARS_PER_TOKEN;
 use serde_json::Value;
+use std::collections::HashMap;
 
 /// Compute prune priority for a tool result (higher = prune first).
 /// Improvement over openclaw: uses age x size instead of pure age.
@@ -16,21 +20,6 @@ fn prune_priority(msg_index: usize, total_messages: usize, content_chars: usize)
     let age = 1.0 - (msg_index as f64 / total_messages.max(1) as f64);
     let size = (content_chars as f64 / 100_000.0).min(1.0);
     age * 0.6 + size * 0.4
-}
-
-/// Find the cutoff index: messages at or after this index are protected.
-/// Returns None if not enough assistant messages exist.
-fn find_assistant_cutoff_index(messages: &[Value], keep_last: usize) -> Option<usize> {
-    let mut assistant_count = 0;
-    for (i, msg) in messages.iter().enumerate().rev() {
-        if is_assistant_message(msg) {
-            assistant_count += 1;
-            if assistant_count >= keep_last {
-                return Some(i);
-            }
-        }
-    }
-    None // Not enough assistant messages
 }
 
 /// Find the first user message index (protects bootstrap context).
@@ -43,6 +32,7 @@ fn collect_prunable_tool_results(
     messages: &[Value],
     prune_start: usize,
     cutoff: usize,
+    tool_id_to_name: &HashMap<String, String>,
     config: &CompactConfig,
 ) -> Vec<ToolResultInfo> {
     let mut results = Vec::new();
@@ -51,7 +41,7 @@ fn collect_prunable_tool_results(
         if !is_tool_result(msg) {
             continue;
         }
-        let tool_name = extract_tool_name(msg);
+        let tool_name = get_tool_name_for_result(msg, tool_id_to_name);
         if let Some(ref name) = tool_name {
             if config.is_protected(name) {
                 continue;
@@ -68,12 +58,32 @@ fn collect_prunable_tool_results(
 }
 
 /// Tier 2: Prune old context based on usage ratio.
-pub fn prune_old_context(
+#[cfg(test)]
+fn prune_old_context(
     messages: &mut [Value],
     system_prompt: &str,
     context_window: u32,
     max_output_tokens: u32,
     config: &CompactConfig,
+) -> PruneResult {
+    let boundary = recent_boundary(messages, config.preserve_recent_rounds);
+    prune_old_context_with_boundary(
+        messages,
+        system_prompt,
+        context_window,
+        max_output_tokens,
+        config,
+        &boundary,
+    )
+}
+
+pub(super) fn prune_old_context_with_boundary(
+    messages: &mut [Value],
+    system_prompt: &str,
+    context_window: u32,
+    max_output_tokens: u32,
+    config: &CompactConfig,
+    boundary: &RecentBoundary,
 ) -> PruneResult {
     let mut result = PruneResult {
         soft_trimmed: 0,
@@ -87,10 +97,7 @@ pub fn prune_old_context(
     }
 
     // Step 1: Find protected boundary
-    let cutoff = match find_assistant_cutoff_index(messages, config.keep_last_assistants) {
-        Some(idx) => idx,
-        None => return result, // Not enough assistants, skip
-    };
+    let cutoff = boundary.protected_start_index;
 
     // Step 2: Find first user message (protect bootstrap)
     let prune_start = find_first_user_index(messages).unwrap_or(messages.len());
@@ -112,7 +119,9 @@ pub fn prune_old_context(
     }
 
     // Step 4: Collect prunable tool results, sorted by priority (highest first)
-    let mut prunable = collect_prunable_tool_results(messages, prune_start, cutoff, config);
+    let tool_id_to_name = build_tool_id_to_name_map(messages);
+    let mut prunable =
+        collect_prunable_tool_results(messages, prune_start, cutoff, &tool_id_to_name, config);
     let total_msgs = messages.len();
     prunable.sort_by(|a, b| {
         let pa = prune_priority(a.msg_index, total_msgs, a.content_chars);
@@ -187,4 +196,152 @@ pub fn prune_old_context(
     }
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn pruning_config() -> CompactConfig {
+        CompactConfig {
+            soft_trim_ratio: 0.10,
+            hard_clear_ratio: 0.20,
+            preserve_recent_rounds: 1,
+            hard_clear_enabled: false,
+            ..CompactConfig::default()
+        }
+    }
+
+    fn prune(messages: &mut [Value]) -> PruneResult {
+        prune_old_context(messages, "", 1_000, 0, &pruning_config())
+    }
+
+    #[test]
+    fn protected_anthropic_tool_result_is_not_pruned_via_tool_use_id() {
+        let protected = "protected-memory-result ".repeat(2_000);
+        let mut messages = vec![
+            json!({ "role": "user", "content": "old request" }),
+            json!({
+                "role": "assistant",
+                "content": [{
+                    "type": "tool_use",
+                    "id": "toolu_1",
+                    "name": "recall_memory",
+                    "input": { "query": "project facts" }
+                }]
+            }),
+            json!({
+                "role": "user",
+                "content": [{
+                    "type": "tool_result",
+                    "tool_use_id": "toolu_1",
+                    "content": protected
+                }]
+            }),
+            json!({ "role": "user", "content": "later request" }),
+            json!({ "role": "assistant", "content": "recent assistant reply" }),
+        ];
+        let original = get_tool_result_text(&messages[2]).unwrap();
+
+        let result = prune(&mut messages);
+
+        assert_eq!(result.soft_trimmed, 0);
+        assert_eq!(result.hard_cleared, 0);
+        assert_eq!(get_tool_result_text(&messages[2]).unwrap(), original);
+    }
+
+    #[test]
+    fn protected_openai_chat_tool_result_is_not_pruned_via_tool_call_id() {
+        let protected = "protected-web-result ".repeat(2_000);
+        let mut messages = vec![
+            json!({ "role": "user", "content": "old request" }),
+            json!({
+                "role": "assistant",
+                "tool_calls": [{
+                    "id": "call_1",
+                    "type": "function",
+                    "function": {
+                        "name": "web_fetch",
+                        "arguments": "{\"url\":\"https://example.com\"}"
+                    }
+                }]
+            }),
+            json!({
+                "role": "tool",
+                "tool_call_id": "call_1",
+                "content": protected
+            }),
+            json!({ "role": "user", "content": "later request" }),
+            json!({ "role": "assistant", "content": "recent assistant reply" }),
+        ];
+        let original = get_tool_result_text(&messages[2]).unwrap();
+
+        let result = prune(&mut messages);
+
+        assert_eq!(result.soft_trimmed, 0);
+        assert_eq!(result.hard_cleared, 0);
+        assert_eq!(get_tool_result_text(&messages[2]).unwrap(), original);
+    }
+
+    #[test]
+    fn protected_responses_tool_result_is_not_pruned_via_call_id() {
+        let protected = "protected-memory-result ".repeat(2_000);
+        let mut messages = vec![
+            json!({ "role": "user", "content": "old request" }),
+            json!({
+                "type": "function_call",
+                "call_id": "fc_1",
+                "name": "memory_get",
+                "arguments": "{\"id\":\"mem_1\"}"
+            }),
+            json!({
+                "type": "function_call_output",
+                "call_id": "fc_1",
+                "output": protected
+            }),
+            json!({ "role": "user", "content": "later request" }),
+            json!({ "role": "assistant", "content": "recent assistant reply" }),
+        ];
+        let original = get_tool_result_text(&messages[2]).unwrap();
+
+        let result = prune(&mut messages);
+
+        assert_eq!(result.soft_trimmed, 0);
+        assert_eq!(result.hard_cleared, 0);
+        assert_eq!(get_tool_result_text(&messages[2]).unwrap(), original);
+    }
+
+    #[test]
+    fn ordinary_openai_chat_tool_result_still_prunes() {
+        let ordinary = "ordinary-large-result ".repeat(2_000);
+        let mut messages = vec![
+            json!({ "role": "user", "content": "old request" }),
+            json!({
+                "role": "assistant",
+                "tool_calls": [{
+                    "id": "call_1",
+                    "type": "function",
+                    "function": {
+                        "name": "read_file",
+                        "arguments": "{\"path\":\"/tmp/a.rs\"}"
+                    }
+                }]
+            }),
+            json!({
+                "role": "tool",
+                "tool_call_id": "call_1",
+                "content": ordinary
+            }),
+            json!({ "role": "user", "content": "later request" }),
+            json!({ "role": "assistant", "content": "recent assistant reply" }),
+        ];
+        let original_len = get_tool_result_text(&messages[2]).unwrap().len();
+
+        let result = prune(&mut messages);
+
+        assert_eq!(result.soft_trimmed, 1);
+        assert_eq!(result.hard_cleared, 0);
+        assert!(get_tool_result_text(&messages[2]).unwrap().len() < original_len);
+    }
 }

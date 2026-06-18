@@ -9,7 +9,7 @@ fn default_soft_trim_ratio() -> f64 {
 fn default_hard_clear_ratio() -> f64 {
     0.70
 }
-fn default_keep_last_assistants() -> usize {
+fn default_preserve_recent_rounds() -> usize {
     4
 }
 fn default_min_prunable_tool_chars() -> usize {
@@ -29,9 +29,6 @@ fn default_hard_clear_placeholder() -> String {
 }
 fn default_summarization_threshold() -> f64 {
     0.85
-}
-fn default_preserve_recent_turns() -> usize {
-    4
 }
 fn default_identifier_policy() -> String {
     "strict".into()
@@ -59,6 +56,9 @@ fn default_max_tool_result_context_share() -> f64 {
 }
 fn default_max_compaction_summary_chars() -> usize {
     16_000
+}
+fn default_max_compaction_injected_context_share() -> f64 {
+    0.5
 }
 fn default_reactive_trigger_ratio() -> f64 {
     0.75
@@ -99,9 +99,10 @@ pub struct CompactConfig {
     /// Hard clear trigger ratio (default: 0.70)
     #[serde(default = "default_hard_clear_ratio")]
     pub hard_clear_ratio: f64,
-    /// Protect last N assistant messages from pruning (default: 4)
-    #[serde(default = "default_keep_last_assistants")]
-    pub keep_last_assistants: usize,
+    /// Protect recent N message rounds, expanding to the owning user turn only
+    /// when that does not swallow prior execution rounds from a long tool loop.
+    #[serde(default = "default_preserve_recent_rounds")]
+    pub preserve_recent_rounds: usize,
     /// Skip hard clear if total prunable chars below this (default: 20_000)
     #[serde(default = "default_min_prunable_tool_chars")]
     pub min_prunable_tool_chars: usize,
@@ -129,9 +130,6 @@ pub struct CompactConfig {
     /// Summarization trigger ratio (default: 0.85)
     #[serde(default = "default_summarization_threshold")]
     pub summarization_threshold: f64,
-    /// Preserve last N user turns during summarization (default: 4, max: 12)
-    #[serde(default = "default_preserve_recent_turns")]
-    pub preserve_recent_turns: usize,
     /// Identifier preservation policy: "strict" | "off" | "custom" (default: "strict")
     #[serde(default = "default_identifier_policy")]
     pub identifier_policy: String,
@@ -153,6 +151,10 @@ pub struct CompactConfig {
     /// Max chars for compaction summary (default: 16000, range: 4000–64000)
     #[serde(default = "default_max_compaction_summary_chars")]
     pub max_compaction_summary_chars: usize,
+    /// Max combined share of context window for post-compaction injected artifacts
+    /// (summary + deterministic ledger + recovered files).
+    #[serde(default = "default_max_compaction_injected_context_share")]
+    pub max_compaction_injected_context_share: f64,
 
     // ── Reactive Microcompact (Tier 0 in tool loop) ──
     /// Enable reactive microcompaction in tool loop rounds (default: true).
@@ -254,6 +256,20 @@ impl CompactConfig {
         // reactive_trigger_ratio: 0.50–0.95
         // Below 0.50 overlaps with soft_trim_ratio; above 0.95 is too close to emergency territory.
         self.reactive_trigger_ratio = self.reactive_trigger_ratio.clamp(0.50, 0.95);
+
+        // max_history_share: 0.10–0.90
+        self.max_history_share = self.max_history_share.clamp(0.10, 0.90);
+
+        // max_compaction_injected_context_share: 0.05–max_history_share.
+        // Summary + ledger + recovery must not immediately refill the context
+        // after a Tier 3 compaction.
+        self.max_compaction_injected_context_share = self
+            .max_compaction_injected_context_share
+            .clamp(0.05, self.max_history_share);
+
+        // preserve_recent_rounds: 1–12. The boundary expands to user-turn start,
+        // so values above 12 can protect too much history in tool-heavy turns.
+        self.preserve_recent_rounds = self.preserve_recent_rounds.clamp(1, 12);
     }
 }
 
@@ -266,7 +282,7 @@ impl Default for CompactConfig {
             max_tool_result_context_share: default_max_tool_result_context_share(),
             soft_trim_ratio: default_soft_trim_ratio(),
             hard_clear_ratio: default_hard_clear_ratio(),
-            keep_last_assistants: default_keep_last_assistants(),
+            preserve_recent_rounds: default_preserve_recent_rounds(),
             min_prunable_tool_chars: default_min_prunable_tool_chars(),
             soft_trim_max_chars: default_soft_trim_max_chars(),
             soft_trim_head_chars: default_soft_trim_head_chars(),
@@ -275,7 +291,6 @@ impl Default for CompactConfig {
             hard_clear_placeholder: default_hard_clear_placeholder(),
             summarization_model: None,
             summarization_threshold: default_summarization_threshold(),
-            preserve_recent_turns: default_preserve_recent_turns(),
             identifier_policy: default_identifier_policy(),
             identifier_instructions: None,
             custom_instructions: None,
@@ -283,11 +298,31 @@ impl Default for CompactConfig {
             summary_max_tokens: default_summary_max_tokens(),
             max_history_share: default_max_history_share(),
             max_compaction_summary_chars: default_max_compaction_summary_chars(),
+            max_compaction_injected_context_share: default_max_compaction_injected_context_share(),
             reactive_microcompact_enabled: crate::default_true(),
             reactive_trigger_ratio: default_reactive_trigger_ratio(),
             recovery_enabled: crate::default_true(),
             recovery_max_files: default_recovery_max_files(),
             recovery_max_file_bytes: default_recovery_max_file_bytes(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn clamp_caps_injected_context_share_to_history_share() {
+        let mut cfg = CompactConfig {
+            max_history_share: 0.30,
+            max_compaction_injected_context_share: 0.80,
+            ..Default::default()
+        };
+
+        cfg.clamp();
+
+        assert_eq!(cfg.max_history_share, 0.30);
+        assert_eq!(cfg.max_compaction_injected_context_share, 0.30);
     }
 }

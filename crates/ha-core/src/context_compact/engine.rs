@@ -6,6 +6,7 @@
 use serde_json::Value;
 
 use super::config::CompactConfig;
+use super::ledger::RuntimeLedgerSnapshot;
 use super::types::CompactResult;
 
 /// Read-only context for compaction decisions.
@@ -19,6 +20,12 @@ pub struct CompactionContext<'a> {
     pub cache_ttl_throttled: bool,
     /// Whether the emergency override is triggered (usage ≥ 95%).
     pub cache_ttl_emergency: bool,
+}
+
+/// Read-only context for emergency compaction (Tier 4).
+pub struct EmergencyCompactionContext<'a> {
+    pub config: &'a CompactConfig,
+    pub runtime_ledger: Option<&'a RuntimeLedgerSnapshot>,
 }
 
 /// Pluggable context compression engine.
@@ -35,8 +42,11 @@ pub trait ContextEngine: Send + Sync {
         -> CompactResult;
 
     /// Emergency compaction (Tier 4): called on ContextOverflow.
-    fn emergency_compact(&self, messages: &mut Vec<Value>, config: &CompactConfig)
-        -> CompactResult;
+    fn emergency_compact(
+        &self,
+        messages: &mut Vec<Value>,
+        ctx: &EmergencyCompactionContext<'_>,
+    ) -> CompactResult;
 
     /// Optional system-prompt addition injected by the engine.
     /// A future Active Memory engine would return recall context here.
@@ -56,7 +66,7 @@ impl ContextEngine for DefaultContextEngine {
     ) -> CompactResult {
         // When throttled (cache-TTL active, non-emergency), set Tier 2+
         // thresholds to infinity so only Tier 0/1 run.
-        if ctx.cache_ttl_throttled && !ctx.cache_ttl_emergency {
+        let mut result = if ctx.cache_ttl_throttled && !ctx.cache_ttl_emergency {
             let mut throttled = ctx.config.clone();
             throttled.soft_trim_ratio = f64::INFINITY;
             throttled.hard_clear_ratio = f64::INFINITY;
@@ -76,15 +86,22 @@ impl ContextEngine for DefaultContextEngine {
                 ctx.max_output_tokens,
                 ctx.config,
             )
+        };
+        if let Some(manifest) = result.manifest.take() {
+            result.manifest = Some(
+                manifest
+                    .with_cache_ttl_throttled(ctx.cache_ttl_throttled && !ctx.cache_ttl_emergency),
+            );
         }
+        result
     }
 
     fn emergency_compact(
         &self,
         messages: &mut Vec<Value>,
-        config: &CompactConfig,
+        ctx: &EmergencyCompactionContext<'_>,
     ) -> CompactResult {
-        super::emergency_compact(messages, config)
+        super::emergency_compact(messages, ctx.config, ctx.runtime_ledger)
     }
 }
 

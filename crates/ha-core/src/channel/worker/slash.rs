@@ -692,6 +692,7 @@ async fn compact_context_now_core(
             messages_affected: 0,
             description: "no_messages".to_string(),
             details: None,
+            manifest: None,
         });
     }
 

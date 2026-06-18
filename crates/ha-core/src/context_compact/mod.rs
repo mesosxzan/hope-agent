@@ -9,10 +9,13 @@
 //
 //  Reference: openclaw context-pruning + compaction systems + claude-code microcompact.
 
+mod boundary;
 mod compact;
 mod config;
 pub mod engine;
 mod estimation;
+mod ledger;
+mod manifest;
 mod pruning;
 pub(crate) mod recovery;
 pub(crate) mod round_grouping;
@@ -94,11 +97,27 @@ PRIORITIZE recent context over older history."#;
 
 // ── Re-exports ──
 
+pub use boundary::{
+    boundary_snapshot, build_message_rounds, recent_boundary, BoundaryMode, BoundarySnapshot,
+    MessageRound, RecentBoundary, RoundKind,
+};
 pub use compact::{compact_if_needed, emergency_compact, microcompact};
 pub use config::CompactConfig;
-pub use engine::{CompactionContext, CompactionProvider, ContextEngine, DefaultContextEngine};
+pub use engine::{
+    CompactionContext, CompactionProvider, ContextEngine, DefaultContextEngine,
+    EmergencyCompactionContext,
+};
 pub use estimation::estimate_request_tokens;
-pub use recovery::build_recovery_message;
+pub use ledger::{
+    build_runtime_ledger_message, render_runtime_ledger, JobLedgerItem, RuntimeLedgerSnapshot,
+    SubagentLedgerItem,
+};
+pub use manifest::CompactionManifest;
+pub(crate) use recovery::extract_file_touches;
+pub use recovery::{
+    build_recovery_message, FileOp, FileTouch, RecoveredFile, RecoveryContext, RecoveryResult,
+    SkippedFile,
+};
 
 /// Index at which `apply_summary()` places the summary message. Post-compaction
 /// recovery inserts the file-contents message immediately after the summary, so
@@ -109,6 +128,8 @@ pub use round_grouping::{
     RECOVERED_ROUND_PREFIX,
 };
 pub(crate) use summarization::SUMMARIZATION_SYSTEM_PROMPT;
-pub use summarization::{apply_summary, build_summarization_prompt, split_for_summarization};
+pub use summarization::{
+    apply_summary, build_summarization_prompt, peel_previous_summary, split_for_summarization,
+};
 pub use truncation::truncate_tool_results;
 pub use types::{CompactResult, TokenEstimateCalibrator};

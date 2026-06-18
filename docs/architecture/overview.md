@@ -97,7 +97,7 @@ flowchart TD
     I --> J{"concurrent_safe?"}
     J -- Yes --> K["并发安全组<br/>join_all() 并行执行"]
     J -- No --> L["串行组<br/>for loop 逐个执行"]
-    K --> M["每轮结果 →<br/>compact_if_needed()<br/>(5 层渐进压缩)"]
+    K --> M["每轮结果 →<br/>maybe_compact_between_tool_rounds()<br/>(mid-loop checkpoint)"]
     L --> M
     M --> G
 
@@ -234,7 +234,7 @@ graph LR
 | 本地模型加载（Ollama） | [本地模型加载](local-model-loading.md) |
 | 提示词 13 段组装 | [提示词系统](prompt-system.md) |
 | 工具定义/执行/权限 | [工具系统](tool-system.md) |
-| 上下文压缩 5 层 | [上下文压缩](context-compact.md) |
+| 上下文压缩 5 层 + mid-loop checkpoint | [上下文压缩](context-compact.md) |
 | 会话 & 消息持久化 | [Session 系统](session.md) |
 | 项目容器 & 默认工作目录 | [Project 系统](project.md) |
 | 记忆检索 & 提取 | [记忆系统](memory.md) |

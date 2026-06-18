@@ -238,16 +238,27 @@ function isContextCompactionStartDescription(description: unknown): boolean {
   return description === "summarizing" || description === "emergency_compacting"
 }
 
-function isContextCompactionStartNotice(message: Message): boolean {
+function isContextCompactionProgress(event: Record<string, unknown>): boolean {
+  return event.type === "context_compaction_progress"
+}
+
+function isContextCompactionDoneProgress(event: Record<string, unknown>): boolean {
+  if (!isContextCompactionProgress(event)) return false
+  return contextCompactionData(event).phase === "done"
+}
+
+function isContextCompactionLiveNotice(message: Message): boolean {
   const payload = eventPayloadFromMessage(message)
-  if (payload?.type !== "context_compacted") return false
+  if (!payload) return false
+  if (payload.type === "context_compaction_progress") return true
+  if (payload.type !== "context_compacted") return false
   return isContextCompactionStartDescription(contextCompactionData(payload).description)
 }
 
 function contextCompactionStartNoticeIndex(messages: Message[]): number {
   let idx = messages.length - 1
   if (messages[idx]?.role === "assistant") idx -= 1
-  if (idx >= 0 && isContextCompactionStartNotice(messages[idx])) return idx
+  if (idx >= 0 && isContextCompactionLiveNotice(messages[idx])) return idx
   return -1
 }
 
@@ -363,9 +374,13 @@ export function handleStreamEvent(
     event.type === "vision_auto_disabled" ||
     event.type === "profile_rotation" ||
     event.type === "context_compacted" ||
+    event.type === "context_compaction_progress" ||
     event.type === "queued_user_message_blocked" ||
     event.type === "round_limit_reached"
   ) {
+    if (isContextCompactionDoneProgress(event)) {
+      return true
+    }
     // Mirror the backend persister for Tier 0/1 noise, but keep Tier 3/4
     // start markers live-only so a long compaction does not look like a
     // frozen turn. The final `context_compacted` event replaces them below.
@@ -381,7 +396,7 @@ export function handleStreamEvent(
         role: "event",
         content: JSON.stringify(event),
       }
-      if (event.type === "context_compacted") {
+      if (event.type === "context_compacted" || event.type === "context_compaction_progress") {
         const startIdx = contextCompactionStartNoticeIndex(prev)
         if (startIdx >= 0) {
           const previousNotice = prev[startIdx]
@@ -390,6 +405,7 @@ export function handleStreamEvent(
           updated[startIdx] = {
             ...notice,
             content:
+              event.type === "context_compaction_progress" ||
               isContextCompactionStartDescription(contextCompactionData(event).description)
                 ? notice.content
                 : mergeWithContextCompactionStart(previousNotice, event),

@@ -276,6 +276,24 @@ export interface ContextCompactedEvent {
   tokens_before?: number
   tokens_after?: number
   messages_to_summarize?: number
+  phase?: ContextCompactionPhase
+  kind?: "summary" | "emergency"
+}
+
+export type ContextCompactionPhase =
+  | "preparing"
+  | "summarizing"
+  | "restoring_files"
+  | "preserving_runtime_state"
+  | "finalizing"
+  | "failed"
+
+export interface ContextCompactionProgressEvent {
+  phase?: ContextCompactionPhase
+  kind?: "summary" | "emergency"
+  messages_to_summarize?: number
+  files_recovered?: number
+  warning_count?: number
 }
 
 export interface RoundLimitReachedEvent {

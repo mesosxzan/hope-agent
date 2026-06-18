@@ -2,6 +2,8 @@
 
 use serde::Serialize;
 
+use super::manifest::CompactionManifest;
+
 // ── Token Estimate Calibrator ──
 
 /// Calibrates token estimates using actual API usage feedback.
@@ -65,6 +67,9 @@ pub struct CompactResult {
     pub description: String,
     /// Detailed breakdown
     pub details: Option<CompactDetails>,
+    /// Structured observability payload for logs/events.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub manifest: Option<CompactionManifest>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -89,6 +94,7 @@ pub struct SummarizationSplit {
     pub summarizable: Vec<serde_json::Value>,
     pub preserved: Vec<serde_json::Value>,
     pub preserved_start_index: usize,
+    pub boundary_warnings: Vec<String>,
 }
 
 /// Information about a tool result found in a message.

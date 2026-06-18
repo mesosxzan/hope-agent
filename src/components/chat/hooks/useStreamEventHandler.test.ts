@@ -88,6 +88,52 @@ describe("handleStreamEvent context compaction notices", () => {
     expect(data.tokens_after).toBe(420)
   })
 
+  test("replaces progress phase notice with the final compaction notice", () => {
+    const messagesRef = {
+      current: [
+        { role: "user", content: "continue" },
+        { role: "assistant", content: "" },
+      ] satisfies Message[],
+    }
+    const deps = createDeps(messagesRef)
+
+    handleStreamEvent(
+      {
+        type: "context_compaction_progress",
+        data: {
+          phase: "summarizing",
+          kind: "summary",
+          messages_to_summarize: 9,
+        },
+      },
+      "s1",
+      deps,
+    )
+    handleStreamEvent(
+      {
+        type: "context_compacted",
+        data: {
+          tier_applied: 3,
+          description: "summarization_needed",
+          tokens_before: 1000,
+          tokens_after: 420,
+          messages_affected: 0,
+        },
+      },
+      "s1",
+      deps,
+    )
+
+    expect(messagesRef.current.map((m) => m.role)).toEqual(["user", "event", "assistant"])
+    const event = parseEvent(messagesRef.current[1])
+    const data = event.data as Record<string, unknown>
+    expect(event.type).toBe("context_compacted")
+    expect(data.description).toBe("summarization_needed")
+    expect(data.messages_to_summarize).toBe(9)
+    expect(data.phase).toBeUndefined()
+    expect(data.kind).toBeUndefined()
+  })
+
   test("shows emergency compaction progress and replaces it with the final notice", () => {
     const messagesRef = {
       current: [
@@ -99,10 +145,10 @@ describe("handleStreamEvent context compaction notices", () => {
 
     handleStreamEvent(
       {
-        type: "context_compacted",
+        type: "context_compaction_progress",
         data: {
-          tier_applied: 4,
-          description: "emergency_compacting",
+          phase: "preparing",
+          kind: "emergency",
           attempt: 1,
           max_attempts: 1,
         },

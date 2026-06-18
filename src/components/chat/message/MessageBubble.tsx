@@ -43,6 +43,7 @@ import type {
   AgentSummaryForSidebar,
   ProfileRotationEvent,
   ContextCompactedEvent,
+  ContextCompactionProgressEvent,
   ChatTurnStatus,
   RoundLimitReachedEvent,
 } from "@/types/chat"
@@ -479,9 +480,16 @@ function MessageBubbleInner({
     if (eventPayload?.type === "profile_rotation") {
       return <ProfileRotationBanner event={eventPayload as ProfileRotationEvent} />
     }
-    if (eventPayload?.type === "context_compacted") {
+    if (
+      eventPayload?.type === "context_compacted" ||
+      eventPayload?.type === "context_compaction_progress"
+    ) {
       const data = (eventPayload.data ?? eventPayload) as ContextCompactedEvent
-      return <ContextCompactedBanner event={data} />
+      return (
+        <ContextCompactedBanner
+          event={data as ContextCompactedEvent & ContextCompactionProgressEvent}
+        />
+      )
     }
     if (eventPayload?.type === "round_limit_reached") {
       return (

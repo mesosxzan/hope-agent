@@ -217,6 +217,7 @@ impl SessionStartSource {
 pub enum CompactTrigger {
     Manual,
     Auto,
+    ToolLoop,
 }
 
 impl CompactTrigger {
@@ -224,6 +225,7 @@ impl CompactTrigger {
         match self {
             Self::Manual => "manual",
             Self::Auto => "auto",
+            Self::ToolLoop => "tool_loop",
         }
     }
 }

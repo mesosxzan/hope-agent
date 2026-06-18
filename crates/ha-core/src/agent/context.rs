@@ -1,8 +1,99 @@
 use anyhow::Result;
 use serde_json::json;
+use std::sync::{atomic::AtomicBool, Arc};
 
 use super::llm_adapter::{OneShotMode, OneShotRequest};
 use super::types::{AssistantAgent, LlmProvider};
+
+const MID_LOOP_SUMMARY_HYSTERESIS_DELTA: f64 = 0.15;
+const MID_LOOP_MAX_SUMMARY_ATTEMPTS_PER_TURN: u32 = 2;
+const MID_LOOP_MIN_ROUNDS_BETWEEN_SUMMARIES: u32 = 3;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum CompactionRunTrigger {
+    TurnStart,
+    ToolLoopCheckpoint,
+}
+
+impl CompactionRunTrigger {
+    fn hook_trigger(self) -> crate::hooks::CompactTrigger {
+        match self {
+            Self::TurnStart => crate::hooks::CompactTrigger::Auto,
+            Self::ToolLoopCheckpoint => crate::hooks::CompactTrigger::ToolLoop,
+        }
+    }
+
+    fn manifest_trigger(self) -> &'static str {
+        match self {
+            Self::TurnStart => "turn_start",
+            Self::ToolLoopCheckpoint => "tool_loop",
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct CompactionRunOptions {
+    pub trigger: CompactionRunTrigger,
+    pub bypass_cache_ttl: bool,
+    pub emit_start_event: bool,
+    pub allow_memory_flush: bool,
+    pub allow_summarization: bool,
+    pub cancel: Option<Arc<AtomicBool>>,
+}
+
+impl CompactionRunOptions {
+    fn turn_start(cancel: Option<Arc<AtomicBool>>) -> Self {
+        Self {
+            trigger: CompactionRunTrigger::TurnStart,
+            bypass_cache_ttl: false,
+            emit_start_event: true,
+            allow_memory_flush: true,
+            allow_summarization: true,
+            cancel,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub(super) struct CompactionRunOutcome {
+    pub tier_applied: u8,
+    pub changed_history: bool,
+    pub summary_applied: bool,
+    pub tokens_after: u32,
+    pub cancelled: bool,
+}
+
+impl CompactionRunOutcome {
+    fn cancelled(tokens_after: u32, changed_history: bool) -> Self {
+        Self {
+            tokens_after,
+            cancelled: true,
+            changed_history,
+            ..Self::default()
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub(super) struct MidLoopCompactionState {
+    pub summary_attempt_count: u32,
+    pub last_summary_attempt_round: Option<u32>,
+    pub suppress_tier3_for_turn: bool,
+}
+
+impl MidLoopCompactionState {
+    fn summary_attempt_throttled(&self, round: u32) -> bool {
+        self.summary_attempt_count >= MID_LOOP_MAX_SUMMARY_ATTEMPTS_PER_TURN
+            || self.last_summary_attempt_round.is_some_and(|last| {
+                round.saturating_sub(last) < MID_LOOP_MIN_ROUNDS_BETWEEN_SUMMARIES
+            })
+    }
+
+    fn record_summary_attempt(&mut self, round: u32) {
+        self.summary_attempt_count += 1;
+        self.last_summary_attempt_round = Some(round);
+    }
+}
 
 /// Count tool-use signals in a single conversation-history item across
 /// all three provider shapes. See `AssistantAgent::history_tail_stats`.
@@ -25,6 +116,52 @@ fn count_tool_uses(msg: &serde_json::Value) -> usize {
             .count();
     }
     0
+}
+
+fn message_content_chars(msg: &serde_json::Value) -> usize {
+    match msg.get("content") {
+        Some(serde_json::Value::String(s)) => s.len(),
+        Some(serde_json::Value::Array(blocks)) => blocks
+            .iter()
+            .map(|block| {
+                block
+                    .get("text")
+                    .or_else(|| block.get("output"))
+                    .and_then(|v| v.as_str())
+                    .map(str::len)
+                    .unwrap_or_else(|| block.to_string().len())
+            })
+            .sum(),
+        Some(other) => other.to_string().len(),
+        None => msg.to_string().len(),
+    }
+}
+
+fn post_summary_ledger_reserve_chars(
+    injection_remaining_chars: usize,
+    has_live_runtime_state: bool,
+    has_file_touches: bool,
+) -> usize {
+    if has_live_runtime_state {
+        injection_remaining_chars.min(8_000)
+    } else if has_file_touches {
+        injection_remaining_chars.min(2_000)
+    } else {
+        0
+    }
+}
+
+fn sync_tier_from_compact_result(result: &crate::context_compact::CompactResult) -> u8 {
+    let Some(details) = result.details.as_ref() else {
+        return 0;
+    };
+    if details.tool_results_soft_trimmed > 0 || details.tool_results_hard_cleared > 0 {
+        2
+    } else if details.tool_results_truncated > 0 {
+        1
+    } else {
+        0
+    }
 }
 
 impl AssistantAgent {
@@ -121,15 +258,39 @@ impl AssistantAgent {
         system_prompt: &str,
         model: &str,
         max_tokens: u32,
+        cancel: Option<Arc<AtomicBool>>,
         on_delta: &(impl Fn(&str) + Send),
     ) {
+        let _ = self
+            .run_compaction_with_options(
+                messages,
+                system_prompt,
+                model,
+                max_tokens,
+                on_delta,
+                CompactionRunOptions::turn_start(cancel),
+            )
+            .await;
+    }
+
+    pub(super) async fn run_compaction_with_options(
+        &self,
+        messages: &mut Vec<serde_json::Value>,
+        system_prompt: &str,
+        model: &str,
+        max_tokens: u32,
+        on_delta: &(impl Fn(&str) + Send),
+        options: CompactionRunOptions,
+    ) -> CompactionRunOutcome {
         use crate::context_compact;
 
         /// Usage ratio that overrides cache-TTL throttle to prevent ContextOverflow → Tier 4.
         const CACHE_TTL_EMERGENCY_RATIO: f64 = 0.95;
 
         // Pre-compute cache-TTL throttle state as two booleans for CompactionContext.
-        let (cache_ttl_throttled, cache_ttl_emergency) = if self.compact_config.cache_ttl_secs > 0 {
+        let (cache_ttl_throttled, cache_ttl_emergency) = if options.bypass_cache_ttl {
+            (false, false)
+        } else if self.compact_config.cache_ttl_secs > 0 {
             let within_ttl = {
                 let guard = self
                     .last_tier2_compaction_at
@@ -186,7 +347,7 @@ impl AssistantAgent {
             if usage_now >= self.compact_config.reactive_trigger_ratio {
                 let input = crate::hooks::HookInput::PreCompact {
                     common: self.hook_common_input("PreCompact"),
-                    trigger: crate::hooks::CompactTrigger::Auto,
+                    trigger: options.trigger.hook_trigger(),
                     usage_ratio: usage_now.min(1.0),
                 };
                 let outcome = crate::hooks::HookDispatcher::dispatch(
@@ -220,7 +381,10 @@ impl AssistantAgent {
                             "PreCompact hook blocked compaction (usage {:.1}%)",
                             usage_now * 100.0
                         );
-                        return;
+                        return CompactionRunOutcome {
+                            tokens_after: tokens_now,
+                            ..CompactionRunOutcome::default()
+                        };
                     } else {
                         // Consecutive-block cap exceeded: a hook can't defer
                         // compaction forever while usage sits in the band.
@@ -248,11 +412,24 @@ impl AssistantAgent {
             cache_ttl_throttled,
             cache_ttl_emergency,
         };
-        let compact_result = self.context_engine.compact_sync(messages, &ctx);
+        let mut compact_result = self.context_engine.compact_sync(messages, &ctx);
+        if let Some(manifest) = compact_result.manifest.as_mut() {
+            manifest.trigger = options.trigger.manifest_trigger().to_string();
+        }
 
         if compact_result.tier_applied == 0 {
-            return;
+            return CompactionRunOutcome {
+                tokens_after: compact_result.tokens_after,
+                ..CompactionRunOutcome::default()
+            };
         }
+        let mut run_outcome = CompactionRunOutcome {
+            tier_applied: compact_result.tier_applied,
+            changed_history: compact_result.messages_affected > 0,
+            summary_applied: false,
+            tokens_after: compact_result.tokens_after,
+            cancelled: false,
+        };
 
         // Touch timer after synchronous Tier 2 completes.
         // Tier 3 touches the timer separately in its own success path (after async LLM call).
@@ -302,9 +479,33 @@ impl AssistantAgent {
 
         // Tier 3: LLM summarization needed
         if compact_result.description == "summarization_needed" {
-            if let Some(split) =
+            if !options.allow_summarization {
+                if let Some(manifest) = compact_result.manifest.as_mut() {
+                    manifest
+                        .warnings
+                        .push("tier3_summary_skipped_by_policy".to_string());
+                }
+            } else if let Some(split) =
                 context_compact::split_for_summarization(messages, &self.compact_config)
             {
+                let is_incognito = self.session_is_incognito();
+                let runtime_ledger_snapshot = if is_incognito {
+                    context_compact::RuntimeLedgerSnapshot::default()
+                } else {
+                    self.session_id
+                        .as_deref()
+                        .filter(|sid| !sid.is_empty())
+                        .map(crate::agent::runtime_ledger::build_runtime_ledger_snapshot)
+                        .unwrap_or_default()
+                };
+                if let Some(manifest) = compact_result.manifest.as_mut() {
+                    manifest
+                        .warnings
+                        .extend(runtime_ledger_snapshot.warnings.iter().cloned());
+                    manifest
+                        .warnings
+                        .extend(split.boundary_warnings.iter().cloned());
+                }
                 // Memory Flush: extract memories from messages about to be summarized
                 {
                     let flush_enabled = {
@@ -313,7 +514,8 @@ impl AssistantAgent {
                             .ok()
                             .and_then(|d| d.config.memory.flush_before_compact);
                         agent_flush.unwrap_or(global.flush_before_compact)
-                    } && !self.session_is_incognito();
+                    } && !is_incognito
+                        && options.allow_memory_flush;
 
                     if flush_enabled {
                         // Resolve provider config on the current thread before spawning
@@ -380,51 +582,115 @@ impl AssistantAgent {
                     }
                 }
 
-                // Notify frontend that summarization is starting
-                if let Ok(event) = serde_json::to_string(&json!({
-                    "type": "context_compacted",
-                    "data": {
-                        "tier_applied": 3,
-                        "description": "summarizing",
-                        "messages_to_summarize": split.summarizable.len(),
-                    }
-                })) {
-                    on_delta(&event);
+                if options.emit_start_event {
+                    self.emit_compaction_progress(
+                        on_delta,
+                        "preparing",
+                        "summary",
+                        Some(split.summarizable.len()),
+                        None,
+                        None,
+                    );
+                    self.emit_compaction_progress(
+                        on_delta,
+                        "summarizing",
+                        "summary",
+                        Some(split.summarizable.len()),
+                        None,
+                        None,
+                    );
                 }
 
+                let (prompt_messages, previous_summary) =
+                    context_compact::peel_previous_summary(&split.summarizable);
                 let prompt = context_compact::build_summarization_prompt(
-                    &split.summarizable,
-                    None,
+                    &prompt_messages,
+                    previous_summary.as_deref(),
                     &self.compact_config,
                 );
 
-                // Try non-streaming summarization call with timeout
-                match tokio::time::timeout(
+                let summary_future = tokio::time::timeout(
                     std::time::Duration::from_secs(self.compact_config.summarization_timeout_secs),
                     self.summarize_with_model(&prompt),
-                )
-                .await
-                {
+                );
+                let summary_result = if let Some(cancel) = options.cancel.clone() {
+                    tokio::select! {
+                        biased;
+                        result = summary_future => result,
+                        _ = super::providers::cancel::wait_for_cancel(&cancel) => {
+                            let tokens_after = context_compact::estimate_request_tokens(
+                                system_prompt,
+                                messages,
+                                max_tokens,
+                            );
+                            if let Some(manifest) = compact_result.manifest.as_mut() {
+                                manifest.warnings.push("tier3_summary_cancelled".to_string());
+                            }
+                            self.emit_compaction_progress(
+                                on_delta,
+                                "failed",
+                                "summary",
+                                Some(split.summarizable.len()),
+                                None,
+                                None,
+                            );
+                            // compact_sync already mutated `messages` in place
+                            // (Tier 0/1/2) before the awaited summary; report it so
+                            // the caller refreshes the cache-safe snapshot instead
+                            // of leaving it on the pre-prune shape.
+                            return CompactionRunOutcome::cancelled(
+                                tokens_after,
+                                compact_result.messages_affected > 0,
+                            );
+                        }
+                    }
+                } else {
+                    summary_future.await
+                };
+
+                match summary_result {
                     Ok(Ok(summary)) => {
+                        let injection_budget_chars = ((self.context_window as f64
+                            * self.compact_config.max_compaction_injected_context_share)
+                            .round()
+                            as usize)
+                            .saturating_mul(context_compact::CHARS_PER_TOKEN);
                         context_compact::apply_summary(
                             messages,
                             &summary,
                             split.preserved_start_index,
                             &self.compact_config,
+                            Some(injection_budget_chars),
                         );
+                        run_outcome.summary_applied = true;
+                        run_outcome.changed_history = true;
                         // Update cache-TTL timer after successful Tier 3 summarization
                         self.touch_compaction_timer();
+                        // Record the summarized range in the manifest ONLY after the
+                        // summary actually applied — on failure/timeout (arms below)
+                        // the messages are untouched, so the manifest must not claim
+                        // a summary happened.
+                        if let Some(manifest) = compact_result.manifest.as_mut() {
+                            manifest.protected_start_index = Some(split.preserved_start_index);
+                            manifest.summarized_range = Some((0, split.preserved_start_index));
+                            manifest.rounds_summarized =
+                                context_compact::build_message_rounds(&split.summarizable).len();
+                        }
                         if let Some(logger) = crate::get_logger() {
                             logger.log(
-                                "info", "context", "compact",
-                                &format!(
-                                    "Tier 3 summarization complete: {} messages → {} chars summary, {} messages preserved",
-                                    split.summarizable.len(),
-                                    summary.len(),
-                                    split.preserved.len(),
-                                ),
-                                None, None, None,
-                            );
+                                    "info",
+                                    "context",
+                                    "compact",
+                                    &format!(
+                                        "Tier 3 summarization complete: {} messages → {} chars summary, {} messages preserved",
+                                        split.summarizable.len(),
+                                        summary.len(),
+                                        split.preserved.len(),
+                                    ),
+                                    None,
+                                    None,
+                                    None,
+                                );
                         }
 
                         // Post-compaction file recovery: re-inject recently-edited file contents
@@ -436,25 +702,125 @@ impl AssistantAgent {
                         let tokens_freed = compact_result
                             .tokens_before
                             .saturating_sub(tokens_after_summary);
-                        if let Some(recovery_msg) = context_compact::build_recovery_message(
-                            &split.summarizable,
-                            &split.preserved,
-                            tokens_freed,
-                            &self.compact_config,
-                        ) {
-                            // Insert immediately after the summary message emitted by
-                            // `apply_summary`. The summary is always at index 0 (clear →
-                            // push summary → extend preserved), so index 1 is the first
-                            // preserved slot. Compute from `len()` so that if the summary
-                            // layout ever changes we fail loudly instead of silently
-                            // misplacing the recovery content.
-                            let insert_at =
-                                context_compact::POST_SUMMARY_INSERT_INDEX.min(messages.len());
+                        let summary_chars = messages
+                            .first()
+                            .map(message_content_chars)
+                            .unwrap_or(summary.len());
+                        let injection_remaining_after_summary =
+                            injection_budget_chars.saturating_sub(summary_chars);
+                        let ledger_has_live_state =
+                            !runtime_ledger_snapshot.background_jobs.is_empty()
+                                || !runtime_ledger_snapshot.subagents.is_empty()
+                                || !runtime_ledger_snapshot.warnings.is_empty();
+                        let has_file_touches = !is_incognito
+                            && !context_compact::extract_file_touches(&split.summarizable)
+                                .is_empty();
+                        let ledger_reserve = post_summary_ledger_reserve_chars(
+                            injection_remaining_after_summary,
+                            ledger_has_live_state,
+                            has_file_touches,
+                        );
+                        let recovery_budget =
+                            injection_remaining_after_summary.saturating_sub(ledger_reserve);
+                        let recovery = if is_incognito {
+                            context_compact::RecoveryResult {
+                                message: None,
+                                recovered_files: Vec::new(),
+                                skipped_files: Vec::new(),
+                                file_touches: Vec::new(),
+                            }
+                        } else {
+                            let recovery_cwd = crate::session::effective_session_working_dir(
+                                self.session_id.as_deref(),
+                            )
+                            .map(std::path::PathBuf::from);
+                            let recovery_ctx = context_compact::RecoveryContext {
+                                session_working_dir: recovery_cwd.as_deref(),
+                                tokens_freed,
+                                max_total_bytes: Some(recovery_budget),
+                                config: &self.compact_config,
+                            };
+                            context_compact::build_recovery_message(
+                                &split.summarizable,
+                                &split.preserved,
+                                &recovery_ctx,
+                            )
+                        };
+                        let recovery_chars = recovery
+                            .message
+                            .as_ref()
+                            .map(message_content_chars)
+                            .unwrap_or(0);
+                        let ledger_budget = injection_remaining_after_summary
+                            .saturating_sub(recovery_chars)
+                            .min(8_000);
+                        let ledger_msg = if is_incognito {
+                            None
+                        } else {
+                            context_compact::build_runtime_ledger_message(
+                                &runtime_ledger_snapshot,
+                                &recovery.file_touches,
+                                ledger_budget,
+                            )
+                        };
+                        if options.emit_start_event && ledger_msg.is_some() {
+                            self.emit_compaction_progress(
+                                on_delta,
+                                "preserving_runtime_state",
+                                "summary",
+                                Some(split.summarizable.len()),
+                                None,
+                                Some(runtime_ledger_snapshot.warnings.len()),
+                            );
+                        }
+                        if options.emit_start_event && recovery.message.is_some() {
+                            self.emit_compaction_progress(
+                                on_delta,
+                                "restoring_files",
+                                "summary",
+                                Some(split.summarizable.len()),
+                                Some(recovery.recovered_files.len()),
+                                None,
+                            );
+                        }
+                        if let Some(manifest) = compact_result.manifest.as_mut() {
+                            manifest.files_recovered = recovery.recovered_files.len();
+                            for skipped in &recovery.skipped_files {
+                                manifest.warnings.push(format!(
+                                    "recovery_skipped:{}:{}",
+                                    skipped.path, skipped.reason
+                                ));
+                            }
+                            if summary_chars >= injection_budget_chars {
+                                manifest
+                                    .warnings
+                                    .push("post_compaction_injection_budget_exhausted".to_string());
+                            }
+                        }
+                        let mut insert_at =
+                            context_compact::POST_SUMMARY_INSERT_INDEX.min(messages.len());
+                        if let Some(ledger_msg) = ledger_msg {
+                            messages.insert(insert_at, ledger_msg);
+                            insert_at += 1;
+                        }
+                        if let Some(recovery_msg) = recovery.message {
+                            // Insert after summary and optional runtime ledger.
+                            let insert_at = insert_at.min(messages.len());
                             messages.insert(insert_at, recovery_msg);
                             app_info!(
                                 "context",
                                 "compact",
                                 "Post-compaction recovery: injected file contents after summary"
+                            );
+                        }
+                        if options.emit_start_event {
+                            self.emit_compaction_progress(
+                                on_delta,
+                                "finalizing",
+                                "summary",
+                                Some(split.summarizable.len()),
+                                None,
+                                None,
                             );
                         }
                     }
@@ -470,6 +836,14 @@ impl AssistantAgent {
                                 None,
                             );
                         }
+                        self.emit_compaction_progress(
+                            on_delta,
+                            "failed",
+                            "summary",
+                            Some(split.summarizable.len()),
+                            None,
+                            None,
+                        );
                     }
                     Err(_) => {
                         if let Some(logger) = crate::get_logger() {
@@ -486,20 +860,61 @@ impl AssistantAgent {
                                 None,
                             );
                         }
+                        self.emit_compaction_progress(
+                            on_delta,
+                            "failed",
+                            "summary",
+                            Some(split.summarizable.len()),
+                            None,
+                            None,
+                        );
                     }
                 }
+            }
+        }
+
+        if compact_result.description == "summarization_needed" && !run_outcome.summary_applied {
+            let sync_tier = sync_tier_from_compact_result(&compact_result);
+            compact_result.tier_applied = sync_tier;
+            compact_result.description = if sync_tier > 0 {
+                "summarization_not_applied_sync_compaction_only".to_string()
+            } else {
+                "summarization_not_applied".to_string()
+            };
+            if let Some(manifest) = compact_result.manifest.as_mut() {
+                manifest.tier = sync_tier;
+                manifest
+                    .warnings
+                    .push("tier3_summary_not_applied".to_string());
+            }
+            run_outcome.tier_applied = sync_tier;
+            run_outcome.changed_history = sync_tier > 0 && compact_result.messages_affected > 0;
+            if sync_tier == 0 {
+                run_outcome.tokens_after =
+                    context_compact::estimate_request_tokens(system_prompt, messages, max_tokens);
+                return run_outcome;
             }
         }
 
         // Emit compaction event to frontend
         let tokens_after =
             context_compact::estimate_request_tokens(system_prompt, messages, max_tokens);
+        if let Some(manifest) = compact_result.manifest.as_mut() {
+            manifest.tokens_after = tokens_after;
+        }
 
         // PostCompact + SessionStart(compact) hooks (observation): fire after a
         // real compaction (tier ≥ 2; tier 0 returned early above). Queues any
         // additionalContext for the next round's reminder suffix.
-        self.fire_compaction_hooks(compact_result.tier_applied, tokens_after, model)
+        if compact_result.tier_applied >= 2 {
+            self.fire_compaction_hooks(
+                compact_result.tier_applied,
+                tokens_after,
+                model,
+                options.trigger.hook_trigger(),
+            )
             .await;
+        }
 
         if let Ok(event) = serde_json::to_string(&json!({
             "type": "context_compacted",
@@ -509,10 +924,14 @@ impl AssistantAgent {
                 "tokens_after": tokens_after,
                 "messages_affected": compact_result.messages_affected,
                 "description": compact_result.description,
+                "manifest": compact_result.manifest,
             }
         })) {
             on_delta(&event);
         }
+        run_outcome.tokens_after = tokens_after;
+        run_outcome.tier_applied = compact_result.tier_applied;
+        run_outcome
     }
 
     /// Append hook-injected context to the pending queue, drained into the next
@@ -539,6 +958,181 @@ impl AssistantAgent {
         } else {
             Some(taken.join("\n\n"))
         }
+    }
+
+    fn emit_compaction_progress(
+        &self,
+        on_delta: &(impl Fn(&str) + Send),
+        phase: &str,
+        kind: &str,
+        messages_to_summarize: Option<usize>,
+        files_recovered: Option<usize>,
+        warning_count: Option<usize>,
+    ) {
+        let mut data = serde_json::Map::new();
+        data.insert("phase".to_string(), json!(phase));
+        data.insert("kind".to_string(), json!(kind));
+        if let Some(count) = messages_to_summarize {
+            data.insert("messages_to_summarize".to_string(), json!(count));
+        }
+        if let Some(count) = files_recovered {
+            data.insert("files_recovered".to_string(), json!(count));
+        }
+        if let Some(count) = warning_count {
+            data.insert("warning_count".to_string(), json!(count));
+        }
+        if let Ok(event) = serde_json::to_string(&json!({
+            "type": "context_compaction_progress",
+            "data": data,
+        })) {
+            on_delta(&event);
+        }
+    }
+
+    pub(super) async fn maybe_compact_between_tool_rounds(
+        &self,
+        messages: &mut Vec<serde_json::Value>,
+        system_prompt_for_budget: &str,
+        system_prompt_for_cache: &str,
+        tool_schemas: &[serde_json::Value],
+        model: &str,
+        max_tokens: u32,
+        cancel: Arc<AtomicBool>,
+        mid_loop_state: &mut MidLoopCompactionState,
+        round: u32,
+        on_delta: &(impl Fn(&str) + Send),
+    ) -> CompactionRunOutcome {
+        let mut changed_history = false;
+
+        changed_history |= crate::context_compact::truncate_tool_results(
+            messages,
+            self.context_window,
+            &self.compact_config,
+        ) > 0;
+
+        let used_after_t1 = crate::context_compact::estimate_request_tokens(
+            system_prompt_for_budget,
+            messages,
+            max_tokens,
+        );
+        let ratio_after_t1 = if self.context_window > 0 {
+            used_after_t1 as f64 / self.context_window as f64
+        } else {
+            0.0
+        };
+
+        let mut tokens_after_cheap_cleanup = used_after_t1;
+
+        if self.compact_config.enabled
+            && self.compact_config.reactive_microcompact_enabled
+            && ratio_after_t1 >= self.compact_config.reactive_trigger_ratio
+        {
+            let cleared = crate::context_compact::microcompact(messages, &self.compact_config);
+            if cleared > 0 {
+                changed_history = true;
+                app_info!(
+                    "agent",
+                    "reactive_microcompact",
+                    "cleared {} ephemeral tool_results at ratio={:.2} (threshold={:.2})",
+                    cleared,
+                    ratio_after_t1,
+                    self.compact_config.reactive_trigger_ratio
+                );
+                tokens_after_cheap_cleanup = crate::context_compact::estimate_request_tokens(
+                    system_prompt_for_budget,
+                    messages,
+                    max_tokens,
+                );
+            }
+        }
+
+        let usage_after_cheap_cleanup = if self.context_window > 0 {
+            tokens_after_cheap_cleanup as f64 / self.context_window as f64
+        } else {
+            0.0
+        };
+
+        if !self.compact_config.enabled
+            || usage_after_cheap_cleanup < self.compact_config.summarization_threshold
+        {
+            self.persist_round_context(messages);
+            if changed_history {
+                self.save_cache_safe_params(
+                    system_prompt_for_cache.to_string(),
+                    tool_schemas.to_vec(),
+                    messages.clone(),
+                    model,
+                );
+            }
+            return CompactionRunOutcome {
+                changed_history,
+                tokens_after: tokens_after_cheap_cleanup,
+                ..CompactionRunOutcome::default()
+            };
+        }
+
+        let tier3_summarization_throttled = mid_loop_state.suppress_tier3_for_turn
+            || mid_loop_state.summary_attempt_throttled(round);
+        let allow_summarization = !tier3_summarization_throttled;
+        // Only spend the per-turn attempt budget when a Tier 3 summary will
+        // actually be attempted.
+        if allow_summarization {
+            mid_loop_state.record_summary_attempt(round);
+        }
+        let outcome = self
+            .run_compaction_with_options(
+                messages,
+                system_prompt_for_budget,
+                model,
+                max_tokens,
+                on_delta,
+                CompactionRunOptions {
+                    trigger: CompactionRunTrigger::ToolLoopCheckpoint,
+                    bypass_cache_ttl: true,
+                    emit_start_event: true,
+                    allow_memory_flush: false,
+                    allow_summarization,
+                    cancel: Some(cancel),
+                },
+            )
+            .await;
+
+        self.persist_round_context(messages);
+        if changed_history || outcome.changed_history {
+            self.save_cache_safe_params(
+                system_prompt_for_cache.to_string(),
+                tool_schemas.to_vec(),
+                messages.clone(),
+                model,
+            );
+        }
+
+        if outcome.cancelled {
+            return outcome;
+        }
+
+        if outcome.summary_applied {
+            let threshold_floor = (self.compact_config.summarization_threshold
+                - MID_LOOP_SUMMARY_HYSTERESIS_DELTA)
+                .max(0.0);
+            let usage_after = if self.context_window > 0 {
+                outcome.tokens_after as f64 / self.context_window as f64
+            } else {
+                0.0
+            };
+            if usage_after >= threshold_floor {
+                mid_loop_state.suppress_tier3_for_turn = true;
+                app_warn!(
+                    "context",
+                    "compact",
+                    "mid-loop summary applied but reduction was insufficient: usage={:.2}, floor={:.2}; suppressing further mid-loop Tier 3 this turn",
+                    usage_after,
+                    threshold_floor
+                );
+            }
+        }
+
+        outcome
     }
 
     /// Build common hook-input fields from agent-level state, for hooks that
@@ -574,7 +1168,13 @@ impl AssistantAgent {
     /// Fire `PostCompact` + `SessionStart(source=compact)` after a real
     /// compaction. Both observation events; any `additionalContext` they return
     /// is queued for the next round's reminder suffix.
-    async fn fire_compaction_hooks(&self, tier: u8, tokens_after: u32, model: &str) {
+    async fn fire_compaction_hooks(
+        &self,
+        tier: u8,
+        tokens_after: u32,
+        model: &str,
+        trigger: crate::hooks::CompactTrigger,
+    ) {
         use crate::hooks::{HookDispatcher, HookEvent, HookInput};
 
         // Failover rebuilds the agent and re-runs compaction per retry from the
@@ -582,7 +1182,7 @@ impl AssistantAgent {
         // a genuinely distinct compaction differs in tier or tokens_after and
         // fires even within the window.
         let sid = self.session_id.clone().unwrap_or_default();
-        let dedup_key = format!("{sid}:{tier}:{tokens_after}");
+        let dedup_key = format!("{}:{sid}:{tier}:{tokens_after}", trigger.as_str());
         if !crate::hooks::claim_compaction_hooks(&dedup_key) {
             return;
         }
@@ -600,7 +1200,7 @@ impl AssistantAgent {
 
         let post = HookInput::PostCompact {
             common: self.hook_common_input("PostCompact"),
-            trigger: crate::hooks::CompactTrigger::Auto,
+            trigger,
             tier,
             usage_ratio,
         };
@@ -1243,6 +1843,275 @@ mod count_tool_uses_tests {
         // function_call side represents a model-emitted tool use.
         let msg = json!({"type": "function_call_output", "call_id": "c1", "output": "ok"});
         assert_eq!(count_tool_uses(&msg), 0);
+    }
+}
+
+#[cfg(test)]
+mod post_summary_budget_tests {
+    use super::post_summary_ledger_reserve_chars;
+
+    #[test]
+    fn reserves_small_ledger_budget_for_file_only_touches() {
+        assert_eq!(
+            post_summary_ledger_reserve_chars(10_000, false, true),
+            2_000
+        );
+    }
+
+    #[test]
+    fn reserves_larger_ledger_budget_for_live_runtime_state() {
+        assert_eq!(post_summary_ledger_reserve_chars(10_000, true, true), 8_000);
+    }
+
+    #[test]
+    fn reserves_nothing_without_live_state_or_file_touches() {
+        assert_eq!(post_summary_ledger_reserve_chars(10_000, false, false), 0);
+    }
+}
+
+#[cfg(test)]
+mod mid_loop_compaction_tests {
+    use super::{
+        CompactionRunOptions, MidLoopCompactionState, MID_LOOP_MIN_ROUNDS_BETWEEN_SUMMARIES,
+    };
+    use crate::agent::AssistantAgent;
+    use crate::context_compact::{
+        CompactConfig, CompactResult, CompactionContext, ContextEngine, EmergencyCompactionContext,
+    };
+    use serde_json::{json, Value};
+    use std::sync::{
+        atomic::{AtomicBool, AtomicUsize, Ordering},
+        Arc, Mutex,
+    };
+
+    #[test]
+    fn summary_attempt_cooldown_advances_on_attempt_not_success() {
+        let mut state = MidLoopCompactionState::default();
+
+        assert!(!state.summary_attempt_throttled(1));
+        state.record_summary_attempt(1);
+
+        assert!(state.summary_attempt_throttled(2));
+        assert!(state.summary_attempt_throttled(1 + MID_LOOP_MIN_ROUNDS_BETWEEN_SUMMARIES - 1));
+        assert!(!state.summary_attempt_throttled(1 + MID_LOOP_MIN_ROUNDS_BETWEEN_SUMMARIES));
+
+        state.record_summary_attempt(1 + MID_LOOP_MIN_ROUNDS_BETWEEN_SUMMARIES);
+        assert!(state.summary_attempt_throttled(99));
+    }
+
+    struct ForceTier3Engine;
+
+    impl ContextEngine for ForceTier3Engine {
+        fn compact_sync(
+            &self,
+            _messages: &mut Vec<Value>,
+            _ctx: &CompactionContext<'_>,
+        ) -> CompactResult {
+            CompactResult {
+                tier_applied: 3,
+                tokens_before: 10_000,
+                tokens_after: 10_000,
+                messages_affected: 0,
+                description: "summarization_needed".to_string(),
+                details: None,
+                manifest: None,
+            }
+        }
+
+        fn emergency_compact(
+            &self,
+            _messages: &mut Vec<Value>,
+            _ctx: &EmergencyCompactionContext<'_>,
+        ) -> CompactResult {
+            panic!("emergency compaction should not run in this test")
+        }
+    }
+
+    struct CountingTier2Engine {
+        calls: Arc<AtomicUsize>,
+    }
+
+    impl ContextEngine for CountingTier2Engine {
+        fn compact_sync(
+            &self,
+            _messages: &mut Vec<Value>,
+            _ctx: &CompactionContext<'_>,
+        ) -> CompactResult {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            CompactResult {
+                tier_applied: 2,
+                tokens_before: 10_000,
+                tokens_after: 5_000,
+                messages_affected: 1,
+                description: "tool_results_hard_cleared".to_string(),
+                details: None,
+                manifest: None,
+            }
+        }
+
+        fn emergency_compact(
+            &self,
+            _messages: &mut Vec<Value>,
+            _ctx: &EmergencyCompactionContext<'_>,
+        ) -> CompactResult {
+            panic!("emergency compaction should not run in this test")
+        }
+    }
+
+    struct StaticSummaryProvider;
+
+    #[async_trait::async_trait]
+    impl crate::context_compact::CompactionProvider for StaticSummaryProvider {
+        async fn summarize(&self, _prompt: &str, _max_tokens: u32) -> anyhow::Result<String> {
+            Ok("summary ok".to_string())
+        }
+
+        fn name(&self) -> &str {
+            "static-test-summary"
+        }
+    }
+
+    #[tokio::test]
+    async fn summary_throttle_still_allows_sync_compaction() {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let mut agent = AssistantAgent::new_anthropic("test-key");
+        agent.set_context_engine(Arc::new(CountingTier2Engine {
+            calls: calls.clone(),
+        }));
+        agent.set_compact_config(CompactConfig {
+            summarization_threshold: 0.0,
+            ..Default::default()
+        });
+
+        let mut state = MidLoopCompactionState::default();
+        state.record_summary_attempt(1);
+        assert!(state.summary_attempt_throttled(2));
+
+        let mut messages = vec![json!({"role": "user", "content": "continue"})];
+        let on_delta = |_event: &str| {};
+        let outcome = agent
+            .maybe_compact_between_tool_rounds(
+                &mut messages,
+                "system",
+                "system",
+                &[],
+                "test-model",
+                1024,
+                Arc::new(AtomicBool::new(false)),
+                &mut state,
+                2,
+                &on_delta,
+            )
+            .await;
+
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        assert_eq!(outcome.tier_applied, 2);
+        assert!(outcome.changed_history);
+        assert_eq!(state.summary_attempt_count, 1);
+    }
+
+    #[tokio::test]
+    async fn dedicated_provider_is_allowed_for_mid_loop_summary() {
+        let mut agent = AssistantAgent::new_anthropic("test-key");
+        agent.set_context_engine(Arc::new(ForceTier3Engine));
+        agent.set_compaction_provider(Some(Arc::new(StaticSummaryProvider)));
+        agent.set_compact_config(CompactConfig {
+            summarization_threshold: 0.0,
+            preserve_recent_rounds: 1,
+            ..Default::default()
+        });
+
+        let mut state = MidLoopCompactionState::default();
+        let mut messages = vec![
+            json!({"role": "user", "content": "inspect the project"}),
+            json!({"role": "assistant", "content": "found context worth preserving"}),
+            json!({"role": "user", "content": "continue"}),
+            json!({"role": "assistant", "content": "continuing"}),
+        ];
+        let on_delta = |_event: &str| {};
+        let outcome = agent
+            .maybe_compact_between_tool_rounds(
+                &mut messages,
+                "system",
+                "system",
+                &[],
+                "test-model",
+                1024,
+                Arc::new(AtomicBool::new(false)),
+                &mut state,
+                1,
+                &on_delta,
+            )
+            .await;
+
+        assert!(outcome.summary_applied);
+        assert!(serde_json::to_string(&messages)
+            .expect("serialize messages")
+            .contains("summary ok"));
+        assert_eq!(state.summary_attempt_count, 1);
+    }
+
+    #[tokio::test]
+    async fn incognito_tier3_skips_recovery_and_runtime_ledger_injection() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let path = tmp.path().join("secret.txt");
+        std::fs::write(&path, "SECRET_SNAPSHOT").expect("write temp file");
+
+        let mut agent = AssistantAgent::new_anthropic("test-key");
+        agent.set_context_engine(Arc::new(ForceTier3Engine));
+        agent.set_compaction_provider(Some(Arc::new(StaticSummaryProvider)));
+        agent.incognito_cached.store(true, Ordering::Relaxed);
+        agent.set_compact_config(crate::context_compact::CompactConfig {
+            preserve_recent_rounds: 1,
+            ..Default::default()
+        });
+
+        let write_args = json!({
+            "path": path.to_string_lossy(),
+            "content": "SECRET_SNAPSHOT",
+        })
+        .to_string();
+        let mut messages = vec![
+            json!({"role": "user", "content": "write a file"}),
+            json!({
+                "role": "assistant",
+                "content": "ok",
+                "tool_calls": [{
+                    "id": "call_1",
+                    "type": "function",
+                    "function": {
+                        "name": crate::tools::TOOL_WRITE,
+                        "arguments": write_args,
+                    }
+                }]
+            }),
+            json!({"role": "tool", "tool_call_id": "call_1", "content": "wrote file"}),
+            json!({"role": "user", "content": "continue"}),
+            json!({"role": "assistant", "content": "continuing"}),
+        ];
+        let events = Arc::new(Mutex::new(Vec::<String>::new()));
+        let events_sink = events.clone();
+        let on_delta = move |event: &str| {
+            events_sink.lock().unwrap().push(event.to_string());
+        };
+
+        let outcome = agent
+            .run_compaction_with_options(
+                &mut messages,
+                "system",
+                "test-model",
+                1024,
+                &on_delta,
+                CompactionRunOptions::turn_start(None),
+            )
+            .await;
+
+        assert!(outcome.summary_applied);
+        let serialized = serde_json::to_string(&messages).expect("serialize messages");
+        assert!(serialized.contains("summary ok"));
+        assert!(!serialized.contains("SECRET_SNAPSHOT"));
+        assert!(!serialized.contains("untrusted_file_snapshot"));
+        assert!(!serialized.contains("Runtime Ledger"));
     }
 }
 

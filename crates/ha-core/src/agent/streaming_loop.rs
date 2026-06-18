@@ -17,6 +17,7 @@ use serde_json::json;
 
 use super::api_types::FunctionCallItem;
 use super::content::build_user_content_for_provider;
+use super::context::MidLoopCompactionState;
 use super::events::{
     emit_max_rounds_notice, emit_round_limit_event, emit_tool_call, emit_tool_call_args_rewritten,
     emit_tool_result, emit_usage, extract_media_items,
@@ -576,13 +577,14 @@ impl AssistantAgent {
         // and active-memory suffixes go in their own cache breakpoints inside
         // chat_round (each adapter handles the placement).
         let system_prompt = self.build_full_system_prompt(model, provider_label);
-        let system_prompt_for_budget = self.build_merged_system_prompt(model, provider_label);
+        let mut system_prompt_for_budget = self.build_merged_system_prompt(model, provider_label);
 
         self.run_compaction(
             &mut messages,
             &system_prompt_for_budget,
             model,
             MAX_OUTPUT_TOKENS,
+            Some(cancel.clone()),
             on_delta,
         )
         .await;
@@ -616,6 +618,7 @@ impl AssistantAgent {
         let mut last_round_thinking = String::new();
         let mut total_usage = ChatUsage::default();
         let mut first_ttft_ms: Option<u64> = None;
+        let mut mid_loop_compaction_state = MidLoopCompactionState::default();
 
         // Coerce the generic `&F` to a `&dyn` once for trait method calls.
         // Generic emit_* helpers continue to use `on_delta` directly (zero
@@ -649,6 +652,7 @@ impl AssistantAgent {
             if self.maybe_resync_plan_mode_from_backend().await {
                 tool_schemas = self.build_tool_schemas(adapter.tool_provider());
                 system_prompt = self.build_full_system_prompt(model, provider_label);
+                system_prompt_for_budget = self.build_merged_system_prompt(model, provider_label);
                 self.select_memories_if_needed(&mut system_prompt, message)
                     .await;
                 self.apply_engine_prompt_addition(&mut system_prompt);
@@ -997,29 +1001,19 @@ impl AssistantAgent {
 
             self.check_manual_memory_save(&outcome.tool_calls);
 
-            // Tier 1 quick check: truncate any oversized tool results added
-            // this round before the next request.
-            crate::context_compact::truncate_tool_results(
-                &mut messages,
-                self.context_window,
-                &self.compact_config,
-            );
-
-            // Reactive microcompact: when usage crosses the threshold mid-loop,
-            // clear ephemeral tool_results (Tier 0) to head off emergency compaction.
-            self.reactive_microcompact_in_loop(
+            self.maybe_compact_between_tool_rounds(
                 &mut messages,
                 &system_prompt_for_budget,
+                &system_prompt,
+                &tool_schemas,
+                model,
                 MAX_OUTPUT_TOKENS,
-            );
-
-            // Persist the round AFTER tier-1 truncation + reactive microcompact
-            // so the context_json snapshot matches the actual history that the
-            // next round will send to the API. Without this ordering, a mid-turn
-            // crash recovers the un-truncated raw tool_results and the resume
-            // turn diverges from the steady-state cache shape (potentially
-            // overshooting the context window).
-            self.persist_round_context(&messages);
+                cancel.clone(),
+                &mut mid_loop_compaction_state,
+                round,
+                on_delta,
+            )
+            .await;
         }
 
         let cancelled = cancel.load(Ordering::SeqCst);

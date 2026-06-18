@@ -120,6 +120,7 @@ pub fn find_round_safe_boundary(messages: &[Value], target_index: usize) -> usiz
 /// to find the start of the next round.
 ///
 /// Falls back to `target_index` if no `_oc_round` metadata exists.
+#[allow(dead_code)]
 pub fn find_round_safe_boundary_forward(messages: &[Value], target_index: usize) -> usize {
     if target_index == 0 || target_index >= messages.len() {
         return target_index;
