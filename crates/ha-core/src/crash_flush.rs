@@ -157,7 +157,11 @@ fn install_signal_handlers_inner(force_sigint: bool) {
                 // Desktop: only SIGTERM. SIGINT falls through to the
                 // default disposition so the parent process tree exits.
                 sigterm.recv().await;
-                app_info!("session", "stream_persist", "received SIGTERM, clean shutdown");
+                app_info!(
+                    "session",
+                    "stream_persist",
+                    "received SIGTERM, clean shutdown"
+                );
             }
 
             fire_shutdown_session_end().await;
