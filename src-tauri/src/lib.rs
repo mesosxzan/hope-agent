@@ -856,11 +856,13 @@ pub fn run() {
                     let _ = window.set_focus();
                 }
             }
-            // App is exiting → SessionEnd(other) observation hook (app-global,
-            // one representative event). Best-effort: at hard exit the process
-            // may tear down before a detached command hook finishes — graceful
-            // delivery is the server path's awaited shutdown, not desktop quit.
+            // App is exiting → flush active persisters, finalize in-flight
+            // turns, then fire SessionEnd hook. Desktop mode skips the
+            // SIGINT handler (so Ctrl+C propagates to pnpm/vite), so this
+            // RunEvent::Exit path is the primary clean-shutdown entry for
+            // window-close and SIGTERM exits.
             if let tauri::RunEvent::Exit = _event {
+                ha_core::crash_flush::clean_shutdown_no_exit();
                 ha_core::hooks::fire_session_end("", "other");
             }
         });
