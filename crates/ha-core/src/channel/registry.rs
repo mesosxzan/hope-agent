@@ -163,6 +163,40 @@ impl ChannelRegistry {
         plugin.send_message(&account.id, chat_id, payload).await
     }
 
+    /// Send a text message through a channel with proper markdown conversion,
+    /// chunking, and parse mode — the same pipeline `send_text_chunks` in
+    /// `dispatcher.rs` uses for interactive IM replies. Callers that deliver
+    /// raw text (cron results, injection mirrors, etc.) should use this
+    /// instead of `send_reply` to avoid platform rejections on long messages
+    /// and unrendered markdown.
+    pub async fn send_text_chunks(
+        &self,
+        account: &ChannelAccountConfig,
+        chat_id: &str,
+        text: &str,
+        thread_id: Option<&str>,
+    ) -> Result<()> {
+        let plugin = self
+            .plugins
+            .get(&account.channel_id)
+            .ok_or_else(|| anyhow::anyhow!("No plugin for channel: {}", account.channel_id))?;
+        let native_text = plugin.markdown_to_native(text);
+        let chunks = plugin.chunk_message(&native_text);
+        for (i, chunk) in chunks.iter().enumerate() {
+            if i > 0 {
+                tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+            }
+            let payload = ReplyPayload {
+                text: Some(chunk.clone()),
+                thread_id: thread_id.map(str::to_string),
+                parse_mode: Some(ParseMode::Html),
+                ..ReplyPayload::text("")
+            };
+            plugin.send_message(&account.id, chat_id, &payload).await?;
+        }
+        Ok(())
+    }
+
     /// Get health status for a running account.
     pub async fn health(&self, account_id: &str) -> ChannelHealth {
         let workers = self.workers.lock().await;

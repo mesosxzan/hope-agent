@@ -2,8 +2,6 @@ use std::time::Duration;
 
 use futures_util::future::join_all;
 
-use crate::channel::ReplyPayload;
-
 use super::types::CronJob;
 
 #[derive(Debug, Clone, Copy)]
@@ -14,7 +12,7 @@ pub enum DeliveryOutcome<'a> {
 
 /// Per-target send timeout. A single target hanging must not block the scheduler
 /// from clearing `running_at`.
-const SEND_TIMEOUT_SECS: u64 = 10;
+const SEND_TIMEOUT_SECS: u64 = 30;
 
 /// G2: deliver a background-completion **injection** turn to a cron job's
 /// targets. A background job/subagent spawned during a cron run completes after
@@ -83,10 +81,12 @@ pub async fn deliver_results(job: &CronJob, outcome: DeliveryOutcome<'_>) {
                 return;
             };
 
-            let mut payload = ReplyPayload::text(text);
-            payload.thread_id = target.thread_id.clone();
-
-            let send = registry.send_reply(account, &target.chat_id, &payload);
+            let send = registry.send_text_chunks(
+                account,
+                &target.chat_id,
+                &text,
+                target.thread_id.as_deref(),
+            );
             match tokio::time::timeout(Duration::from_secs(SEND_TIMEOUT_SECS), send).await {
                 Ok(Ok(_)) => app_info!(
                     "cron",
