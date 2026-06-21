@@ -32,17 +32,17 @@ FROM --platform=$BUILDPLATFORM node:20-bookworm-slim AS web
 # lockfile resolution is reproducible. `corepack prepare --activate`
 # downloads the pinned tarball; `pnpm-lock.yaml` was generated with the
 # same version.
-# 清空非法代理，避免URL解析报错
-ENV HTTP_PROXY=
-ENV HTTPS_PROXY=
-ENV ALL_PROXY=
-ENV NO_PROXY=
-
 # Corepack 专用国内镜像（关键，Corepack不读pnpm/npm config）
 ENV COREPACK_NPM_REGISTRY=https://registry.npmmirror.com
 ENV COREPACK_DEFAULT_TO_LATEST=0 \
     HUSKY=0
-RUN corepack enable && corepack prepare pnpm@10.33.1 --activate
+
+# Unset proxy vars — empty-string ENV values cause corepack's URL parser
+# to crash ("Invalid URL protocol").  `unset` in the RUN removes them
+# from the shell process; the preceding ENV lines are also gone since we
+# don't set HTTP_PROXY= etc. any more.
+RUN unset HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY http_proxy https_proxy all_proxy no_proxy 2>/dev/null; \
+    corepack enable && corepack prepare pnpm@10.33.1 --activate
 
 WORKDIR /work
 
