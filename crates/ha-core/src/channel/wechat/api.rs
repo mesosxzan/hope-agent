@@ -198,9 +198,7 @@ impl WeChatApi {
         if let Some(token) = context_token {
             body["context_token"] = json!(token);
         }
-        let raw = self
-            .post_json("ilink/bot/getconfig", body, 10_000)
-            .await?;
+        let raw = self.post_json("ilink/bot/getconfig", body, 10_000).await?;
         serde_json::from_str(&raw).context("Failed to decode WeChat getConfig response")
     }
 
