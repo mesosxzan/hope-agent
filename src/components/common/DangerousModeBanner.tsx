@@ -37,7 +37,10 @@ export default function DangerousModeBanner() {
   }
 
   return (
-    <div className="shrink-0 bg-destructive text-destructive-foreground px-4 py-1.5 flex items-center gap-2 text-xs font-medium">
+    <div
+      className="shrink-0 bg-destructive text-destructive-foreground px-4 py-1.5 flex items-center gap-2 text-xs font-medium"
+      data-tauri-drag-region
+    >
       <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
       <span className="truncate">{message}</span>
     </div>
