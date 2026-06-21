@@ -32,17 +32,13 @@ FROM --platform=$BUILDPLATFORM node:20-bookworm-slim AS web
 # lockfile resolution is reproducible. `corepack prepare --activate`
 # downloads the pinned tarball; `pnpm-lock.yaml` was generated with the
 # same version.
-# Corepack 专用国内镜像（关键，Corepack不读pnpm/npm config）
-ENV COREPACK_NPM_REGISTRY=https://registry.npmmirror.com
-ENV COREPACK_DEFAULT_TO_LATEST=0 \
-    HUSKY=0
-
-# Unset proxy vars — empty-string ENV values cause corepack's URL parser
-# to crash ("Invalid URL protocol").  `unset` in the RUN removes them
-# from the shell process; the preceding ENV lines are also gone since we
-# don't set HTTP_PROXY= etc. any more.
-RUN unset HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY http_proxy https_proxy all_proxy no_proxy 2>/dev/null; \
-    corepack enable && corepack prepare pnpm@10.33.1 --activate
+# Install pnpm directly via npm instead of corepack.  Corepack's proxy
+# handling crashes on empty-string proxy env vars ("Invalid URL
+# protocol"), and its registry mirror (COREPACK_NPM_REGISTRY) may not
+# carry the exact pinned pnpm version — npmmirror lags behind, causing
+# corepack to fall back to an older pnpm that is incompatible with
+# lockfileVersion 9.0.  Installing via npm avoids both problems.
+RUN npm install -g pnpm@10.33.1
 
 WORKDIR /work
 
