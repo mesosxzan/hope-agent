@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { toast } from "sonner"
 import { getTransport } from "@/lib/transport-provider"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
@@ -295,9 +296,11 @@ export default function CronJobForm({
           },
         })
       }
+      toast.success(isEditing ? t("cron.updateSuccess", "任务已更新") : t("cron.createSuccess", "任务已创建"))
       onSave()
     } catch (e: unknown) {
       setError(String(e))
+      toast.error(String(e))
     } finally {
       setSaving(false)
     }

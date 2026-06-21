@@ -495,9 +495,13 @@ impl ChannelPlugin for WeChatPlugin {
         // Send text (if any)
         let text = payload.text.as_deref().map(str::trim).unwrap_or("");
         if !text.is_empty() {
-            let message_id = api
-                .send_text(chat_id, text, context_token.as_deref())
-                .await?;
+            let result = api.send_text(chat_id, text, context_token.as_deref()).await;
+            if let Err(ref e) = result {
+                if e.to_string().contains("errcode=-14") || e.to_string().contains("errcode= -14") {
+                    self.shared.pause_account(account_id).await;
+                }
+            }
+            let message_id = result?;
             return Ok(DeliveryResult::ok(message_id));
         }
 

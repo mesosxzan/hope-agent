@@ -48,7 +48,7 @@ export default function CronCalendarView({
   defaultProjectId,
 }: CronCalendarViewProps) {
   const { t } = useTranslation()
-  const [mode, setMode] = useState<ViewMode>("calendar")
+  const [mode, setMode] = useState<ViewMode>("list")
   const [currentDate, setCurrentDate] = useState(new Date())
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -217,8 +217,13 @@ export default function CronCalendarView({
 
   async function handleToggle(job: CronJob) {
     const enabled = job.status !== "active"
-    await getTransport().call("cron_toggle_job", { id: job.id, enabled })
-    refreshAll()
+    try {
+      await getTransport().call("cron_toggle_job", { id: job.id, enabled })
+      toast.success(enabled ? t("cron.resumeSuccess", "任务已恢复") : t("cron.pauseSuccess", "任务已暂停"))
+      refreshAll()
+    } catch (e) {
+      toast.error(String(e))
+    }
   }
 
   function handleDelete(job: CronJob) {
@@ -247,8 +252,13 @@ export default function CronCalendarView({
   }
 
   async function handleRunNow(job: CronJob) {
-    await getTransport().call("cron_run_now", { id: job.id })
-    setTimeout(refreshAll, 2000)
+    try {
+      await getTransport().call("cron_run_now", { id: job.id })
+      toast.success(t("cron.runNowSuccess", "已触发立即执行"))
+      setTimeout(refreshAll, 2000)
+    } catch (e) {
+      toast.error(String(e))
+    }
   }
 
   const deleteUi = (

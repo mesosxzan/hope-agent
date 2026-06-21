@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { toast } from "sonner"
 import { getTransport } from "@/lib/transport-provider"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
@@ -19,6 +20,7 @@ import {
 import type { CronJob, CronRunLog } from "./CronJobForm.types"
 import { statusColor, formatSchedule } from "./cronHelpers"
 import type { ProjectMeta } from "@/types/project"
+import type { AgentInfo } from "@/types/chat"
 
 interface CronJobDetailProps {
   jobId: string
@@ -41,17 +43,20 @@ export default function CronJobDetail({
   const [job, setJob] = useState<CronJob | null>(null)
   const [logs, setLogs] = useState<CronRunLog[]>([])
   const [projects, setProjects] = useState<ProjectMeta[]>([])
+  const [agents, setAgents] = useState<AgentInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState(false)
 
   async function fetchData() {
     try {
-      const [j, l] = await Promise.all([
+      const [j, l, agentList] = await Promise.all([
         getTransport().call<CronJob | null>("cron_get_job", { id: jobId }),
         getTransport().call<CronRunLog[]>("cron_get_run_logs", { jobId, limit: 50 }),
+        getTransport().call<AgentInfo[]>("list_agents").catch(() => [] as AgentInfo[]),
       ])
       setJob(j)
       setLogs(l)
+      setAgents(Array.isArray(agentList) ? agentList : [])
       if (j?.projectId) {
         const list = await getTransport().call<ProjectMeta[]>("list_projects_cmd", {
           includeArchived: true,
@@ -75,16 +80,25 @@ export default function CronJobDetail({
   async function handleToggle() {
     if (!job) return
     const enabled = job.status !== "active"
-    await getTransport().call("cron_toggle_job", { id: job.id, enabled })
-    fetchData()
-    onRefresh()
+    try {
+      await getTransport().call("cron_toggle_job", { id: job.id, enabled })
+      toast.success(enabled ? t("cron.resumeSuccess", "任务已恢复") : t("cron.pauseSuccess", "任务已暂停"))
+      fetchData()
+      onRefresh()
+    } catch (e) {
+      toast.error(String(e))
+    }
   }
 
   async function handleRunNow() {
     if (!job) return
-    await getTransport().call("cron_run_now", { id: job.id })
-    // Refresh after a short delay to pick up the run log
-    setTimeout(fetchData, 2000)
+    try {
+      await getTransport().call("cron_run_now", { id: job.id })
+      toast.success(t("cron.runNowSuccess", "已触发立即执行"))
+      setTimeout(fetchData, 2000)
+    } catch (e) {
+      toast.error(String(e))
+    }
   }
 
   async function handleCancelRun() {
@@ -92,8 +106,11 @@ export default function CronJobDetail({
     setCancelling(true)
     try {
       await getTransport().call("cancel_runtime_task", { kind: "cron", id: job.id })
+      toast.success(t("cron.cancelSuccess", "已取消执行"))
       await fetchData()
       onRefresh()
+    } catch (e) {
+      toast.error(String(e))
     } finally {
       setCancelling(false)
     }
@@ -111,6 +128,7 @@ export default function CronJobDetail({
     return <div className="p-6 text-center text-muted-foreground">{t("cron.jobNotFound")}</div>
   }
   const project = job.projectId ? projects.find((p) => p.id === job.projectId) : null
+  const agent = job.payload.agentId ? agents.find((a) => a.id === job.payload.agentId) : null
 
   return (
     <div className="flex flex-col h-full">
@@ -207,6 +225,16 @@ export default function CronJobDetail({
             <span>{new Date(job.runningAt).toLocaleString()}</span>
           </div>
         )}
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">{t("cron.agent")}</span>
+          <span className="truncate">
+            {job.payload.agentId
+              ? agent
+                ? `${agent.emoji ? `${agent.emoji} ` : ""}${agent.name}`
+                : job.payload.agentId
+              : t("cron.autoAgent")}
+          </span>
+        </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">{t("cron.failures")}</span>
           <span>

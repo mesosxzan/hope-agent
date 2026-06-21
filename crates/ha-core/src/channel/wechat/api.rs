@@ -131,23 +131,43 @@ impl WeChatApi {
         context_token: Option<&str>,
     ) -> Result<String> {
         let message_id = format!("hope-agent-wechat-{}", Uuid::new_v4().simple());
-        self.post_json(
-            "ilink/bot/sendmessage",
-            json!({
-                "msg": {
-                    "from_user_id": "",
-                    "to_user_id": to_user_id,
-                    "client_id": message_id,
-                    "message_type": MESSAGE_TYPE_BOT,
-                    "message_state": 2,
-                    "item_list": item_list,
-                    "context_token": context_token,
-                },
-                "base_info": base_info(),
-            }),
-            15_000,
-        )
-        .await?;
+        let raw = self
+            .post_json(
+                "ilink/bot/sendmessage",
+                json!({
+                    "msg": {
+                        "from_user_id": "",
+                        "to_user_id": to_user_id,
+                        "client_id": message_id,
+                        "message_type": MESSAGE_TYPE_BOT,
+                        "message_state": 2,
+                        "item_list": item_list,
+                        "context_token": context_token,
+                    },
+                    "base_info": base_info(),
+                }),
+                15_000,
+            )
+            .await?;
+
+        // Check business-level error code. WeChat ilink API returns HTTP 200
+        // even when the message was rejected (e.g. expired session / invalid
+        // context_token). Parse the JSON body and surface `ret` / `errcode`
+        // so callers (cron delivery, IM reply, etc.) don't silently swallow
+        // failures.
+        if let Ok(resp) = serde_json::from_str::<WeChatSendMsgResponse>(&raw) {
+            let ret = resp.ret.unwrap_or(0);
+            let errcode = resp.errcode.unwrap_or(0);
+            if ret != 0 || errcode != 0 {
+                return Err(anyhow::anyhow!(
+                    "WeChat sendmessage failed: ret={} errcode={} errmsg={}",
+                    ret,
+                    errcode,
+                    resp.errmsg.as_deref().unwrap_or("unknown")
+                ));
+            }
+        }
+
         Ok(message_id)
     }
 
@@ -378,6 +398,18 @@ pub struct GetUpdatesResponse {
     pub get_updates_buf: Option<String>,
     #[serde(default)]
     pub longpolling_timeout_ms: Option<u64>,
+}
+
+/// Response body for `ilink/bot/sendmessage`. WeChat returns HTTP 200 even
+/// on business-level failures; `ret` and `errcode` must be checked.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct WeChatSendMsgResponse {
+    #[serde(default)]
+    pub ret: Option<i32>,
+    #[serde(default)]
+    pub errcode: Option<i32>,
+    #[serde(default)]
+    pub errmsg: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
