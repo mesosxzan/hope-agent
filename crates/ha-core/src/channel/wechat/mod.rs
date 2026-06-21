@@ -476,21 +476,46 @@ impl ChannelPlugin for WeChatPlugin {
 
         let api = self.get_api(account_id).await?;
         let mut context_token = self.shared.get_context_token(account_id, chat_id).await;
+        app_info!(
+            "channel",
+            "wechat",
+            "send_message: chat_id={}, cached_context_token={}",
+            chat_id,
+            context_token.as_deref().unwrap_or("<none>")
+        );
 
         // WeChat ilink requires a valid context_token to send messages.
         // Cron delivery / proactive pushes may not have a cached token
         // (no prior inbound message from this user). Fetch one via getconfig
         // so the sendmessage call doesn't fail with ret=-2.
         if context_token.is_none() {
-            if let Ok(config) = api.get_config(chat_id, None).await {
-                if let Some(token) = config.context_token {
-                    app_info!(
+            match api.get_config(chat_id, None).await {
+                Ok(config) => {
+                    if let Some(token) = config.context_token {
+                        app_info!(
+                            "channel",
+                            "wechat",
+                            "fetched context_token via getconfig for {}",
+                            chat_id
+                        );
+                        context_token = Some(token);
+                    } else {
+                        app_warn!(
+                            "channel",
+                            "wechat",
+                            "getconfig succeeded but no context_token for {}",
+                            chat_id
+                        );
+                    }
+                }
+                Err(e) => {
+                    app_warn!(
                         "channel",
                         "wechat",
-                        "fetched context_token via getconfig for {}",
-                        chat_id
+                        "getconfig failed for {}: {}",
+                        chat_id,
+                        e
                     );
-                    context_token = Some(token);
                 }
             }
         }
@@ -515,6 +540,14 @@ impl ChannelPlugin for WeChatPlugin {
         if !text.is_empty() {
             let result = api.send_text(chat_id, text, context_token.as_deref()).await;
             if let Err(ref e) = result {
+                app_warn!(
+                    "channel",
+                    "wechat",
+                    "send_text failed for {}: context_token={}, error={}",
+                    chat_id,
+                    context_token.as_deref().unwrap_or("<none>"),
+                    e
+                );
                 if e.to_string().contains("errcode=-14") || e.to_string().contains("errcode= -14") {
                     self.shared.pause_account(account_id).await;
                 }

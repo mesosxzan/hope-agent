@@ -189,16 +189,17 @@ impl WeChatApi {
         ilink_user_id: &str,
         context_token: Option<&str>,
     ) -> Result<GetConfigResponse> {
+        let mut body = json!({
+            "ilink_user_id": ilink_user_id,
+            "base_info": base_info(),
+        });
+        // WeChat ilink rejects `context_token: null` with ret=-2.
+        // Omit the field entirely when no token is available.
+        if let Some(token) = context_token {
+            body["context_token"] = json!(token);
+        }
         let raw = self
-            .post_json(
-                "ilink/bot/getconfig",
-                json!({
-                    "ilink_user_id": ilink_user_id,
-                    "context_token": context_token,
-                    "base_info": base_info(),
-                }),
-                10_000,
-            )
+            .post_json("ilink/bot/getconfig", body, 10_000)
             .await?;
         serde_json::from_str(&raw).context("Failed to decode WeChat getConfig response")
     }
