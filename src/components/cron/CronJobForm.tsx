@@ -276,7 +276,7 @@ export default function CronJobForm({
           notifyOnComplete,
           deliveryTargets: validTargets,
         }
-        await getTransport().call("cron_update_job", { id: updated.id, job: updated })
+        await getTransport().call("cron_update_job", { job: updated })
       } else {
         const schedule = buildSchedule()
         await getTransport().call("cron_create_job", {

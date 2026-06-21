@@ -319,8 +319,7 @@ export default function ProviderSettings({
     try {
       await getTransport().call("update_provider", {
         providerId: provider.id,
-        ...provider,
-        enabled: !provider.enabled,
+        config: { ...provider, enabled: !provider.enabled },
       })
       await loadProviders()
     } catch (e) {

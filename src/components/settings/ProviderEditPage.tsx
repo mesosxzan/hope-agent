@@ -126,6 +126,7 @@ export default function ProviderEditPage({
     setTestResult(null)
     try {
       const msg = await getTransport().call<string>("test_provider", {
+        config: {
           id: provider.id,
           name: editName,
           apiType: editApiType,
@@ -135,6 +136,7 @@ export default function ProviderEditPage({
           thinkingStyle: editThinkingStyle,
           models: editModels,
           enabled: true,
+        },
       })
       setTestResult(parseTestResult(msg, false))
     } catch (e) {
@@ -150,16 +152,18 @@ export default function ProviderEditPage({
     try {
       await getTransport().call("update_provider", {
         providerId: provider.id,
-        ...provider,
-        name: editName,
-        apiType: editApiType,
-        baseUrl: editBaseUrl,
-        apiKey: editApiKey,
-        authProfiles: editAuthProfiles,
-        userAgent: editUserAgent,
-        thinkingStyle: editThinkingStyle,
-        allowPrivateNetwork: editAllowPrivateNetwork,
-        models: editModels,
+        config: {
+          ...provider,
+          name: editName,
+          apiType: editApiType,
+          baseUrl: editBaseUrl,
+          apiKey: editApiKey,
+          authProfiles: editAuthProfiles,
+          userAgent: editUserAgent,
+          thinkingStyle: editThinkingStyle,
+          allowPrivateNetwork: editAllowPrivateNetwork,
+          models: editModels,
+        },
       })
       // Auto-append the base URL host to SSRF trusted_hosts when the user
       // opts in, so LLM calls to self-hosted Ollama / LM Studio remain allowed

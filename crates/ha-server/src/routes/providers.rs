@@ -31,8 +31,10 @@ fn provider_write_error(err: ProviderWriteError) -> AppError {
 /// `GET /api/providers` — list all providers (API keys masked).
 pub async fn list_providers() -> Result<Json<Vec<ProviderConfig>>, AppError> {
     let store = ha_core::config::cached_config();
-    let masked: Vec<ProviderConfig> = store.providers.iter().map(|p| p.masked()).collect();
-    Ok(Json(masked))
+    // Return raw providers (matching Tauri command behavior) so that the
+    // frontend can use the real API key for test_provider / test_model calls.
+    // Masking is applied client-side when displaying the key in input fields.
+    Ok(Json(store.providers.clone()))
 }
 
 /// `GET /api/providers/has-any` — whether any provider is configured.
