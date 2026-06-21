@@ -104,14 +104,27 @@ pub fn install_signal_handlers_with_sigint() {
 }
 
 fn install_signal_handlers_inner(force_sigint: bool) {
-    if SIGNAL_HANDLERS_INSTALLED.set(()).is_err() {
-        return;
-    }
+    // Desktop setup.rs may have already installed SIGTERM-only handlers.
+    // `force_sigint` (server / ACP mode) must still be able to register
+    // its own SIGINT handler even after that first call. Track whether
+    // SIGINT has been registered separately so the `OnceLock` that guards
+    // idempotency of install_signal_handlers() doesn't also block
+    // install_signal_handlers_with_sigint().
+    let already_installed = SIGNAL_HANDLERS_INSTALLED.set(()).is_err();
 
     // Desktop mode: skip SIGINT handler so Ctrl+C propagates to the
     // parent process chain (pnpm → tauri-cli → vite). SIGTERM is still
     // handled for `kill $PID` clean shutdown.
     let handle_sigint = force_sigint || !crate::app_init::is_desktop();
+
+    // If the first call already registered SIGINT and we're being asked
+    // to do it again with the same setting, nothing to do. If the first
+    // call was SIGTERM-only (desktop) and now force_sigint is true
+    // (e.g. desktop `hope-agent server start` subcommand), we MUST
+    // still proceed to install the SIGINT handler.
+    if already_installed && !force_sigint {
+        return;
+    }
 
     #[cfg(unix)]
     {

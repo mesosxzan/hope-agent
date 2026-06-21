@@ -475,7 +475,25 @@ impl ChannelPlugin for WeChatPlugin {
         }
 
         let api = self.get_api(account_id).await?;
-        let context_token = self.shared.get_context_token(account_id, chat_id).await;
+        let mut context_token = self.shared.get_context_token(account_id, chat_id).await;
+
+        // WeChat ilink requires a valid context_token to send messages.
+        // Cron delivery / proactive pushes may not have a cached token
+        // (no prior inbound message from this user). Fetch one via getconfig
+        // so the sendmessage call doesn't fail with ret=-2.
+        if context_token.is_none() {
+            if let Ok(config) = api.get_config(chat_id, None).await {
+                if let Some(token) = config.context_token {
+                    app_info!(
+                        "channel",
+                        "wechat",
+                        "fetched context_token via getconfig for {}",
+                        chat_id
+                    );
+                    context_token = Some(token);
+                }
+            }
+        }
 
         // Send media attachments first (each as a separate message)
         let mut last_media_id = None;

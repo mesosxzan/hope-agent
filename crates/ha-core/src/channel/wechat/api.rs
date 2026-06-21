@@ -131,19 +131,25 @@ impl WeChatApi {
         context_token: Option<&str>,
     ) -> Result<String> {
         let message_id = format!("hope-agent-wechat-{}", Uuid::new_v4().simple());
+        let mut msg = json!({
+            "from_user_id": "",
+            "to_user_id": to_user_id,
+            "client_id": message_id,
+            "message_type": MESSAGE_TYPE_BOT,
+            "message_state": 2,
+            "item_list": item_list,
+        });
+        // WeChat ilink rejects `context_token: null` with ret=-2. Omit the
+        // field entirely when no token is available (cron delivery, first
+        // outbound message before any inbound message, etc.).
+        if let Some(token) = context_token {
+            msg["context_token"] = json!(token);
+        }
         let raw = self
             .post_json(
                 "ilink/bot/sendmessage",
                 json!({
-                    "msg": {
-                        "from_user_id": "",
-                        "to_user_id": to_user_id,
-                        "client_id": message_id,
-                        "message_type": MESSAGE_TYPE_BOT,
-                        "message_state": 2,
-                        "item_list": item_list,
-                        "context_token": context_token,
-                    },
+                    "msg": msg,
                     "base_info": base_info(),
                 }),
                 15_000,
@@ -538,6 +544,8 @@ pub struct GetConfigResponse {
     pub ret: Option<i32>,
     #[serde(default)]
     pub errmsg: Option<String>,
+    #[serde(default)]
+    pub context_token: Option<String>,
     #[serde(default)]
     pub typing_ticket: Option<String>,
 }
