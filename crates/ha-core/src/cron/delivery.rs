@@ -11,8 +11,10 @@ pub enum DeliveryOutcome<'a> {
 }
 
 /// Per-target send timeout. A single target hanging must not block the scheduler
-/// from clearing `running_at`.
-const SEND_TIMEOUT_SECS: u64 = 30;
+/// from clearing `running_at`.  Increased to 120s to accommodate multi-chunk
+/// sends where each chunk waits 300ms (N chunks × 300ms + network ≈ 30s for
+/// a 100-chunk message).
+const SEND_TIMEOUT_SECS: u64 = 120;
 
 /// G2: deliver a background-completion **injection** turn to a cron job's
 /// targets. A background job/subagent spawned during a cron run completes after
