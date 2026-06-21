@@ -145,7 +145,6 @@ export function CustomWizard({
     setTestResult(null)
     try {
       const msg = await getTransport().call<string>("test_provider", {
-        config: {
           id: "",
           name: providerName,
           apiType,
@@ -155,7 +154,6 @@ export function CustomWizard({
           thinkingStyle,
           models,
           enabled: true,
-        },
       })
       setTestResult(parseTestResult(msg, false))
     } catch (e) {

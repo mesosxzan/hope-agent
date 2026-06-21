@@ -875,6 +875,15 @@ function normalizeCommandResponse(command: string, value: unknown): unknown {
         // axum 路由用 `Json(json!({"active_model": ...}))` 包了一层；Tauri 命令
         // 直接返回 `Option<ActiveModelRef>`，前端跨 transport 期望统一类型。
         return record.active_model ?? null;
+      case "get_log_file_path_cmd":
+        // axum 路由返回 `{ path: "..." }`；Tauri 命令直接返回 String。
+        return record.path ?? "";
+      case "get_global_temperature":
+        // axum 路由返回 `{ temperature: f64 | null }`；Tauri 命令直接返回 Option<f64>。
+        return record.temperature ?? null;
+      case "test_provider":
+        // axum 路由返回 `{ message, success, latencyMs, ... }`；Tauri 命令直接返回 String (message)。
+        return record.message ?? String(record);
       case "get_local_llm_auto_maintenance_enabled":
         // axum 路由返回 `{ enabled: bool }`；Tauri 命令直接返回 bool。
         return record.enabled ?? false;

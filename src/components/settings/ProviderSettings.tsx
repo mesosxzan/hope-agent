@@ -318,7 +318,9 @@ export default function ProviderSettings({
   async function toggleProvider(provider: ProviderConfig) {
     try {
       await getTransport().call("update_provider", {
-        config: { ...provider, enabled: !provider.enabled },
+        providerId: provider.id,
+        ...provider,
+        enabled: !provider.enabled,
       })
       await loadProviders()
     } catch (e) {

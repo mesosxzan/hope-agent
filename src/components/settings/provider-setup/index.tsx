@@ -127,7 +127,6 @@ export default function ProviderSetup({
     setError("")
     try {
       await getTransport().call("add_provider", {
-        config: {
           id: "",
           name: providerName,
           apiType,
@@ -138,7 +137,6 @@ export default function ProviderSetup({
           thinkingStyle,
           models,
           enabled: true,
-        },
       })
       // Set the first model as active
       const providers = await getTransport().call<ProviderConfig[]>("get_providers")
