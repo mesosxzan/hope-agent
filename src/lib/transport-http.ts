@@ -898,6 +898,10 @@ function normalizeCommandResponse(command: string, value: unknown): unknown {
         // Tauri 命令直接返回 JSON 字符串。前端 `parseTestResult` 需要 JSON.parse(string)。
         // Re-serialize the object so the caller gets the same string format.
         return JSON.stringify(record);
+      case "get_global_memory_md":
+      case "get_agent_memory_md":
+        // axum 路由返回 `{ content: string | null }`；Tauri 命令直接返回 Option<String>。
+        return record.content ?? null;
       case "memory_count":
         // axum 路由返回 `{ count: usize }`；Tauri 命令直接返回 usize。
         return record.count ?? 0;
