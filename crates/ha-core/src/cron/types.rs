@@ -100,6 +100,16 @@ pub struct CronJob {
     /// Empty = no delivery (job result only lands in the isolated session).
     #[serde(default)]
     pub delivery_targets: Vec<CronDeliveryTarget>,
+    /// When true, reuse the same session for every execution instead of
+    /// creating a new one each time.  `last_session_id` tracks the session
+    /// to reuse; it is set on the first run and updated if the session is
+    /// deleted externally.
+    #[serde(default)]
+    pub reuse_session: bool,
+    /// The session ID created by the most recent execution (or the
+    /// persistent session when `reuse_session` is true).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_session_id: Option<String>,
 }
 
 /// A cron job execution lease. Constructed only after the DB atomically marks
@@ -160,6 +170,10 @@ pub struct NewCronJob {
     /// `Some([...])` = fan-out to the listed channel conversations.
     #[serde(default)]
     pub delivery_targets: Option<Vec<CronDeliveryTarget>>,
+    /// When true, reuse the same session for every execution instead of
+    /// creating a new one each time.
+    #[serde(default)]
+    pub reuse_session: Option<bool>,
 }
 
 /// Calendar event for the calendar view.

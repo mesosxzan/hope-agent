@@ -708,6 +708,7 @@
     "noJobs": "暂无定时任务",
     "noProject": "无项目",
     "timezone": "时区",
+    "reuseSession": "复用会话",
     "noResults": "没有匹配的任务",
     "noRuns": "暂无运行记录",
     "noTasksThisDay": "当天没有任务",

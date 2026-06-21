@@ -1077,6 +1077,7 @@ export class HttpTransport implements Transport {
     if (isBodyMethod) {
       headers["Content-Type"] = "application/json";
       body = JSON.stringify(remainingArgs);
+      console.log(`[HttpTransport] ${def.method} ${url} body:`, body);
     }
 
     const response = await fetch(url, {

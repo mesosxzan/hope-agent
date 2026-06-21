@@ -708,6 +708,7 @@
     "noJobs": "No scheduled tasks yet",
     "noProject": "No Project",
     "timezone": "Timezone",
+    "reuseSession": "Reuse Session",
     "noResults": "No matching tasks",
     "noRuns": "No run history yet",
     "noTasksThisDay": "No tasks on this day",

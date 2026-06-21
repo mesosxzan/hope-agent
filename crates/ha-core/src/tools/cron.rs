@@ -71,6 +71,7 @@ pub(crate) fn tool_manage_cron<'a>(
                         .map(|v| v as u32),
                     notify_on_complete: args.get("notify_on_complete").and_then(|v| v.as_bool()),
                     delivery_targets: Some(delivery_targets),
+                    reuse_session: args.get("reuse_session").and_then(|v| v.as_bool()),
                 };
 
                 let job = cron_db.add_job(&input)?;

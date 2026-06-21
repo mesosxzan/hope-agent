@@ -3122,6 +3122,7 @@ dependencies = [
  "futures-util",
  "ha-core",
  "local-ip-address",
+ "log",
  "mime_guess",
  "reqwest 0.12.28",
  "rust-embed",

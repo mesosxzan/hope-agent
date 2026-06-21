@@ -86,34 +86,53 @@ pub(crate) async fn execute_claimed_job(
         );
     };
 
-    // Create an isolated session for this cron run
-    let session_id =
-        match session_db.create_session_with_project(&agent_id, project_id.as_deref(), None) {
-            Ok(meta) => {
-                let _ = session_db.update_session_title(&meta.id, &job.name);
-                let _ = session_db.mark_session_cron(&meta.id);
-                meta.id
+    // Create an isolated session for this cron run, or reuse the existing
+    // one when reuse_session is enabled.
+    let session_id = if job.reuse_session {
+        // Try to reuse the session from the previous run.
+        if let Some(ref sid) = job.last_session_id {
+            // Verify the session still exists.
+            match session_db.get_session(sid) {
+                Ok(Some(_)) => {
+                    app_info!(
+                        "cron",
+                        "executor",
+                        "Job '{}' reusing session {}",
+                        job.name,
+                        sid
+                    );
+                    sid.clone()
+                }
+                _ => {
+                    // Session gone — create a new persistent one.
+                    app_info!(
+                        "cron",
+                        "executor",
+                        "Job '{}' previous session {} no longer exists, creating new one",
+                        job.name,
+                        sid
+                    );
+                    create_cron_session(session_db, &agent_id, project_id.as_deref(), &job.name)
+                }
             }
-            Err(e) => {
-                app_error!(
-                    "cron",
-                    "executor",
-                    "Failed to create session for job '{}': {}",
-                    job.name,
-                    e
-                );
-                record_failure(
-                    cron_db,
-                    &job,
-                    &started_at,
-                    start_time,
-                    "no_session",
-                    &e.to_string(),
-                    "",
-                );
-                return;
-            }
-        };
+        } else {
+            // First run with reuse_session — create a persistent session.
+            create_cron_session(session_db, &agent_id, project_id.as_deref(), &job.name)
+        }
+    } else {
+        // Create a fresh isolated session for each execution (default behavior).
+        create_cron_session(session_db, &agent_id, project_id.as_deref(), &job.name)
+    };
+
+    // Persist last_session_id so the next run can reuse it.
+    let should_update_session_id = job
+        .last_session_id
+        .as_ref()
+        .map(|old| old != &session_id)
+        .unwrap_or(true);
+    if should_update_session_id {
+        let _ = cron_db.update_job_last_session_id(&job.id, &session_id);
+    }
 
     // Persist the cron prompt before execution so `run_chat_engine` can reuse
     // the same DB contract as interactive chat without duplicating user rows.
@@ -557,6 +576,26 @@ pub(crate) fn emit_cron_event(job_id: &str, job_name: &str, status: &str, notify
     }
 }
 
+/// Helper: create a new cron session with title and cron marker.
+fn create_cron_session(
+    session_db: &Arc<crate::session::SessionDB>,
+    agent_id: &str,
+    project_id: Option<&str>,
+    job_name: &str,
+) -> String {
+    match session_db.create_session_with_project(agent_id, project_id, None) {
+        Ok(meta) => {
+            let _ = session_db.update_session_title(&meta.id, job_name);
+            let _ = session_db.mark_session_cron(&meta.id);
+            meta.id
+        }
+        Err(e) => {
+            app_error!("cron", "executor", "Failed to create session: {}", e);
+            String::new()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -638,6 +677,7 @@ mod tests {
                 max_failures: Some(5),
                 notify_on_complete: Some(false),
                 delivery_targets: None,
+                reuse_session: None,
             })
             .expect("add job");
         {

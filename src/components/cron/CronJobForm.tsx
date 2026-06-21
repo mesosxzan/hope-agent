@@ -153,6 +153,7 @@ export default function CronJobForm({
   const [cronTimezone, setCronTimezone] = useState(
     job?.schedule.type === "cron" ? (job.schedule.timezone ?? "Asia/Shanghai") : "Asia/Shanghai",
   )
+  const [reuseSession, setReuseSession] = useState(job?.reuseSession ?? false)
   const [projectId, setProjectId] = useState(
     job ? (job.projectId ?? NO_PROJECT_VALUE) : (defaultProjectId ?? NO_PROJECT_VALUE),
   )
@@ -309,7 +310,9 @@ export default function CronJobForm({
           maxFailures: parseInt(maxFailures) || 5,
           notifyOnComplete,
           deliveryTargets: validTargets,
+          reuseSession,
         }
+        console.log("[CronJobForm] cron_update_job:", JSON.stringify(updated, null, 2))
         await getTransport().call("cron_update_job", { job: updated })
       } else {
         const schedule = buildSchedule()
@@ -327,8 +330,10 @@ export default function CronJobForm({
             maxFailures: parseInt(maxFailures) || 5,
             notifyOnComplete,
             deliveryTargets: validTargets,
+            reuseSession,
           },
         })
+        console.log("[CronJobForm] cron_create_job: reuseSession=", reuseSession)
       }
       toast.success(isEditing ? t("cron.updateSuccess", "任务已更新") : t("cron.createSuccess", "任务已创建"))
       onSave()
@@ -512,6 +517,14 @@ export default function CronJobForm({
             </div>
             </>
           )}
+
+          {/* Reuse Session (available for all schedule types) */}
+          <div className="flex items-center gap-2">
+            <Switch checked={reuseSession} onCheckedChange={setReuseSession} />
+            <label className="text-xs font-medium text-muted-foreground">
+              {t("cron.reuseSession")}
+            </label>
+          </div>
 
           {/* Message */}
           <div>
