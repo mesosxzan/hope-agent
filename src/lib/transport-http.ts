@@ -1264,6 +1264,16 @@ export class HttpTransport implements Transport {
       );
     }
 
+    // Session attachments: `~/.hope-agent/attachments/{sessionId}/{file}` →
+    // `/api/attachments/{sessionId}/{file}`. Used by image-tool preview
+    // markers and by persisted tool attachments.
+    const attachmentMatch = path.match(/[\\/]attachments[\\/]([^\\/]+)[\\/]([^\\/]+)$/);
+    if (attachmentMatch) {
+      return stamped(
+        `${this.baseUrl}/api/attachments/${encodeURIComponent(attachmentMatch[1])}/${encodeURIComponent(attachmentMatch[2])}`,
+      );
+    }
+
     // Generated images: `~/.hope-agent/image_generate/{file}` → `/api/generated-images/{file}`
     // (Only the last path segment matters — historic `mediaUrls` may encode
     // different working-directory prefixes.)

@@ -1400,9 +1400,9 @@
           "running": "Running {{name}}"
         },
         "image": {
-          "completed": "Completed {{name}}",
-          "failed": "{{name}} failed",
-          "running": "Running {{name}}"
+          "completed": "تم عرض الصور",
+          "failed": "فشل عرض الصور",
+          "running": "جارٍ عرض الصور"
         },
         "image_generate": {
           "completed": "Completed {{name}}",
@@ -3294,7 +3294,7 @@
     "logsStructured": "مهيكل",
     "logsTotal": "الإجمالي",
     "maxImages": "الحد الأقصى للصور لكل استدعاء",
-    "maxImagesDesc": "الحد الأقصى للصور المسموح بها في استدعاء واحد لإدخال بصري (الحد: 20)",
+    "maxImagesDesc": "الحد الأقصى للصور المسموح بها في استدعاء واحد لأداة عرض الصور (الحد: 20)",
     "maxPdfs": "الحد الأقصى لـ PDF لكل استدعاء",
     "maxPdfsDesc": "الحد الأقصى لـ PDFs المسموح بها في استدعاء أداة pdf واحد (الحد: 10)",
     "maxVisionPages": "الحد الأقصى لصفحات رؤية PDF",
@@ -4276,10 +4276,10 @@
     "toolGetWeatherName": "التحقق من الطقس",
     "toolGrepDesc": "البحث في محتوى الملفات بالتعبيرات النمطية أو النص",
     "toolGrepName": "بحث المحتوى",
-    "toolImageDesc": "إرفاق الصور كإدخال بصري (مسارات محلية / روابط / حافظة / لقطات شاشة)",
+    "toolImageDesc": "السماح للنموذج بعرض الصور (مسارات محلية / روابط / حافظة / لقطات شاشة)",
     "toolImageGenerateDesc": "توليد من النص إلى الصورة ومن الصورة إلى الصورة مع تجاوز الفشل بين عدة موفّرين",
     "toolImageGenerateName": "توليد صورة",
-    "toolImageName": "إدخال بصري",
+    "toolImageName": "عرض الصور",
     "toolLimits": "حدود الأدوات",
     "toolListSettingsBackupsDesc": "تعداد النسخ الاحتياطية المحفوظة للإعدادات",
     "toolListSettingsBackupsName": "قائمة نسخ احتياطية للإعدادات",
@@ -4939,7 +4939,7 @@
     "get_settings": "جلب الإعدادات",
     "get_weather": "التحقق من الطقس",
     "grep": "بحث في المحتوى",
-    "image": "إدخال بصري",
+    "image": "عرض الصور",
     "image_generate": "توليد صورة",
     "list_settings_backups": "قائمة النسخ الاحتياطية للإعدادات",
     "loadingSkill": "تحميل skill: {{name}}",

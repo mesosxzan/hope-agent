@@ -1400,9 +1400,9 @@
           "running": "Running {{name}}"
         },
         "image": {
-          "completed": "Completed {{name}}",
-          "failed": "{{name}} failed",
-          "running": "Running {{name}}"
+          "completed": "Imágenes vistas",
+          "failed": "Error al ver imágenes",
+          "running": "Viendo imágenes"
         },
         "image_generate": {
           "completed": "Completed {{name}}",
@@ -3294,7 +3294,7 @@
     "logsStructured": "Estructurado",
     "logsTotal": "Total",
     "maxImages": "Imágenes máximas por llamada",
-    "maxImagesDesc": "Máximo de imágenes permitidas en una sola llamada de entrada visual (tope: 20)",
+    "maxImagesDesc": "Máximo de imágenes permitidas en una sola llamada de la herramienta Ver imágenes (tope: 20)",
     "maxPdfs": "PDFs máximos por llamada",
     "maxPdfsDesc": "Máximo de PDFs permitidos en una sola llamada a la herramienta pdf (tope: 10)",
     "maxVisionPages": "Páginas máximas en visión PDF",
@@ -4276,10 +4276,10 @@
     "toolGetWeatherName": "Consultar clima",
     "toolGrepDesc": "Buscar en archivos con regex o texto literal",
     "toolGrepName": "Buscar contenido",
-    "toolImageDesc": "Adjuntar imágenes como entrada visual (rutas locales, URLs, portapapeles, capturas de pantalla)",
+    "toolImageDesc": "Permitir que el modelo vea imágenes (rutas locales, URLs, portapapeles, capturas de pantalla)",
     "toolImageGenerateDesc": "Generación texto-a-imagen e imagen-a-imagen con failover multi-proveedor",
     "toolImageGenerateName": "Generar Imagen",
-    "toolImageName": "Entrada visual",
+    "toolImageName": "Ver imágenes",
     "toolLimits": "Límites de herramientas",
     "toolListSettingsBackupsDesc": "Enumerar copias de seguridad de ajustes guardadas",
     "toolListSettingsBackupsName": "Listar Copias de Ajustes",
@@ -4939,7 +4939,7 @@
     "get_settings": "Obtener configuración",
     "get_weather": "Consultar clima",
     "grep": "Buscar contenido",
-    "image": "Entrada visual",
+    "image": "Ver imágenes",
     "image_generate": "Generar imagen",
     "list_settings_backups": "Listar copias de configuración",
     "loadingSkill": "Cargando skill: {{name}}",

@@ -1616,7 +1616,7 @@ pub async fn execute_tool_with_context(
             TOOL_SESSION_STATUS => sessions::tool_session_status(args).await,
             TOOL_SESSIONS_HISTORY => sessions::tool_sessions_history(args).await,
             TOOL_SESSIONS_SEND => Box::pin(sessions::tool_sessions_send(args, dispatch_ctx)).await,
-            TOOL_IMAGE => image::tool_image(args).await,
+            TOOL_IMAGE => image::tool_image(args, dispatch_ctx).await,
             TOOL_IMAGE_GENERATE => image_generate::tool_image_generate(args, dispatch_ctx).await,
             TOOL_ISSUE_REPORT => issue_report::tool_issue_report(args, dispatch_ctx).await,
             TOOL_PDF => pdf::tool_pdf(args).await,

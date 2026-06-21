@@ -1400,9 +1400,9 @@
           "running": "Running {{name}}"
         },
         "image": {
-          "completed": "Completed {{name}}",
-          "failed": "{{name}} failed",
-          "running": "Running {{name}}"
+          "completed": "Imej telah dilihat",
+          "failed": "Gagal melihat imej",
+          "running": "Sedang melihat imej"
         },
         "image_generate": {
           "completed": "Completed {{name}}",
@@ -3294,7 +3294,7 @@
     "logsStructured": "Berstruktur",
     "logsTotal": "Jumlah",
     "maxImages": "Imej maksimum setiap panggilan",
-    "maxImagesDesc": "Imej maksimum dibenarkan dalam satu panggilan input visual (had: 20)",
+    "maxImagesDesc": "Imej maksimum dibenarkan dalam satu panggilan alat Lihat imej (had: 20)",
     "maxPdfs": "PDF maksimum setiap panggilan",
     "maxPdfsDesc": "PDF maksimum dibenarkan dalam satu panggilan alat pdf (had: 10)",
     "maxVisionPages": "Halaman PDF vision maksimum",
@@ -4276,10 +4276,10 @@
     "toolGetWeatherName": "Periksa cuaca",
     "toolGrepDesc": "Cari kandungan fail dengan regex atau teks literal",
     "toolGrepName": "Cari kandungan",
-    "toolImageDesc": "Lampirkan imej sebagai input visual (laluan tempatan, URL, papan keratan, tangkapan skrin)",
+    "toolImageDesc": "Benarkan model melihat imej (laluan tempatan, URL, papan keratan, tangkapan skrin)",
     "toolImageGenerateDesc": "Penjanaan teks-ke-imej dan imej-ke-imej dengan failover berbilang penyedia",
     "toolImageGenerateName": "Jana Imej",
-    "toolImageName": "Input visual",
+    "toolImageName": "Lihat imej",
     "toolLimits": "Had alat",
     "toolListSettingsBackupsDesc": "Senaraikan sandaran tetapan yang disimpan",
     "toolListSettingsBackupsName": "Senarai Sandaran Tetapan",
@@ -4939,7 +4939,7 @@
     "get_settings": "Dapatkan tetapan",
     "get_weather": "Periksa cuaca",
     "grep": "Cari kandungan",
-    "image": "Input visual",
+    "image": "Lihat imej",
     "image_generate": "Jana imej",
     "list_settings_backups": "Senarai sandaran tetapan",
     "loadingSkill": "Memuatkan skill: {{name}}",

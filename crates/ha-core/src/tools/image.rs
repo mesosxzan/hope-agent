@@ -3,8 +3,9 @@ use base64::Engine;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::browser::IMAGE_BASE64_PREFIX;
+use super::execution::ToolExecContext;
 use super::expand_tilde;
+use super::image_markers::{build_image_base64_marker, build_image_file_marker};
 use super::read::{detect_image_mime, resize_image_if_needed};
 
 /// Default maximum number of images per single tool call.
@@ -380,11 +381,85 @@ fn with_label(source_label: String, label: Option<&str>) -> String {
     }
 }
 
+fn can_emit_preview_media(ctx: &ToolExecContext) -> bool {
+    ctx.session_id
+        .as_deref()
+        .is_some_and(|session_id| !session_id.is_empty())
+        && !ctx.incognito
+        && !ctx.suppress_result_disk_persistence
+}
+
+fn image_extension_for_mime(mime: &str) -> &'static str {
+    match mime {
+        "image/png" => "png",
+        "image/jpeg" => "jpg",
+        "image/gif" => "gif",
+        "image/webp" => "webp",
+        "image/bmp" => "bmp",
+        "image/tiff" => "tiff",
+        "image/x-icon" => "ico",
+        _ => "png",
+    }
+}
+
+fn display_filename(idx: usize, total: usize, mime: &str) -> String {
+    let ext = image_extension_for_mime(mime);
+    if total > 1 {
+        format!("view_image_{}.{}", idx, ext)
+    } else {
+        format!("view_image.{}", ext)
+    }
+}
+
+fn build_marker_with_optional_preview_file(
+    ctx: &ToolExecContext,
+    idx: usize,
+    total: usize,
+    final_mime: &str,
+    b64: &str,
+    marker_text: &str,
+) -> String {
+    if can_emit_preview_media(ctx) {
+        match base64::engine::general_purpose::STANDARD.decode(b64) {
+            Ok(bytes) => {
+                let display_name = display_filename(idx, total, final_mime);
+                match crate::attachments::save_attachment_bytes(
+                    ctx.session_id.as_deref(),
+                    &display_name,
+                    &bytes,
+                ) {
+                    Ok(saved_path) => {
+                        return build_image_file_marker(final_mime, &saved_path, marker_text);
+                    }
+                    Err(err) => {
+                        app_warn!(
+                            "tool",
+                            "image",
+                            "Failed to persist image preview media: {}",
+                            err
+                        );
+                    }
+                }
+            }
+            Err(err) => {
+                app_warn!(
+                    "tool",
+                    "image",
+                    "Failed to decode processed image preview bytes: {}",
+                    err
+                );
+            }
+        }
+    }
+
+    build_image_base64_marker(final_mime, b64, marker_text)
+}
+
 // ── Main Tool Entry ──────────────────────────────────────────────────
 
 /// Tool: image / vision input: attach one or more images from files, URLs,
 /// clipboard, or screenshot to the next model round as visual input.
-pub(crate) async fn tool_image(args: &Value) -> Result<String> {
+pub(crate) async fn tool_image(args: &Value, ctx: &ToolExecContext) -> Result<String> {
     let sources = normalize_sources(args, effective_max_images())?;
     let task = vision_task(args);
     let total = sources.len();
@@ -431,16 +506,22 @@ pub(crate) async fn tool_image(args: &Value) -> Result<String> {
                 // Resize if needed
                 match resize_image_if_needed(&data, mime) {
                     Ok((b64, final_mime)) => {
-                        result_parts.push(format!(
-                            "{}{}__{}__\n{}{} ({} bytes, {})\n",
-                            IMAGE_BASE64_PREFIX,
-                            final_mime,
-                            b64,
+                        let marker_text = format!(
+                            "{}{} ({} bytes, {})\n",
                             label_prefix,
                             source_label,
                             data.len(),
                             final_mime,
-                        ));
+                        );
+                        let marker = build_marker_with_optional_preview_file(
+                            ctx,
+                            idx,
+                            total,
+                            final_mime,
+                            &b64,
+                            &marker_text,
+                        );
+                        result_parts.push(marker);
                         success_count += 1;
                     }
                     Err(e) => {
