@@ -28,6 +28,37 @@ import type { AgentInfo } from "@/types/chat"
 import type { ChannelAccountConfig } from "@/components/settings/channel-panel/types"
 import type { ProjectMeta } from "@/types/project"
 
+/** Commonly used IANA timezones for the cron timezone selector. */
+const COMMON_TIMEZONES = [
+  "Asia/Shanghai",
+  "Asia/Hong_Kong",
+  "Asia/Taipei",
+  "Asia/Tokyo",
+  "Asia/Kolkata",
+  "Asia/Singapore",
+  "Asia/Bangkok",
+  "Asia/Dubai",
+  "Asia/Seoul",
+  "Asia/Karachi",
+  "Asia/Jakarta",
+  "Europe/London",
+  "Europe/Berlin",
+  "Europe/Paris",
+  "Europe/Moscow",
+  "Europe/Istanbul",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Sao_Paulo",
+  "America/Toronto",
+  "America/Mexico_City",
+  "Australia/Sydney",
+  "Australia/Melbourne",
+  "Pacific/Auckland",
+  "UTC",
+]
+
 // Matches the shape returned by `channel_list_sessions` (see
 // `src-tauri/src/commands/channel.rs::channel_list_sessions`).
 interface ChannelConversationDto {
@@ -119,6 +150,9 @@ export default function CronJobForm({
 
   const [message, setMessage] = useState(job?.payload.prompt ?? "")
   const [agentId, setAgentId] = useState(job?.payload.agentId ?? AUTO_AGENT_VALUE)
+  const [cronTimezone, setCronTimezone] = useState(
+    job?.schedule.type === "cron" ? (job.schedule.timezone ?? "Asia/Shanghai") : "Asia/Shanghai",
+  )
   const [projectId, setProjectId] = useState(
     job ? (job.projectId ?? NO_PROJECT_VALUE) : (defaultProjectId ?? NO_PROJECT_VALUE),
   )
@@ -327,7 +361,7 @@ export default function CronJobForm({
         }
       }
       case "cron":
-        return { type: "cron", expression: cronExpression, timezone: null }
+        return { type: "cron", expression: cronExpression, timezone: cronTimezone }
     }
   }
 
@@ -441,6 +475,7 @@ export default function CronJobForm({
 
           {/* Schedule Config -- Cron (visual builder + raw editor) */}
           {scheduleType === "cron" && (
+            <>
             <CronExpressionBuilder
               cronFreq={cronFreq}
               setCronFreq={setCronFreq}
@@ -456,6 +491,26 @@ export default function CronJobForm({
               setCronRawExpr={setCronRawExpr}
               cronExpression={cronExpression}
             />
+
+            {/* Timezone */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                {t("cron.timezone")}
+              </label>
+              <Select value={cronTimezone} onValueChange={setCronTimezone}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {COMMON_TIMEZONES.map((tz) => (
+                    <SelectItem key={tz} value={tz}>
+                      {tz}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            </>
           )}
 
           {/* Message */}

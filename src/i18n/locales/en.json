@@ -707,6 +707,7 @@
     "noDeliveryTargets": "No targets — results only land in session history",
     "noJobs": "No scheduled tasks yet",
     "noProject": "No Project",
+    "timezone": "Timezone",
     "noResults": "No matching tasks",
     "noRuns": "No run history yet",
     "noTasksThisDay": "No tasks on this day",

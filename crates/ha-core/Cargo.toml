@@ -20,6 +20,7 @@ anyhow = { workspace = true }
 async-trait = { workspace = true }
 log = { workspace = true }
 chrono = { workspace = true }
+chrono-tz = { workspace = true }
 uuid = { workspace = true }
 rusqlite = { workspace = true }
 reqwest = { workspace = true }
