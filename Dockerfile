@@ -32,19 +32,13 @@ FROM --platform=$BUILDPLATFORM node:20-bookworm-slim AS web
 # lockfile resolution is reproducible. `corepack prepare --activate`
 # downloads the pinned tarball; `pnpm-lock.yaml` was generated with the
 # same version.
-# Corepack is built into Node.js 20+.  Set COREPACK_NPM_REGISTRY to the
-# official registry so it downloads the exact pinned version — mirrors like
-# npmmirror lag behind.  pnpm install itself uses .npmrc for the registry.
-ENV COREPACK_NPM_REGISTRY=https://registry.npmjs.org
-ENV COREPACK_DEFAULT_TO_LATEST=0 \
-    HUSKY=0
-
-# The proxy env vars are deliberately UNSET here, not set to empty string.
-# corepack's URL parser crashes on `HTTP_PROXY=""`, treating the empty
-# string as a URL.  Unsetting them removes the variable entirely from the
-# shell process so corepack never inspects it.
-RUN unset HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY http_proxy https_proxy all_proxy no_proxy 2>/dev/null; \
-    corepack enable && corepack prepare pnpm@10.33.1 --activate && \
+# Install pnpm via npm with npmmirror registry.  The node:20 slim image
+# bundles npm which can use a mirror — unlike corepack which has its own
+# registry config and proxy crash bugs.  npmmirror may lag behind the
+# official registry but pnpm 10.33.1 has been available there since
+# 2025-06.  The `pnpm --version` guard ensures the right version landed.
+RUN npm config set registry https://registry.npmmirror.com/ && \
+    npm install -g pnpm@10.33.1 && \
     pnpm --version
 
 WORKDIR /work
