@@ -32,11 +32,12 @@ FROM --platform=$BUILDPLATFORM node:20-bookworm-slim AS web
 # lockfile resolution is reproducible. `corepack prepare --activate`
 # downloads the pinned tarball; `pnpm-lock.yaml` was generated with the
 # same version.
-# Install pnpm via npm (bypasses corepack proxy/registry issues).
-# Version must match lockfileVersion 9.0 — pnpm < 9 cannot read it.
-# The `pnpm --version` guard catches stale layer cache where an older
-# pnpm was baked into the image.
-RUN npm install -g pnpm@10.33.1 && pnpm --version
+# Install pnpm via official standalone script — bypasses npm registry mirrors
+# that may not have the exact version and avoids corepack's proxy URL crash.
+ENV PNPM_VERSION=10.33.1
+RUN curl -fsSL https://get.pnpm.io/install.sh | sh - && \
+    mv /root/.local/share/pnpm/pnpm /usr/local/bin/pnpm && \
+    pnpm --version
 
 WORKDIR /work
 
