@@ -37,9 +37,9 @@ FROM --platform=$BUILDPLATFORM node:20-bookworm-slim AS web
 # registry config and proxy crash bugs.  npmmirror may lag behind the
 # official registry but pnpm 10.33.1 has been available there since
 # 2025-06.  The `pnpm --version` guard ensures the right version landed.
-# RUN npm config set registry https://registry.npmmirror.com/ && \
-#     npm install -g pnpm@10.33.1 && \
-#     pnpm --version
+RUN npm config set registry https://registry.npmmirror.com/ && \
+    npm install -g pnpm@10.33.1 && \
+    pnpm --version
 
 WORKDIR /work
 
