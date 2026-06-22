@@ -32,11 +32,19 @@ FROM --platform=$BUILDPLATFORM node:20-bookworm-slim AS web
 # lockfile resolution is reproducible. `corepack prepare --activate`
 # downloads the pinned tarball; `pnpm-lock.yaml` was generated with the
 # same version.
-# Install pnpm via official standalone script — bypasses npm registry mirrors
-# that may not have the exact version and avoids corepack's proxy URL crash.
-ENV PNPM_VERSION=10.33.1
-RUN curl -fsSL https://get.pnpm.io/install.sh | sh - && \
-    mv /root/.local/share/pnpm/pnpm /usr/local/bin/pnpm && \
+# Corepack is built into Node.js 20+.  Set COREPACK_NPM_REGISTRY to the
+# official registry so it downloads the exact pinned version — mirrors like
+# npmmirror lag behind.  pnpm install itself uses .npmrc for the registry.
+ENV COREPACK_NPM_REGISTRY=https://registry.npmjs.org
+ENV COREPACK_DEFAULT_TO_LATEST=0 \
+    HUSKY=0
+
+# The proxy env vars are deliberately UNSET here, not set to empty string.
+# corepack's URL parser crashes on `HTTP_PROXY=""`, treating the empty
+# string as a URL.  Unsetting them removes the variable entirely from the
+# shell process so corepack never inspects it.
+RUN unset HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY http_proxy https_proxy all_proxy no_proxy 2>/dev/null; \
+    corepack enable && corepack prepare pnpm@10.33.1 --activate && \
     pnpm --version
 
 WORKDIR /work
