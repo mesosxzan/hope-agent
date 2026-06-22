@@ -47,7 +47,7 @@ WORKDIR /work
 # editing source files doesn't trigger a full `pnpm install`.
 COPY package.json pnpm-lock.yaml .npmrc ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --ignore-scripts
+    pnpm install 
 
 # Copy the frontend sources and build.
 COPY index.html vite.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json eslint.config.js ./
