@@ -30,6 +30,19 @@ pub(crate) fn app_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::
                 std::env::set_var("HOPE_AGENT_BUNDLED_SKILLS_DIR", &skills_dir);
             }
         }
+        let host_name = if cfg!(windows) {
+            "ha-browser-host.exe"
+        } else {
+            "ha-browser-host"
+        };
+        if let Ok(host_path) = app.path().resolve(
+            format!("browser-host/{host_name}"),
+            tauri::path::BaseDirectory::Resource,
+        ) {
+            if host_path.is_file() {
+                std::env::set_var("HOPE_AGENT_BROWSER_HOST_PATH", &host_path);
+            }
+        }
     }
     if cfg!(debug_assertions) {
         app.handle().plugin(
@@ -320,6 +333,18 @@ pub(crate) fn app_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::
             }
         });
     }
+
+    // Best-effort: copy the bundled Chrome extension into a stable location
+    // (~/.hope-agent/extension/browser/) so the path the user loads in
+    // Chrome survives app updates/moves, then auto-register the native messaging
+    // host manifest so a packaged build needs no manual "Install native host"
+    // step. Order matters — the copy runs first so the host registers against
+    // the stable copy's id. Both are desktop-only, idempotent, and no-ops when
+    // there is no extension source / known extension id.
+    tauri::async_runtime::spawn_blocking(|| {
+        ha_core::browser::ensure_local_unpacked_extension();
+        ha_core::browser::ensure_native_host_registered();
+    });
 
     // Bridge ha-core EventBus → Tauri frontend (app_handle.emit).
     // Without this, events like `ask_user_request` / `plan_submitted` emitted

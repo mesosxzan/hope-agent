@@ -80,6 +80,53 @@ pub fn resolve_chrome_executable(override_path: Option<&str>) -> Result<String> 
     );
 }
 
+/// Open a browser-internal URL (e.g. `chrome://extensions/`) in the user's
+/// Chrome. The OS URL opener cannot handle the `chrome://` scheme — no
+/// application claims it — so we hand the URL to a resolved Chrome process,
+/// which understands it. When Chrome is already running on its default profile
+/// it opens the URL as a new tab in the live instance; otherwise it launches.
+///
+/// Intentionally passes **only** the URL (no `--user-data-dir` / debugging
+/// flags) so it targets the user's everyday browser, not a managed instance.
+pub fn open_url_in_chrome(url: &str) -> Result<()> {
+    use anyhow::Context;
+    let exec = resolve_chrome_executable(None)?;
+
+    // macOS: a browser-internal URL must go through LaunchServices
+    // (`open -a <app> <url>`). Launching the inner binary directly opens a
+    // blank new-tab window and silently drops the chrome:// argument (verified).
+    // Derive the `.app` bundle from the resolved binary; fall back to a direct
+    // launch only when the binary isn't inside a bundle.
+    #[cfg(target_os = "macos")]
+    if let Some(app) = macos_app_bundle(&exec) {
+        Command::new("/usr/bin/open")
+            .arg("-a")
+            .arg(&app)
+            .arg(url)
+            .spawn()
+            .with_context(|| format!("open -a {} {url}", app.display()))?;
+        return Ok(());
+    }
+
+    let mut cmd = Command::new(&exec);
+    crate::platform::hide_console(&mut cmd);
+    cmd.arg(url);
+    cmd.spawn()
+        .with_context(|| format!("launching Chrome ({exec}) to open {url}"))?;
+    Ok(())
+}
+
+/// Walk up the resolved Chrome binary path to the enclosing `.app` bundle
+/// (e.g. `/Applications/Google Chrome.app`), so `open -a` targets whatever
+/// Chromium-family browser the user actually has installed.
+#[cfg(target_os = "macos")]
+fn macos_app_bundle(exec: &str) -> Option<std::path::PathBuf> {
+    Path::new(exec)
+        .ancestors()
+        .find(|p| p.extension().is_some_and(|e| e == "app"))
+        .map(Path::to_path_buf)
+}
+
 /// Build the `std::process::Command` for one Chrome spawn. Extracted so it
 /// can be unit-tested without actually starting a child process.
 pub fn build_chrome_argv(spec: &LaunchSpec<'_>, exec: &str) -> Command {

@@ -1112,6 +1112,7 @@ pub async fn run_chat_engine(params: ChatEngineParams) -> Result<ChatEngineResul
                                     turn.error.clone(),
                                 );
                                 stream_lifecycle.finish();
+                                schedule_browser_turn_finalize(source, &session_id);
                                 return Ok(ChatEngineResult {
                                     response,
                                     model_used: Some(model_ref.clone()),
@@ -1149,6 +1150,7 @@ pub async fn run_chat_engine(params: ChatEngineParams) -> Result<ChatEngineResul
                             .unwrap_or(session::ChatTurnStatus::Interrupted);
                         stream_lifecycle.set_terminal(terminal, outcome.interrupt_reason, None);
                         stream_lifecycle.finish();
+                        schedule_browser_turn_finalize(source, &session_id);
                         return Ok(ChatEngineResult {
                             response: String::new(),
                             model_used: None,
@@ -1227,6 +1229,7 @@ pub async fn run_chat_engine(params: ChatEngineParams) -> Result<ChatEngineResul
                             .unwrap_or(session::ChatTurnStatus::Interrupted);
                         stream_lifecycle.set_terminal(terminal, outcome.interrupt_reason, None);
                         stream_lifecycle.finish();
+                        schedule_browser_turn_finalize(source, &session_id);
                         return Ok(ChatEngineResult {
                             response,
                             model_used: Some(model_ref.clone()),
@@ -1267,6 +1270,7 @@ pub async fn run_chat_engine(params: ChatEngineParams) -> Result<ChatEngineResul
                     }
                     stream_lifecycle.set_terminal(terminal_status, interrupt_reason, None);
                     stream_lifecycle.finish();
+                    schedule_browser_turn_finalize(source, &session_id);
 
                     // Stop hook: the agent finished responding (normal
                     // completion, or a user-initiated stop that still drained
@@ -1400,6 +1404,7 @@ pub async fn run_chat_engine(params: ChatEngineParams) -> Result<ChatEngineResul
                     {
                         stream_lifecycle.set_terminal(status, interrupt, error);
                         stream_lifecycle.finish();
+                        schedule_browser_turn_finalize(source, &session_id);
                         return Ok(ChatEngineResult {
                             response: String::new(),
                             model_used: Some(model_ref.clone()),
@@ -1546,6 +1551,7 @@ pub async fn run_chat_engine(params: ChatEngineParams) -> Result<ChatEngineResul
                     {
                         stream_lifecycle.set_terminal(status, interrupt, error);
                         stream_lifecycle.finish();
+                        schedule_browser_turn_finalize(source, &session_id);
                         return Ok(ChatEngineResult {
                             response: String::new(),
                             model_used: Some(model_ref.clone()),
@@ -1787,6 +1793,7 @@ pub async fn run_chat_engine(params: ChatEngineParams) -> Result<ChatEngineResul
 
     if matches!(reason, TerminationReason::UserStop) && !abort_on_cancel {
         stream_lifecycle.finish();
+        schedule_browser_turn_finalize(source, &session_id);
         return Ok(ChatEngineResult {
             response: String::new(),
             model_used: None,
@@ -1794,6 +1801,7 @@ pub async fn run_chat_engine(params: ChatEngineParams) -> Result<ChatEngineResul
         });
     }
 
+    schedule_browser_turn_finalize(source, &session_id);
     Err(final_error)
 }
 
@@ -1888,6 +1896,22 @@ fn kb_access_source(source: stream_seq::ChatSource) -> crate::knowledge::KbAcces
         ChatSource::Subagent => KbAccessSource::Subagent,
         ChatSource::ParentInjection => KbAccessSource::Other,
     }
+}
+
+/// Schedule turn-end browser cleanup, skipping `ParentInjection` turns.
+///
+/// Background-job / wakeup completions inject into the PARENT session and run a
+/// turn under that session_id. Running the turn-end finalize there would tear
+/// down the parent's live browser scope (close agent tabs, drop claim leases)
+/// mid-task while the user may still be working in that session. The parent's
+/// own foreground turns and session teardown handle cleanup, so injection turns
+/// must skip it. Other sources (`Desktop`/`Http`/`Channel`/`Subagent`) finalize
+/// their own session scope, which matches the documented turn-end release.
+fn schedule_browser_turn_finalize(source: stream_seq::ChatSource, session_id: &str) {
+    if matches!(source, stream_seq::ChatSource::ParentInjection) {
+        return;
+    }
+    crate::browser::schedule_extension_turn_finalize(session_id);
 }
 
 /// Apply common agent configuration. Extracted to avoid duplication between

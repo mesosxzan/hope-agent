@@ -93,6 +93,14 @@
         "body": "Bu tarayıcı işlemi etkin sekmede rastgele JavaScript çalıştırır. Smart modu bunu yüksek güven etiketi veya yargıç modeliyle otomatik olarak izinli sayabilir.",
         "title": "Tarayıcı JavaScript"
       },
+      "browser_raw_cdp": {
+        "title": "Advanced browser CDP command",
+        "body": "This browser action will send a raw Chrome DevTools Protocol command to a real Chrome tab. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
+      },
+      "browser_download_action": {
+        "title": "Browser download action",
+        "body": "This browser action will read or interrupt Chrome download activity. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
+      },
       "mac_control_action": {
         "title": "Mac Control işlemi",
         "body": "Bu macOS kontrol çağrısı masaüstü odağını/durumunu değiştirir. Hope Agent başka bir uygulamayı etkinleştirmeden önce onaylayın."
@@ -100,6 +108,10 @@
       "mac_control_dangerous_action": {
         "title": "Tehlikeli Mac Control eylemi",
         "body": "Bu macOS kontrol çağrısı pencereleri kapatabilir, uygulamalardan çıkabilir, iletişim kutularını onaylayabilir veya yıkıcı menüleri tetikleyebilir. Her çağrı için onay gerekir; Her zaman izin ver kullanılamaz."
+      },
+      "browser_chrome_access": {
+        "title": "Real Chrome access",
+        "body": "This browser action will read or control the user's real Chrome state through the extension. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
       }
     },
     "title": "Command Approval Required",
@@ -596,7 +608,15 @@
         "mac": "Mac kontrolü"
       }
     },
-    "reasoningDisabledHint": "Bu model için akıl yürütme etkin değil. Akıl yürütme derinliğini ayarlamak için \"Ayarlar → Model Sağlayıcıları\" bölümünden bu modeli düzenleyin ve \"Akıl yürütme/düşünme desteği\" seçeneğini açın."
+    "reasoningDisabledHint": "Bu model için akıl yürütme etkin değil. Akıl yürütme derinliğini ayarlamak için \"Ayarlar → Model Sağlayıcıları\" bölümünden bu modeli düzenleyin ve \"Akıl yürütme/düşünme desteği\" seçeneğini açın.",
+    "browserExtensionNudge": {
+      "installTitle": "Yapay zekânın gerçek Chrome'unuzu yönetmesine izin verin",
+      "installBody": "Oturum açtığınız Chrome'u kullanmak için Hope Agent uzantısını yükleyin. Şimdilik yalıtılmış bir tarayıcıda çalışıyor.",
+      "reloadTitle": "Chrome uzantısını yeniden yükleyin",
+      "reloadBody": "Yüklü uzantı ana bilgisayarla eşleşmiyor. Gerçek Chrome'unuzun denetimini geri kazanmak için yeniden yükleyin.",
+      "openSettings": "Ayarları aç",
+      "dismiss": "Tekrar gösterme"
+    }
   },
   "codexAuth": {
     "expiredDescription": "Codex OAuth tokenınız artık geçerli değil. Devam etmek için tekrar oturum açın.",
@@ -2751,7 +2771,90 @@
       "statusConnected": "Tarayıcı çalışıyor",
       "statusDisconnected": "Çalışmıyor",
       "title": "Tarayıcı",
-      "untitledTab": "Başlıksız"
+      "untitledTab": "Başlıksız",
+      "advanced": {
+        "section": "Gelişmiş",
+        "sectionHint": "Chrome uzantı arka ucu için gelişmiş seçenekler. Değişiklikler Kaydet'e tıkladıktan sonra geçerli olur.",
+        "backendLabel": "Tarayıcı arka ucu",
+        "backendExtensionFirst": "Önce uzantı (varsayılan)",
+        "backendExtensionFirstDesc": "Mümkün olduğunda gerçek Chrome'unuzu uzantı üzerinden çalıştırır; aksi halde yalıtılmış CDP'ye geri döner.",
+        "backendCdpOnly": "Yalnızca yalıtılmış CDP",
+        "backendCdpOnlyDesc": "Yalnızca yeni, yalıtılmış bir Chrome kullanır; gerçek tarayıcınıza asla dokunmaz.",
+        "backendExtensionOnly": "Yalnızca uzantı",
+        "backendExtensionOnlyDesc": "Yalnızca gerçek Chrome'unuzu kullanır; uzantı kullanılamadığında doğrudan hata verir.",
+        "enableLabel": "Chrome uzantı arka ucunu etkinleştir",
+        "enableHint": "Yapay zekânın, oturum açtığınız gerçek Chrome'unuzu (tüm Cookie ve oturumlar dahil) uzantı üzerinden çalıştırmasına izin verir.",
+        "rawCdpLabel": "raw CDP'ye izin ver (gelişmiş)",
+        "rawCdpHint": "Yapay zekânın gerçek Chrome'unuza rastgele DevTools Protocol komutları göndermesine izin verir. Her çağrı yine de kullanım başına onay gerektirir ve tehlikeli yöntemler (Cookie okuma vb.) engellenir; özellikle ihtiyacınız olmadıkça bunu kapalı tutun."
+      },
+      "extension": {
+        "title": "Chrome Uzantısı",
+        "kindReady": "Bağlandı",
+        "kindHostMissing": "Yerel ana bilgisayar yok",
+        "kindBrokerUnavailable": "Aracı çalışmıyor",
+        "kindVersionMismatch": "Protokol uyuşmazlığı",
+        "kindExtensionMissing": "Bağlı değil",
+        "statusReady": "Hope Agent Chrome uzantısı bağlandı.",
+        "statusHostMissing": "Chrome yerel mesajlaşma ana bilgisayarı kurulu değil.",
+        "statusBrokerUnavailable": "Chrome uzantısı aracısı çalışmıyor.",
+        "statusExtensionMissing": "Hope Agent Chrome uzantısı bağlı değil.",
+        "statusVersionMismatch": "Uzantının protokol sürümü ana bilgisayarla eşleşmiyor. Güncellemek için uzantıyı yeniden yükleyin.",
+        "versionLine": "Uzantı {{version}} · protokol {{protocol}}",
+        "unknown": "bilinmiyor",
+        "loadUnpackedPath": "Paketlenmemişi yükle: {{path}}",
+        "stopControl": "Tarayıcı kontrolünü durdur",
+        "stepInstallExtension": "Chrome uzantısını kur",
+        "stepInstallExtensionHint": "Chrome Web Store sayfasını kullanın, ardından buraya dönüp yenileyin.",
+        "openWebStore": "Chrome Web Store'u aç",
+        "stepOpenExtensions": "Chrome uzantılarını aç",
+        "stepOpenExtensionsHint": "Geliştirici modunu etkinleştirin, ardından Paketlenmemişi yükle'yi kullanın.",
+        "stepLoadUnpacked": "Paketlenmemiş uzantıyı yükle",
+        "alphaFallback": "Alpha yedeği: paketlenmemişi yükle",
+        "stepInstallHost": "Yerel ana bilgisayarı kur",
+        "openChromeExtensions": "chrome://extensions'ı aç",
+        "showFolder": "Klasörü göster",
+        "copyPath": "Yolu kopyala",
+        "showHost": "Ana bilgisayarı göster",
+        "copyHostPath": "Ana bilgisayar yolunu kopyala",
+        "hostPathUnavailable": "Yerel ana bilgisayar yolu kullanılamıyor",
+        "extensionPathUnavailable": "Uzantı yolu kullanılamıyor",
+        "extensionIdPlaceholder": "Chrome uzantı kimliği",
+        "hostPathPlaceholder": "ha-browser-host mutlak yolu",
+        "installHost": "Yerel ana bilgisayarı kur",
+        "nativeHostLabel": "yerel ana bilgisayar",
+        "nativeHostPathLabel": "Yerel ana bilgisayar yolu",
+        "extensionFolderLabel": "uzantı klasörü",
+        "extensionPathLabel": "Uzantı yolu",
+        "toast": {
+          "idRequired": "Chrome uzantı kimliği gerekli",
+          "hostInstalled": "Yerel ana bilgisayar bildirimi kuruldu",
+          "hostInstallFailed": "Yerel ana bilgisayar kurulumu başarısız",
+          "controlStopped": "Tarayıcı kontrolü durduruldu",
+          "controlStopFailed": "Tarayıcı kontrolünü durdurma başarısız",
+          "copied": "{{item}} kopyalandı",
+          "copyFailed": "{{item}} kopyalanamadı",
+          "revealFailed": "{{item}} açılamadı",
+          "connected": "Uzantı bağlandı — yapay zekâ artık gerçek Chrome'unuzu kullanabilir"
+        },
+        "fallbackLabel": "Yönetilen Chrome'a geri dön",
+        "fallbackHint": "Uzantı kullanılamıyorsa başarısız olmak yerine otomatik olarak yalıtılmış yönetilen bir Chrome kullanın.",
+        "setupGuide": "Kurulum kılavuzu"
+      },
+      "methodLabel": "Tarayıcı denetim yöntemi",
+      "tabCount": "{{count}} sekme",
+      "method": {
+        "extension": "Uzantı",
+        "managed": "Yönetilen Chrome",
+        "attach": "Chrome'a bağlan",
+        "extensionDesc": "Oturum açtığınız gerçek Chrome'u uzantı aracılığıyla yönetin; çerezlerinizi ve oturumlarınızı paylaşır. Önerilir.",
+        "managedDesc": "Hope Agent kendi yalıtılmış Chrome örneğini başlatır ve sürdürür. Otomasyon için idealdir.",
+        "attachDesc": "--remote-debugging-port ile kendiniz başlattığınız bir Chrome'a bağlanın."
+      },
+      "rawCdpConfirm": {
+        "title": "Ham CDP'ye izin verilsin mi?",
+        "body": "Bu, yapay zekânın gerçek Chrome'unuza rastgele DevTools Protocol komutları göndermesine olanak tanır. Her çağrı yine de her seferinde onayınızı gerektirir ve tehlikeli yöntemler engellenmeye devam eder, ancak yalnızca özellikle ihtiyacınız varsa etkinleştirin.",
+        "continue": "Etkinleştir"
+      }
     },
     "bytes": "bayt",
     "canvas": "Canvas",
@@ -3932,6 +4035,7 @@
     "skillCommandDispatch": "Komut dağıtımı",
     "skillContentPreview": "Markdown önizlemesi",
     "skillContentRaw": "Ham içerik",
+    "skillCurrentOs": "Geçerli OS",
     "skillDisabled": "Devre Dışı",
     "skillEnabled": "Etkin",
     "skillEnvClear": "Temizle",
@@ -3948,14 +4052,7 @@
     },
     "skillFiles": "Dosyalar",
     "skillHealth": "Sağlık",
-    "skillCurrentOs": "Geçerli OS",
     "skillHardBlocked": "Uyumsuz",
-    "skillMissingAnyBins": "Bir ikili dosya gerekir",
-    "skillMissingBins": "Eksik ikili dosyalar",
-    "skillMissingConfig": "Eksik ayarlar",
-    "skillMissingEnv": "Eksik ortam değişkenleri",
-    "skillNeedsSetup": "Kurulum gerekiyor",
-    "skillSupportedOs": "Desteklenen OS",
     "skillInstall": "Yükle",
     "skillInstallFailed": "Yükleme başarısız",
     "skillInstallSuccess": "Başarıyla yüklendi",
@@ -3963,12 +4060,18 @@
     "skillInvocationPolicy": "Çağrı politikası",
     "skillMaxChars": "Maksimum prompt karakteri",
     "skillMaxCount": "Prompt'taki maksimum skill",
+    "skillMissingAnyBins": "Bir ikili dosya gerekir",
+    "skillMissingBins": "Eksik ikili dosyalar",
+    "skillMissingConfig": "Eksik ayarlar",
+    "skillMissingEnv": "Eksik ortam değişkenleri",
     "skillModelInvocable": "Model tarafından çağrılabilir",
+    "skillNeedsSetup": "Kurulum gerekiyor",
     "skillSkipsRequirements": "Bağımlılık denetimlerini atlar",
     "skillStatusBlocked": "İzin listesi tarafından engellendi",
     "skillStatusDisabled": "Devre dışı",
     "skillStatusEligible": "Uygun",
     "skillStatusMissing": "Eksik bağımlılıklar",
+    "skillSupportedOs": "Desteklenen OS",
     "skillUserInvocable": "Kullanıcı tarafından çağrılabilir",
     "skills": "Beceriler",
     "skillsAutoReview": {

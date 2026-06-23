@@ -5,6 +5,8 @@ import { parsePayload } from "@/lib/transport"
 import { save } from "@tauri-apps/plugin-dialog"
 import { useTranslation } from "react-i18next"
 import { logger } from "@/lib/logger"
+import type { SettingsSection } from "@/components/settings/types"
+import { BrowserExtensionNudge } from "./BrowserExtensionNudge"
 import { useViewportMediaQuery } from "@/hooks/useViewportMediaQuery"
 import { cn } from "@/lib/utils"
 import {
@@ -138,6 +140,8 @@ interface ChatScreenProps {
   pendingChatInsert?: ChatInsert
   /** Called once the insert has been consumed so App can clear the pending slot. */
   onChatInsertConsumed?: () => void
+  /** Open the settings view, optionally to a specific section. */
+  onOpenSettings?: (section?: SettingsSection) => void
 }
 
 interface ManualCompactOverride {
@@ -258,6 +262,16 @@ function makeClientEventMessage(message: ClientEventMessage): Message {
   }
 }
 
+type BrowserExtensionRequiredPayload = {
+  requirement?: string
+  reason?: string
+  statusKind?: string
+  statusMessage?: string
+  nextAction?: string
+  sessionId?: string
+  source?: string
+}
+
 function makeCompactProgressEvent(): Record<string, unknown> {
   return {
     type: "context_compaction_progress",
@@ -376,6 +390,7 @@ export default function ChatScreen({
   onCurrentProjectChange,
   pendingChatInsert,
   onChatInsertConsumed,
+  onOpenSettings,
 }: ChatScreenProps) {
   const { t } = useTranslation()
 
@@ -2165,6 +2180,34 @@ export default function ChatScreen({
   }, [])
 
   useEffect(() => {
+    const unlisten = getTransport().listen("browser:extension_required", (raw) => {
+      const payload = parsePayload<BrowserExtensionRequiredPayload>(raw)
+      if (!payload) return
+      if (payload.sessionId && payload.sessionId !== session.currentSessionId) return
+      const reason = payload.reason || payload.statusMessage
+      const next = payload.nextAction
+        ? t("chat.browserExtensionRequired.nextAction", {
+            defaultValue: "Next action: {{nextAction}}",
+            nextAction: payload.nextAction,
+          })
+        : t("chat.browserExtensionRequired.openSettings", {
+            defaultValue: "Open Settings > Browser to install or enable the extension.",
+          })
+      toast(t("chat.browserExtensionRequired.title", { defaultValue: "Chrome extension required" }), {
+        id: "browser-extension-required",
+        description: [reason, next].filter(Boolean).join("\n"),
+      })
+    })
+    return () => {
+      try {
+        unlisten?.()
+      } catch {
+        // ignore
+      }
+    }
+  }, [session.currentSessionId, t])
+
+  useEffect(() => {
     const unlisten = getTransport().listen("mac_control:frame", (raw) => {
       if (macControlPanelDismissedRef.current) return
       const payload = parsePayload<MacControlFrameOpenHint>(raw)
@@ -2427,6 +2470,11 @@ export default function ChatScreen({
                 }
               : undefined
           }
+        />
+
+        <BrowserExtensionNudge
+          sessionId={session.currentSessionId}
+          onOpenSettings={onOpenSettings}
         />
 
         <div className="flex-1 flex min-h-0 overflow-hidden">

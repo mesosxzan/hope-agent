@@ -93,6 +93,14 @@
         "body": "이 브라우저 작업은 활성 탭에서 임의의 JavaScript를 실행합니다. Smart 모드는 높은 신뢰도 태그나 판정 모델로 자동 허용할 수 있습니다.",
         "title": "브라우저 JavaScript"
       },
+      "browser_raw_cdp": {
+        "title": "Advanced browser CDP command",
+        "body": "This browser action will send a raw Chrome DevTools Protocol command to a real Chrome tab. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
+      },
+      "browser_download_action": {
+        "title": "Browser download action",
+        "body": "This browser action will read or interrupt Chrome download activity. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
+      },
       "mac_control_action": {
         "title": "Mac 제어 작업",
         "body": "이 macOS 제어 호출은 데스크톱 포커스/상태를 변경합니다. Hope Agent가 다른 앱을 활성화하기 전에 확인해 주세요."
@@ -100,6 +108,10 @@
       "mac_control_dangerous_action": {
         "title": "위험한 Mac 제어 동작",
         "body": "이 macOS 제어 호출은 창을 닫거나, 앱을 종료하거나, 대화상자를 확인하거나, 파괴적인 메뉴를 실행할 수 있습니다. 매번 확인이 필요하며 항상 허용은 사용할 수 없습니다."
+      },
+      "browser_chrome_access": {
+        "title": "Real Chrome access",
+        "body": "This browser action will read or control the user's real Chrome state through the extension. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
       }
     },
     "title": "Command Approval Required",
@@ -596,7 +608,15 @@
         "mac": "Mac 제어"
       }
     },
-    "reasoningDisabledHint": "이 모델은 추론이 활성화되어 있지 않습니다. 추론 강도를 조정하려면 「설정 → 모델 제공자」에서 이 모델을 편집하고 「추론/사고 지원」을 켜세요."
+    "reasoningDisabledHint": "이 모델은 추론이 활성화되어 있지 않습니다. 추론 강도를 조정하려면 「설정 → 모델 제공자」에서 이 모델을 편집하고 「추론/사고 지원」을 켜세요.",
+    "browserExtensionNudge": {
+      "installTitle": "AI가 실제 Chrome을 제어하도록 하기",
+      "installBody": "Hope Agent 확장 프로그램을 설치하면 로그인된 Chrome을 조작할 수 있습니다. 현재는 격리된 브라우저에서 실행 중입니다.",
+      "reloadTitle": "Chrome 확장 프로그램 다시 로드",
+      "reloadBody": "설치된 확장 프로그램이 호스트와 일치하지 않습니다. 다시 로드하면 실제 Chrome 제어가 복원됩니다.",
+      "openSettings": "설정 열기",
+      "dismiss": "다시 표시 안 함"
+    }
   },
   "codexAuth": {
     "expiredDescription": "Codex OAuth 토큰이 더 이상 유효하지 않습니다. 계속하려면 다시 로그인하세요.",
@@ -2751,7 +2771,90 @@
       "statusConnected": "브라우저 실행 중",
       "statusDisconnected": "실행되지 않음",
       "title": "브라우저",
-      "untitledTab": "제목 없음"
+      "untitledTab": "제목 없음",
+      "advanced": {
+        "section": "고급",
+        "sectionHint": "Chrome 확장 프로그램 백엔드를 위한 고급 옵션입니다. 변경 사항은 저장을 클릭한 후 적용됩니다.",
+        "backendLabel": "브라우저 백엔드",
+        "backendExtensionFirst": "확장 프로그램 우선（기본값）",
+        "backendExtensionFirstDesc": "확장 프로그램이 있으면 이를 통해 실제 Chrome을 구동하고, 없으면 격리된 CDP로 대체합니다.",
+        "backendCdpOnly": "격리된 CDP만 사용",
+        "backendCdpOnlyDesc": "새로 격리된 Chrome만 사용하며, 실제 브라우저는 절대 건드리지 않습니다.",
+        "backendExtensionOnly": "확장 프로그램만 사용",
+        "backendExtensionOnlyDesc": "실제 Chrome만 사용하며, 확장 프로그램을 사용할 수 없으면 바로 오류를 표시합니다.",
+        "enableLabel": "Chrome 확장 프로그램 백엔드 사용",
+        "enableHint": "AI가 확장 프로그램을 통해 로그인된 실제 Chrome（모든 Cookie 및 세션 포함）을 구동하도록 허용합니다.",
+        "rawCdpLabel": "raw CDP 허용（고급）",
+        "rawCdpHint": "AI가 실제 Chrome에 임의의 DevTools 프로토콜 명령을 보낼 수 있게 합니다. 각 호출은 여전히 매번 승인이 필요하며 위험한 메서드（Cookie 읽기 등）는 차단됩니다. 꼭 필요한 경우가 아니면 꺼 두세요."
+      },
+      "extension": {
+        "title": "Chrome 확장 프로그램",
+        "kindReady": "연결됨",
+        "kindHostMissing": "네이티브 호스트 없음",
+        "kindBrokerUnavailable": "브로커 미실행",
+        "kindVersionMismatch": "프로토콜 불일치",
+        "kindExtensionMissing": "연결 안 됨",
+        "statusReady": "Hope Agent Chrome 확장 프로그램이 연결되었습니다.",
+        "statusHostMissing": "Chrome 네이티브 메시징 호스트가 설치되지 않았습니다.",
+        "statusBrokerUnavailable": "Chrome 확장 프로그램 브로커가 실행 중이지 않습니다.",
+        "statusExtensionMissing": "Hope Agent Chrome 확장 프로그램이 연결되지 않았습니다.",
+        "statusVersionMismatch": "확장 프로그램의 프로토콜 버전이 호스트와 일치하지 않습니다. 확장 프로그램을 다시 로드하여 업데이트하세요.",
+        "versionLine": "확장 프로그램 {{version}} · 프로토콜 {{protocol}}",
+        "unknown": "알 수 없음",
+        "loadUnpackedPath": "압축해제된 확장 프로그램 로드: {{path}}",
+        "stopControl": "브라우저 제어 중지",
+        "stepInstallExtension": "Chrome 확장 프로그램 설치",
+        "stepInstallExtensionHint": "Chrome Web Store 페이지에서 설치한 후 여기로 돌아와 새로고침하세요.",
+        "openWebStore": "Chrome Web Store 열기",
+        "stepOpenExtensions": "Chrome 확장 프로그램 페이지 열기",
+        "stepOpenExtensionsHint": "개발자 모드를 켠 후 압축해제된 확장 프로그램을 로드하세요.",
+        "stepLoadUnpacked": "압축해제된 확장 프로그램 로드",
+        "alphaFallback": "Alpha 대체: 압축해제된 확장 프로그램 로드",
+        "stepInstallHost": "네이티브 호스트 설치",
+        "openChromeExtensions": "chrome://extensions 열기",
+        "showFolder": "폴더 표시",
+        "copyPath": "경로 복사",
+        "showHost": "호스트 표시",
+        "copyHostPath": "호스트 경로 복사",
+        "hostPathUnavailable": "네이티브 호스트 경로를 사용할 수 없음",
+        "extensionPathUnavailable": "확장 프로그램 경로를 사용할 수 없음",
+        "extensionIdPlaceholder": "Chrome 확장 프로그램 ID",
+        "hostPathPlaceholder": "ha-browser-host 절대 경로",
+        "installHost": "네이티브 호스트 설치",
+        "nativeHostLabel": "네이티브 호스트",
+        "nativeHostPathLabel": "네이티브 호스트 경로",
+        "extensionFolderLabel": "확장 프로그램 폴더",
+        "extensionPathLabel": "확장 프로그램 경로",
+        "toast": {
+          "idRequired": "Chrome 확장 프로그램 ID를 입력하세요",
+          "hostInstalled": "네이티브 호스트 매니페스트가 설치되었습니다",
+          "hostInstallFailed": "네이티브 호스트 설치 실패",
+          "controlStopped": "브라우저 제어가 중지되었습니다",
+          "controlStopFailed": "브라우저 제어 중지 실패",
+          "copied": "{{item}} 복사됨",
+          "copyFailed": "{{item}} 복사 실패",
+          "revealFailed": "{{item}} 열기 실패",
+          "connected": "확장 프로그램이 연결되었습니다 — 이제 AI가 실제 Chrome을 사용할 수 있습니다"
+        },
+        "fallbackLabel": "관리형 Chrome으로 대체",
+        "fallbackHint": "확장 프로그램을 사용할 수 없을 때 실패하는 대신 격리된 관리형 Chrome을 자동으로 사용합니다.",
+        "setupGuide": "설치 가이드"
+      },
+      "methodLabel": "브라우저 제어 방식",
+      "tabCount": "탭 {{count}}개",
+      "method": {
+        "extension": "확장 프로그램",
+        "managed": "관리형 Chrome",
+        "attach": "Chrome에 연결",
+        "extensionDesc": "확장 프로그램을 통해 로그인된 실제 Chrome을 제어합니다. 쿠키와 세션을 공유합니다. 권장.",
+        "managedDesc": "Hope Agent가 자체 격리된 Chrome 인스턴스를 실행하고 유지합니다. 자동화에 가장 적합합니다.",
+        "attachDesc": "--remote-debugging-port로 직접 실행한 Chrome에 연결합니다."
+      },
+      "rawCdpConfirm": {
+        "title": "raw CDP를 허용하시겠습니까?",
+        "body": "AI가 실제 Chrome에 임의의 DevTools Protocol 명령을 보낼 수 있게 됩니다. 모든 호출은 여전히 매번 승인이 필요하고 위험한 메서드는 차단되지만, 꼭 필요한 경우에만 활성화하세요.",
+        "continue": "활성화"
+      }
     },
     "bytes": "바이트",
     "canvas": "캔버스",
@@ -3932,6 +4035,7 @@
     "skillCommandDispatch": "명령 디스패치",
     "skillContentPreview": "Markdown 미리보기",
     "skillContentRaw": "원본 내용",
+    "skillCurrentOs": "현재 OS",
     "skillDisabled": "비활성화됨",
     "skillEnabled": "활성화됨",
     "skillEnvClear": "지우기",
@@ -3948,14 +4052,7 @@
     },
     "skillFiles": "파일 목록",
     "skillHealth": "상태",
-    "skillCurrentOs": "현재 OS",
     "skillHardBlocked": "호환되지 않음",
-    "skillMissingAnyBins": "바이너리 하나 필요",
-    "skillMissingBins": "누락된 바이너리",
-    "skillMissingConfig": "누락된 설정",
-    "skillMissingEnv": "누락된 환경 변수",
-    "skillNeedsSetup": "설정 필요",
-    "skillSupportedOs": "지원 OS",
     "skillInstall": "설치",
     "skillInstallFailed": "설치 실패",
     "skillInstallSuccess": "설치 성공",
@@ -3963,12 +4060,18 @@
     "skillInvocationPolicy": "호출 정책",
     "skillMaxChars": "프롬프트 최대 문자",
     "skillMaxCount": "프롬프트 내 최대 스킬",
+    "skillMissingAnyBins": "바이너리 하나 필요",
+    "skillMissingBins": "누락된 바이너리",
+    "skillMissingConfig": "누락된 설정",
+    "skillMissingEnv": "누락된 환경 변수",
     "skillModelInvocable": "모델 호출 가능",
+    "skillNeedsSetup": "설정 필요",
     "skillSkipsRequirements": "의존성 검사 건너뛰기",
     "skillStatusBlocked": "허용 목록에 의해 차단",
     "skillStatusDisabled": "비활성화",
     "skillStatusEligible": "사용 가능",
     "skillStatusMissing": "종속성 누락",
+    "skillSupportedOs": "지원 OS",
     "skillUserInvocable": "사용자 호출 가능",
     "skills": "스킬",
     "skillsAutoReview": {

@@ -61,8 +61,27 @@ pub async fn reveal_in_folder(path: String) -> Result<(), CmdError> {
 
 #[tauri::command]
 pub async fn open_url(url: String) -> Result<(), CmdError> {
+    // Browser-internal pages (chrome://, edge://, brave://, about:) cannot be
+    // handed to the OS URL opener — no application claims those schemes, so
+    // `open::that` fails with kLSApplicationNotFoundErr (macOS) / equivalent.
+    // Route them to a resolved Chrome process, which understands them.
+    if is_browser_internal_url(&url) {
+        ha_core::browser::spawn::open_url_in_chrome(&url)
+            .context("Failed to open browser-internal URL")?;
+        return Ok(());
+    }
     open::that(&url).context("Failed to open URL")?;
     Ok(())
+}
+
+/// Whether `url` is a Chromium-family internal page that only a browser process
+/// can navigate to (not the OS URL handler).
+fn is_browser_internal_url(url: &str) -> bool {
+    let lower = url.trim_start().to_ascii_lowercase();
+    lower.starts_with("chrome://")
+        || lower.starts_with("edge://")
+        || lower.starts_with("brave://")
+        || lower.starts_with("about:")
 }
 
 /// Write exported content to a file (used by slash command /export).

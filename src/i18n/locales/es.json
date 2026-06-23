@@ -93,6 +93,14 @@
         "body": "Esta acción del navegador ejecutará JavaScript arbitrario en la pestaña activa. El modo Smart puede permitirla automáticamente con una etiqueta de alta confianza o un modelo juez.",
         "title": "JavaScript del navegador"
       },
+      "browser_raw_cdp": {
+        "title": "Advanced browser CDP command",
+        "body": "This browser action will send a raw Chrome DevTools Protocol command to a real Chrome tab. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
+      },
+      "browser_download_action": {
+        "title": "Browser download action",
+        "body": "This browser action will read or interrupt Chrome download activity. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
+      },
       "mac_control_action": {
         "title": "Acción de Mac Control",
         "body": "Esta llamada de control de macOS cambia el foco o estado del escritorio. Confirma antes de que Hope Agent active otra app."
@@ -100,6 +108,10 @@
       "mac_control_dangerous_action": {
         "title": "Acción peligrosa de Mac Control",
         "body": "Esta llamada de control de macOS puede cerrar ventanas, salir de apps, confirmar diálogos o activar menús destructivos. Requiere confirmación en cada llamada; Permitir siempre no está disponible."
+      },
+      "browser_chrome_access": {
+        "title": "Real Chrome access",
+        "body": "This browser action will read or control the user's real Chrome state through the extension. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
       }
     },
     "title": "Command Approval Required",
@@ -596,7 +608,15 @@
         "mac": "Control de Mac"
       }
     },
-    "reasoningDisabledHint": "El razonamiento no está activado para este modelo. Para ajustar la profundidad de razonamiento, edita el modelo en Configuración → Proveedores de modelos y activa \"Razonamiento\"."
+    "reasoningDisabledHint": "El razonamiento no está activado para este modelo. Para ajustar la profundidad de razonamiento, edita el modelo en Configuración → Proveedores de modelos y activa \"Razonamiento\".",
+    "browserExtensionNudge": {
+      "installTitle": "Deja que la IA controle tu Chrome real",
+      "installBody": "Instala la extensión de Hope Agent para operar tu Chrome con sesión iniciada. Por ahora se ejecuta en un navegador aislado.",
+      "reloadTitle": "Vuelve a cargar la extensión de Chrome",
+      "reloadBody": "La extensión instalada no coincide con el host. Vuelve a cargarla para recuperar el control de tu Chrome real.",
+      "openSettings": "Abrir ajustes",
+      "dismiss": "No volver a mostrar"
+    }
   },
   "codexAuth": {
     "expiredDescription": "Tu token OAuth de Codex ya no es válido. Inicia sesión de nuevo para continuar.",
@@ -2751,7 +2771,90 @@
       "statusConnected": "Navegador en ejecución",
       "statusDisconnected": "No en ejecución",
       "title": "Navegador",
-      "untitledTab": "Sin título"
+      "untitledTab": "Sin título",
+      "advanced": {
+        "section": "Avanzado",
+        "sectionHint": "Opciones avanzadas para el backend de la extensión de Chrome. Los cambios se aplican después de hacer clic en Guardar.",
+        "backendLabel": "Backend del navegador",
+        "backendExtensionFirst": "Extensión primero (predeterminado)",
+        "backendExtensionFirstDesc": "Controla tu Chrome real a través de la extensión cuando esté disponible; de lo contrario, recurre a CDP aislado.",
+        "backendCdpOnly": "Solo CDP aislado",
+        "backendCdpOnlyDesc": "Usa solo un Chrome nuevo y aislado; nunca toca tu navegador real.",
+        "backendExtensionOnly": "Solo extensión",
+        "backendExtensionOnlyDesc": "Usa solo tu Chrome real; falla directamente cuando la extensión no está disponible.",
+        "enableLabel": "Habilitar el backend de la extensión de Chrome",
+        "enableHint": "Permite que la IA controle tu Chrome real con la sesión iniciada (incluidas todas las cookies y sesiones) a través de la extensión.",
+        "rawCdpLabel": "Permitir raw CDP (avanzado)",
+        "rawCdpHint": "Permite que la IA envíe comandos arbitrarios del DevTools Protocol a tu Chrome real. Cada llamada sigue requiriendo aprobación por uso y los métodos peligrosos (leer cookies, etc.) están bloqueados; mantenlo desactivado a menos que realmente lo necesites."
+      },
+      "extension": {
+        "title": "Extensión de Chrome",
+        "kindReady": "Conectada",
+        "kindHostMissing": "Falta el host nativo",
+        "kindBrokerUnavailable": "El broker no está activo",
+        "kindVersionMismatch": "Protocolo incompatible",
+        "kindExtensionMissing": "No conectada",
+        "statusReady": "La extensión de Chrome de Hope Agent está conectada.",
+        "statusHostMissing": "El host de mensajería nativa de Chrome no está instalado.",
+        "statusBrokerUnavailable": "El broker de la extensión de Chrome no está activo.",
+        "statusExtensionMissing": "La extensión de Chrome de Hope Agent no está conectada.",
+        "statusVersionMismatch": "La versión del protocolo de la extensión no coincide con la del host. Vuelve a cargar la extensión para actualizarla.",
+        "versionLine": "Extensión {{version}} · protocolo {{protocol}}",
+        "unknown": "desconocido",
+        "loadUnpackedPath": "Cargar descomprimida: {{path}}",
+        "stopControl": "Detener control del navegador",
+        "stepInstallExtension": "Instalar la extensión de Chrome",
+        "stepInstallExtensionHint": "Usa la página de Chrome Web Store, luego vuelve aquí y actualiza.",
+        "openWebStore": "Abrir Chrome Web Store",
+        "stepOpenExtensions": "Abrir extensiones de Chrome",
+        "stepOpenExtensionsHint": "Activa el modo de desarrollador y usa Cargar descomprimida.",
+        "stepLoadUnpacked": "Cargar la extensión descomprimida",
+        "alphaFallback": "Alternativa alpha: cargar descomprimida",
+        "stepInstallHost": "Instalar el host nativo",
+        "openChromeExtensions": "Abrir chrome://extensions",
+        "showFolder": "Mostrar carpeta",
+        "copyPath": "Copiar ruta",
+        "showHost": "Mostrar host",
+        "copyHostPath": "Copiar ruta del host",
+        "hostPathUnavailable": "Ruta del host nativo no disponible",
+        "extensionPathUnavailable": "Ruta de la extensión no disponible",
+        "extensionIdPlaceholder": "ID de la extensión de Chrome",
+        "hostPathPlaceholder": "Ruta absoluta de ha-browser-host",
+        "installHost": "Instalar host nativo",
+        "nativeHostLabel": "host nativo",
+        "nativeHostPathLabel": "Ruta del host nativo",
+        "extensionFolderLabel": "carpeta de la extensión",
+        "extensionPathLabel": "Ruta de la extensión",
+        "toast": {
+          "idRequired": "Se requiere el ID de la extensión de Chrome",
+          "hostInstalled": "Manifiesto del host nativo instalado",
+          "hostInstallFailed": "Error al instalar el host nativo",
+          "controlStopped": "Control del navegador detenido",
+          "controlStopFailed": "Error al detener el control del navegador",
+          "copied": "{{item}} copiado",
+          "copyFailed": "Error al copiar {{item}}",
+          "revealFailed": "Error al mostrar {{item}}",
+          "connected": "Extensión conectada: la IA ya puede usar tu Chrome real"
+        },
+        "fallbackLabel": "Recurrir a Chrome gestionado",
+        "fallbackHint": "Si la extensión no está disponible, usa automáticamente un Chrome gestionado y aislado en lugar de fallar.",
+        "setupGuide": "Guía de configuración"
+      },
+      "methodLabel": "Método de control del navegador",
+      "tabCount": "{{count}} pestañas",
+      "method": {
+        "extension": "Extensión",
+        "managed": "Chrome gestionado",
+        "attach": "Conectar a Chrome",
+        "extensionDesc": "Controla tu Chrome real con sesión iniciada a través de la extensión: comparte tus cookies y sesiones. Recomendado.",
+        "managedDesc": "Hope Agent inicia y mantiene su propia instancia de Chrome aislada. Ideal para automatización.",
+        "attachDesc": "Conéctate a un Chrome que hayas iniciado tú mismo con --remote-debugging-port."
+      },
+      "rawCdpConfirm": {
+        "title": "¿Permitir CDP sin procesar?",
+        "body": "Esto permite que la IA envíe comandos arbitrarios del DevTools Protocol a tu Chrome real. Cada llamada sigue requiriendo tu aprobación individual y los métodos peligrosos siguen bloqueados, pero actívalo solo si lo necesitas específicamente.",
+        "continue": "Activar"
+      }
     },
     "bytes": "bytes",
     "canvas": "Canvas",
@@ -3932,6 +4035,7 @@
     "skillCommandDispatch": "Despacho por comando",
     "skillContentPreview": "Vista previa Markdown",
     "skillContentRaw": "Contenido sin formato",
+    "skillCurrentOs": "Sistema operativo actual",
     "skillDisabled": "Deshabilitado",
     "skillEnabled": "Habilitado",
     "skillEnvClear": "Limpiar",
@@ -3948,14 +4052,7 @@
     },
     "skillFiles": "Archivos",
     "skillHealth": "Estado",
-    "skillCurrentOs": "Sistema operativo actual",
     "skillHardBlocked": "Incompatible",
-    "skillMissingAnyBins": "Necesita un binario",
-    "skillMissingBins": "Binarios faltantes",
-    "skillMissingConfig": "Configuración faltante",
-    "skillMissingEnv": "Variables de entorno faltantes",
-    "skillNeedsSetup": "Requiere configuración",
-    "skillSupportedOs": "SO compatibles",
     "skillInstall": "Instalar",
     "skillInstallFailed": "Instalación fallida",
     "skillInstallSuccess": "Instalado correctamente",
@@ -3963,12 +4060,18 @@
     "skillInvocationPolicy": "Política de invocación",
     "skillMaxChars": "Máximo de caracteres del prompt",
     "skillMaxCount": "Máximo de skills en el prompt",
+    "skillMissingAnyBins": "Necesita un binario",
+    "skillMissingBins": "Binarios faltantes",
+    "skillMissingConfig": "Configuración faltante",
+    "skillMissingEnv": "Variables de entorno faltantes",
     "skillModelInvocable": "Invocable por el modelo",
+    "skillNeedsSetup": "Requiere configuración",
     "skillSkipsRequirements": "Omite comprobaciones de dependencias",
     "skillStatusBlocked": "Bloqueada por allowlist",
     "skillStatusDisabled": "Desactivada",
     "skillStatusEligible": "Disponible",
     "skillStatusMissing": "Faltan dependencias",
+    "skillSupportedOs": "SO compatibles",
     "skillUserInvocable": "Invocable por el usuario",
     "skills": "Habilidades",
     "skillsAutoReview": {

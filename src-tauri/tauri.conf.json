@@ -6,8 +6,8 @@
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
-    "beforeDevCommand": "pnpm dev",
-    "beforeBuildCommand": "pnpm build"
+    "beforeDevCommand": "pnpm dev:browser-host && pnpm dev",
+    "beforeBuildCommand": "pnpm prepare:browser-host && pnpm prepare:chrome-extension && pnpm build"
   },
   "app": {
     "macOSPrivateApi": true,
@@ -48,6 +48,8 @@
     "createUpdaterArtifacts": true,
     "targets": "all",
     "resources": {
+      "resources/browser-host": "browser-host",
+      "resources/chrome-extension": "chrome-extension",
       "../skills": "skills"
     },
     "shortDescription": "Local-first AI assistant with cross-device sessions and IM channel routing",

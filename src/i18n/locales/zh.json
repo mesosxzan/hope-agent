@@ -93,6 +93,14 @@
         "body": "这次浏览器操作会在当前标签页运行任意 JavaScript。Smart 模式可由高置信标记或判官模型自动放行。",
         "title": "浏览器执行脚本"
       },
+      "browser_raw_cdp": {
+        "title": "高级浏览器 CDP 命令",
+        "body": "这次浏览器操作会向真实 Chrome 标签页发送原始 Chrome DevTools Protocol 命令。它走正常工具审批流；始终允许、Smart 模式和 YOLO 都按当前会话策略生效。"
+      },
+      "browser_download_action": {
+        "title": "浏览器下载操作",
+        "body": "这次浏览器操作会读取或中断 Chrome 下载活动。它走正常工具审批流；始终允许、Smart 模式和 YOLO 都按当前会话策略生效。"
+      },
       "mac_control_action": {
         "title": "Mac 控制操作",
         "body": "这次 macOS 控制会改变桌面焦点/状态。Hope Agent 激活其他 App 前需要你确认。"
@@ -100,6 +108,10 @@
       "mac_control_dangerous_action": {
         "title": "危险 Mac 控制动作",
         "body": "这次 macOS 控制调用可能关闭窗口、退出应用、确认对话框或触发破坏性菜单。必须逐次确认，不能使用始终允许。"
+      },
+      "browser_chrome_access": {
+        "title": "真实 Chrome 访问",
+        "body": "这次浏览器操作会通过扩展读取或控制用户真实 Chrome 状态。它走正常工具审批流；始终允许、Smart 模式和 YOLO 都按当前会话策略生效。"
       }
     },
     "title": "命令执行确认",
@@ -596,7 +608,15 @@
         "mac": "Mac 控制"
       }
     },
-    "reasoningDisabledHint": "该模型未启用推理。如需调节推理深度,请在「设置 → 模型服务商」中编辑该模型并开启「支持推理/思考」。"
+    "reasoningDisabledHint": "该模型未启用推理。如需调节推理深度,请在「设置 → 模型服务商」中编辑该模型并开启「支持推理/思考」。",
+    "browserExtensionNudge": {
+      "installTitle": "让 AI 操作你已登录的 Chrome",
+      "installBody": "安装 Hope Agent 扩展即可操作你已登录的 Chrome;当前正使用隔离浏览器运行。",
+      "reloadTitle": "请重载 Chrome 扩展",
+      "reloadBody": "已安装的扩展与宿主版本不匹配,重载扩展即可恢复对真实 Chrome 的控制。",
+      "openSettings": "去设置",
+      "dismiss": "不再提示"
+    }
   },
   "codexAuth": {
     "expiredDescription": "你的 Codex OAuth 认证令牌已失效，请重新登录以继续使用。",
@@ -2751,7 +2771,90 @@
       "statusConnected": "浏览器运行中",
       "statusDisconnected": "未运行",
       "title": "浏览器",
-      "untitledTab": "未命名"
+      "untitledTab": "未命名",
+      "advanced": {
+        "section": "高级",
+        "sectionHint": "面向 Chrome 扩展后端的高级选项；修改后点击保存生效。",
+        "backendLabel": "浏览器后端",
+        "backendExtensionFirst": "扩展优先（默认）",
+        "backendExtensionFirstDesc": "有扩展时通过扩展驱动你的真实 Chrome，否则回退到隔离 CDP。",
+        "backendCdpOnly": "仅隔离 CDP",
+        "backendCdpOnlyDesc": "仅使用隔离的全新 Chrome，从不接触你的真实浏览器。",
+        "backendExtensionOnly": "仅扩展",
+        "backendExtensionOnlyDesc": "仅使用你的真实 Chrome，扩展不可用时直接报错。",
+        "enableLabel": "启用 Chrome 扩展后端",
+        "enableHint": "允许 AI 通过扩展驱动你已登录的真实 Chrome（包含全部 Cookie 与会话）。",
+        "rawCdpLabel": "允许 raw CDP（高级）",
+        "rawCdpHint": "允许 AI 向你的真实 Chrome 发送任意 DevTools 协议命令。每次调用仍需逐次审批，且危险方法（读取 Cookie 等）已被拦截；如非必要，建议保持关闭。"
+      },
+      "extension": {
+        "title": "Chrome 扩展",
+        "kindReady": "已连接",
+        "kindHostMissing": "原生主机未安装",
+        "kindBrokerUnavailable": "代理未运行",
+        "kindVersionMismatch": "协议版本不匹配",
+        "kindExtensionMissing": "未连接",
+        "statusReady": "Hope Agent Chrome 扩展已连接。",
+        "statusHostMissing": "Chrome 原生消息主机未安装。",
+        "statusBrokerUnavailable": "Chrome 扩展代理未运行。",
+        "statusExtensionMissing": "Hope Agent Chrome 扩展未连接。",
+        "statusVersionMismatch": "扩展的协议版本与主机不匹配。请重新加载扩展以更新。",
+        "versionLine": "扩展 {{version}} · 协议 {{protocol}}",
+        "unknown": "未知",
+        "loadUnpackedPath": "加载已解压：{{path}}",
+        "stopControl": "停止浏览器控制",
+        "stepInstallExtension": "安装 Chrome 扩展",
+        "stepInstallExtensionHint": "使用 Chrome 应用商店页面安装，然后回到这里刷新。",
+        "openWebStore": "打开 Chrome 应用商店",
+        "stepOpenExtensions": "打开 Chrome 扩展页",
+        "stepOpenExtensionsHint": "启用开发者模式，然后使用「加载已解压的扩展程序」。",
+        "stepLoadUnpacked": "加载已解压的扩展",
+        "alphaFallback": "Alpha 备选：加载已解压",
+        "stepInstallHost": "安装原生主机",
+        "openChromeExtensions": "打开 chrome://extensions",
+        "showFolder": "显示文件夹",
+        "copyPath": "复制路径",
+        "showHost": "显示主机",
+        "copyHostPath": "复制主机路径",
+        "hostPathUnavailable": "原生主机路径不可用",
+        "extensionPathUnavailable": "扩展路径不可用",
+        "extensionIdPlaceholder": "Chrome 扩展 ID",
+        "hostPathPlaceholder": "ha-browser-host 绝对路径",
+        "installHost": "安装原生主机",
+        "nativeHostLabel": "原生主机",
+        "nativeHostPathLabel": "原生主机路径",
+        "extensionFolderLabel": "扩展文件夹",
+        "extensionPathLabel": "扩展路径",
+        "toast": {
+          "idRequired": "请填写 Chrome 扩展 ID",
+          "hostInstalled": "原生主机清单已安装",
+          "hostInstallFailed": "原生主机安装失败",
+          "controlStopped": "已停止浏览器控制",
+          "controlStopFailed": "停止浏览器控制失败",
+          "copied": "{{item}}已复制",
+          "copyFailed": "复制{{item}}失败",
+          "revealFailed": "打开{{item}}失败",
+          "connected": "扩展已连接——AI 现在可操作你的真实 Chrome"
+        },
+        "fallbackLabel": "回退到托管 Chrome",
+        "fallbackHint": "扩展不可用时,自动改用独立的托管 Chrome,而不是直接失败。",
+        "setupGuide": "安装引导"
+      },
+      "methodLabel": "浏览器控制方式",
+      "tabCount": "{{count}} 个标签页",
+      "method": {
+        "extension": "扩展",
+        "managed": "托管 Chrome",
+        "attach": "连接 Chrome",
+        "extensionDesc": "通过扩展驱动你已登录的真实 Chrome——共享你的 Cookie 和会话。推荐。",
+        "managedDesc": "Hope Agent 启动并维护独立的 Chrome 实例。适合自动化。",
+        "attachDesc": "连接到你自己用 --remote-debugging-port 启动的 Chrome。"
+      },
+      "rawCdpConfirm": {
+        "title": "允许 raw CDP?",
+        "body": "这会允许 AI 向你的真实 Chrome 发送任意 DevTools 协议命令。每次调用仍需你逐次审批、危险方法仍被拦截,但请仅在确有需要时开启。",
+        "continue": "开启"
+      }
     },
     "bytes": "字节",
     "canvas": "画布",

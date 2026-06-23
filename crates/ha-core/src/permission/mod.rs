@@ -67,6 +67,14 @@ pub enum AskReason {
     /// Browser `control.evaluate` is about to execute arbitrary JavaScript in
     /// the active tab.
     BrowserEvaluate { script_preview: String },
+    /// Browser `control.raw_cdp` is about to send a raw Chrome DevTools
+    /// Protocol method to a real Chrome tab.
+    BrowserRawCdp { method: String },
+    /// Browser control is about to inspect or take control of the user's real
+    /// Chrome state through the extension backend.
+    BrowserChromeAccess { action: String },
+    /// Browser control is about to interrupt or mutate a real Chrome download.
+    BrowserDownloadAction { action: String },
     /// Native macOS control action that mutates desktop focus/state.
     MacControlAction { action: String },
     /// Native macOS control action with destructive potential.
@@ -79,14 +87,18 @@ pub enum AskReason {
 }
 
 impl AskReason {
-    /// `true` if this reason forbids `Allow Always` — protected paths and
-    /// dangerous commands always need a per-call confirmation.
+    /// `true` if this reason forbids `Allow Always` — protected paths,
+    /// dangerous commands, and raw CDP against the user's real Chrome always
+    /// need a per-call confirmation. `BrowserRawCdp` is strict because a single
+    /// "Allow Always" would otherwise permanently grant arbitrary DevTools
+    /// Protocol access (cookies, storage, navigation) to the logged-in browser.
     pub fn forbids_allow_always(&self) -> bool {
         matches!(
             self,
             AskReason::ProtectedPath { .. }
                 | AskReason::DangerousCommand { .. }
                 | AskReason::MacControlDangerousAction { .. }
+                | AskReason::BrowserRawCdp { .. }
                 | AskReason::PlanModeAsk
         )
     }

@@ -93,6 +93,14 @@
         "body": "سيشغّل إجراء المتصفح هذا JavaScript عشوائيًا في علامة التبويب النشطة. قد يسمح وضع Smart به تلقائيًا عبر وسم ثقة عالية أو نموذج حكم.",
         "title": "JavaScript في المتصفح"
       },
+      "browser_raw_cdp": {
+        "title": "Advanced browser CDP command",
+        "body": "This browser action will send a raw Chrome DevTools Protocol command to a real Chrome tab. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
+      },
+      "browser_download_action": {
+        "title": "Browser download action",
+        "body": "This browser action will read or interrupt Chrome download activity. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
+      },
       "mac_control_action": {
         "title": "إجراء Mac Control",
         "body": "سيغيّر استدعاء التحكم في macOS هذا تركيز/حالة سطح المكتب. أكّد قبل أن يفعّل Hope Agent تطبيقًا آخر."
@@ -100,6 +108,10 @@
       "mac_control_dangerous_action": {
         "title": "إجراء Mac Control خطير",
         "body": "قد يؤدي استدعاء التحكم في macOS هذا إلى إغلاق النوافذ أو إنهاء التطبيقات أو تأكيد مربعات الحوار أو تشغيل قوائم مدمرة. يلزم التأكيد في كل مرة؛ خيار السماح دائمًا غير متاح."
+      },
+      "browser_chrome_access": {
+        "title": "Real Chrome access",
+        "body": "This browser action will read or control the user's real Chrome state through the extension. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
       }
     },
     "title": "Command Approval Required",
@@ -596,7 +608,15 @@
         "mac": "التحكم في Mac"
       }
     },
-    "reasoningDisabledHint": "الاستدلال غير مُفعَّل لهذا النموذج. لضبط عمق الاستدلال، عدِّل هذا النموذج من «الإعدادات ← مزوّدو النماذج» وفعِّل خيار «دعم الاستدلال/التفكير»."
+    "reasoningDisabledHint": "الاستدلال غير مُفعَّل لهذا النموذج. لضبط عمق الاستدلال، عدِّل هذا النموذج من «الإعدادات ← مزوّدو النماذج» وفعِّل خيار «دعم الاستدلال/التفكير».",
+    "browserExtensionNudge": {
+      "installTitle": "دع الذكاء الاصطناعي يتحكم في متصفح Chrome الحقيقي",
+      "installBody": "ثبّت إضافة Hope Agent لتشغيل متصفح Chrome الذي سجّلت الدخول إليه. حاليًا يعمل في متصفح معزول.",
+      "reloadTitle": "أعد تحميل إضافة Chrome",
+      "reloadBody": "الإضافة المثبّتة لا تطابق المضيف. أعد تحميلها لاستعادة التحكم في متصفح Chrome الحقيقي.",
+      "openSettings": "فتح الإعدادات",
+      "dismiss": "عدم الإظهار مرة أخرى"
+    }
   },
   "codexAuth": {
     "expiredDescription": "رمز OAuth لـ Codex لم يعد صالحاً. يرجى تسجيل الدخول مرة أخرى للمتابعة.",
@@ -2751,7 +2771,90 @@
       "statusConnected": "المتصفح قيد التشغيل",
       "statusDisconnected": "لا يعمل",
       "title": "المتصفح",
-      "untitledTab": "بدون عنوان"
+      "untitledTab": "بدون عنوان",
+      "advanced": {
+        "section": "خيارات متقدمة",
+        "sectionHint": "خيارات متقدمة لخلفية إضافة Chrome. تسري التغييرات بعد النقر على حفظ.",
+        "backendLabel": "خلفية المتصفح",
+        "backendExtensionFirst": "الإضافة أولاً (افتراضي)",
+        "backendExtensionFirstDesc": "تشغيل متصفح Chrome الحقيقي عبر الإضافة عند توفرها؛ وإلا الرجوع إلى CDP المعزول.",
+        "backendCdpOnly": "CDP المعزول فقط",
+        "backendCdpOnlyDesc": "استخدام متصفح Chrome جديد ومعزول فقط؛ دون المساس بمتصفحك الحقيقي إطلاقاً.",
+        "backendExtensionOnly": "الإضافة فقط",
+        "backendExtensionOnlyDesc": "استخدام متصفح Chrome الحقيقي فقط؛ والفشل مباشرةً عند عدم توفر الإضافة.",
+        "enableLabel": "تفعيل خلفية إضافة Chrome",
+        "enableHint": "السماح للذكاء الاصطناعي بتشغيل متصفح Chrome الحقيقي المسجَّل دخولك فيه (بما في ذلك جميع ملفات Cookie والجلسات) عبر الإضافة.",
+        "rawCdpLabel": "السماح بـ raw CDP (متقدم)",
+        "rawCdpHint": "يتيح للذكاء الاصطناعي إرسال أوامر DevTools Protocol عشوائية إلى متصفح Chrome الحقيقي. لا يزال كل استدعاء يتطلب موافقة لكل استخدام، والطرق الخطيرة (قراءة ملفات Cookie وما إلى ذلك) محجوبة؛ أبقِ هذا الخيار معطلاً ما لم تكن بحاجة إليه تحديداً."
+      },
+      "extension": {
+        "title": "امتداد Chrome",
+        "kindReady": "متصل",
+        "kindHostMissing": "المضيف الأصلي غير مثبَّت",
+        "kindBrokerUnavailable": "الوسيط غير قيد التشغيل",
+        "kindVersionMismatch": "عدم تطابق البروتوكول",
+        "kindExtensionMissing": "غير متصل",
+        "statusReady": "امتداد Chrome الخاص بـ Hope Agent متصل.",
+        "statusHostMissing": "مضيف المراسلة الأصلية لـ Chrome غير مثبَّت.",
+        "statusBrokerUnavailable": "وسيط امتداد Chrome غير قيد التشغيل.",
+        "statusExtensionMissing": "امتداد Chrome الخاص بـ Hope Agent غير متصل.",
+        "statusVersionMismatch": "إصدار بروتوكول الإضافة لا يطابق المضيف. أعد تحميل الإضافة لتحديثها.",
+        "versionLine": "الامتداد {{version}} · البروتوكول {{protocol}}",
+        "unknown": "غير معروف",
+        "loadUnpackedPath": "تحميل غير مضغوط: {{path}}",
+        "stopControl": "إيقاف التحكم بالمتصفح",
+        "stepInstallExtension": "تثبيت امتداد Chrome",
+        "stepInstallExtensionHint": "استخدم صفحة Chrome Web Store، ثم عُد إلى هنا وقم بالتحديث.",
+        "openWebStore": "فتح Chrome Web Store",
+        "stepOpenExtensions": "فتح امتدادات Chrome",
+        "stepOpenExtensionsHint": "فعِّل وضع المطوِّر، ثم استخدم تحميل غير مضغوط.",
+        "stepLoadUnpacked": "تحميل الامتداد غير المضغوط",
+        "alphaFallback": "بديل ألفا: تحميل غير مضغوط",
+        "stepInstallHost": "تثبيت المضيف الأصلي",
+        "openChromeExtensions": "فتح chrome://extensions",
+        "showFolder": "إظهار المجلد",
+        "copyPath": "نسخ المسار",
+        "showHost": "إظهار المضيف",
+        "copyHostPath": "نسخ مسار المضيف",
+        "hostPathUnavailable": "مسار المضيف الأصلي غير متاح",
+        "extensionPathUnavailable": "مسار الامتداد غير متاح",
+        "extensionIdPlaceholder": "معرّف امتداد Chrome",
+        "hostPathPlaceholder": "المسار المطلق لـ ha-browser-host",
+        "installHost": "تثبيت المضيف الأصلي",
+        "nativeHostLabel": "المضيف الأصلي",
+        "nativeHostPathLabel": "مسار المضيف الأصلي",
+        "extensionFolderLabel": "مجلد الامتداد",
+        "extensionPathLabel": "مسار الامتداد",
+        "toast": {
+          "idRequired": "معرّف امتداد Chrome مطلوب",
+          "hostInstalled": "تم تثبيت بيان المضيف الأصلي",
+          "hostInstallFailed": "فشل تثبيت المضيف الأصلي",
+          "controlStopped": "تم إيقاف التحكم بالمتصفح",
+          "controlStopFailed": "فشل إيقاف التحكم بالمتصفح",
+          "copied": "تم نسخ {{item}}",
+          "copyFailed": "فشل نسخ {{item}}",
+          "revealFailed": "فشل إظهار {{item}}",
+          "connected": "تم توصيل الإضافة — يمكن للذكاء الاصطناعي الآن استخدام متصفح Chrome الحقيقي"
+        },
+        "fallbackLabel": "الرجوع إلى Chrome المُدار",
+        "fallbackHint": "عند عدم توفّر الإضافة، استخدم تلقائيًا نسخة Chrome مُدارة ومعزولة بدلًا من الفشل.",
+        "setupGuide": "دليل الإعداد"
+      },
+      "methodLabel": "طريقة التحكم في المتصفح",
+      "tabCount": "{{count}} علامات تبويب",
+      "method": {
+        "extension": "الإضافة",
+        "managed": "Chrome مُدار",
+        "attach": "الاتصال بـ Chrome",
+        "extensionDesc": "تحكّم في متصفح Chrome الحقيقي الذي سجّلت الدخول إليه عبر الإضافة — يشارك ملفات تعريف الارتباط والجلسات. موصى به.",
+        "managedDesc": "يشغّل Hope Agent نسخة Chrome معزولة خاصة به ويحافظ عليها. الأفضل للأتمتة.",
+        "attachDesc": "الاتصال بنسخة Chrome شغّلتها بنفسك باستخدام --remote-debugging-port."
+      },
+      "rawCdpConfirm": {
+        "title": "السماح بـ raw CDP؟",
+        "body": "يتيح هذا للذكاء الاصطناعي إرسال أوامر DevTools Protocol اعتباطية إلى متصفح Chrome الحقيقي. لا يزال كل استدعاء يتطلب موافقتك في كل مرة وتبقى الطرق الخطرة محظورة، لكن فعّله فقط إذا كنت بحاجة إليه تحديدًا.",
+        "continue": "تفعيل"
+      }
     },
     "bytes": "بايت",
     "canvas": "اللوحة",
@@ -3932,6 +4035,7 @@
     "skillCommandDispatch": "إرسال الأمر",
     "skillContentPreview": "معاينة Markdown",
     "skillContentRaw": "المحتوى الخام",
+    "skillCurrentOs": "نظام التشغيل الحالي",
     "skillDisabled": "معطّل",
     "skillEnabled": "مفعّل",
     "skillEnvClear": "مسح",
@@ -3948,14 +4052,7 @@
     },
     "skillFiles": "الملفات",
     "skillHealth": "الصحة",
-    "skillCurrentOs": "نظام التشغيل الحالي",
     "skillHardBlocked": "غير متوافق",
-    "skillMissingAnyBins": "يحتاج إلى أداة واحدة",
-    "skillMissingBins": "أدوات تنفيذية مفقودة",
-    "skillMissingConfig": "إعدادات مفقودة",
-    "skillMissingEnv": "متغيرات بيئة مفقودة",
-    "skillNeedsSetup": "يحتاج إلى إعداد",
-    "skillSupportedOs": "أنظمة التشغيل المدعومة",
     "skillInstall": "تثبيت",
     "skillInstallFailed": "فشل التثبيت",
     "skillInstallSuccess": "تم التثبيت بنجاح",
@@ -3963,12 +4060,18 @@
     "skillInvocationPolicy": "سياسة الاستدعاء",
     "skillMaxChars": "الحد الأقصى لأحرف البرومبت",
     "skillMaxCount": "الحد الأقصى لـ skills في البرومبت",
+    "skillMissingAnyBins": "يحتاج إلى أداة واحدة",
+    "skillMissingBins": "أدوات تنفيذية مفقودة",
+    "skillMissingConfig": "إعدادات مفقودة",
+    "skillMissingEnv": "متغيرات بيئة مفقودة",
     "skillModelInvocable": "يمكن للنموذج استدعاؤها",
+    "skillNeedsSetup": "يحتاج إلى إعداد",
     "skillSkipsRequirements": "يتجاوز فحوصات الاعتماديات",
     "skillStatusBlocked": "محجوبة بقائمة السماح",
     "skillStatusDisabled": "معطلة",
     "skillStatusEligible": "متاحة",
     "skillStatusMissing": "تعذر العثور على المتطلبات",
+    "skillSupportedOs": "أنظمة التشغيل المدعومة",
     "skillUserInvocable": "يمكن للمستخدم استدعاؤها",
     "skills": "المهارات",
     "skillsAutoReview": {

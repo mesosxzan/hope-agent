@@ -565,7 +565,7 @@ pub fn get_available_tools() -> Vec<ToolDefinition> {
         // ── Browser Control ──────────────────────────────────────
         ToolDefinition {
             name: TOOL_BROWSER.into(),
-            description: "Drive Chrome via DevTools Protocol. Eight high-level actions cover the full surface; see the `ha-browser` skill for the standard `status → tabs → snapshot → act` loop and stale-ref recovery rules. Backend is direct CDP via chromiumoxide. For `profile.op=launch`, pick `profile=managed` (default, ephemeral isolated profile) for automation or `profile=user_attach` (persistent, port 9222) for routine work where cookies / logins / extensions should survive disconnect. Users can configure additional profiles in settings → Browser → Profiles.".into(),
+            description: "Drive Chrome with Hope Agent's browser backend. Product policy is Chrome Extension + Native Messaging first, with CDP fallback only for actions that do not require the user's real Chrome tabs or logged-in session state. Eight high-level actions cover the full surface; see the `ha-browser` skill for the standard `status → tabs → snapshot → act` loop and stale-ref recovery rules. For explicit CDP lifecycle, use `profile.op=launch` with `profile=managed` (default, ephemeral isolated profile) or `profile=user_attach` (persistent, port 9222). Users can configure additional profiles in settings → Browser → Profiles.".into(),
             tier: ToolTier::Standard { default_for_main: true, default_for_others: true, default_deferred: true },
             internal: false,
             concurrent_safe: false,
@@ -579,15 +579,15 @@ pub fn get_available_tools() -> Vec<ToolDefinition> {
                     "action": {
                         "type": "string",
                         "enum": ["status", "profile", "tabs", "navigate", "snapshot", "act", "observe", "control"],
-                        "description": "Top-level action. `status` is read-only; `profile` manages the Chrome session (launch/connect/disconnect/list); `tabs` lists/opens/selects/closes tabs; `navigate` drives back/forward/reload/go; `snapshot` returns a role-tree, screenshot, or PDF; `act` performs the interaction (click/dblclick/fill/hover/drag/select/press/upload); `observe` reads the console/network/page_errors ring buffer; `control` covers resize/scroll/wait_for/handle_dialog/evaluate."
+                        "description": "Top-level action. `status` is read-only; `profile` manages the Chrome session (launch/connect/disconnect/list); `tabs` lists/opens/selects/closes tabs; `navigate` drives back/forward/reload/go; `snapshot` returns a role-tree, screenshot, or PDF; `act` performs the interaction (click/dblclick/fill/hover/drag/select/press/upload); `observe` reads the console/network/page_errors/downloads ring buffer; `control` covers resize/scroll/wait_for/handle_dialog/evaluate/raw_cdp/download_cancel."
                     },
                     "op": {
                         "type": "string",
-                        "description": "Sub-operation for `profile` (list/launch/connect/disconnect/install_runtime — `install_runtime` downloads a Chromium snapshot when the system has no Chrome installed), `tabs` (list/new/select/close), `navigate` (go/back/forward/reload), or `control` (resize/scroll/wait_for/handle_dialog/evaluate)."
+                        "description": "Sub-operation for `profile` (list/launch/connect/disconnect/install_runtime — `install_runtime` downloads a Chromium snapshot when the system has no Chrome installed), `tabs` (list/new/select/close/open_user_tabs/claim/release/finalize; open_user_tabs/claim/release/finalize require the Chrome Extension and never silently fall back to CDP), `navigate` (go/back/forward/reload), or `control` (resize/scroll/wait_for/handle_dialog/evaluate/raw_cdp/download_cancel). `tabs.open_user_tabs`, `tabs.claim`, extension numeric-id `tabs.select`, `observe.downloads`, `control.raw_cdp`, and `control.download_cancel` use the normal Hope Agent tool approval flow."
                     },
                     "kind": {
                         "type": "string",
-                        "description": "For `act`: click | dblclick | fill | hover | drag | select | press | upload. For `observe`: console | network | page_errors."
+                        "description": "For `act`: click | dblclick | fill | hover | drag | select | press | upload. For `observe`: console | network | page_errors | downloads. Extension console/network/page_errors are filtered to the active controlled tab; downloads reads Chrome download activity and uses normal tool approval."
                     },
                     "format": {
                         "type": "string",
@@ -599,11 +599,20 @@ pub fn get_available_tools() -> Vec<ToolDefinition> {
                     },
                     "target_id": {
                         "type": "string",
-                        "description": "Tab target id (returned by `tabs.list` / `tabs.new`) for `tabs.select` and `tabs.close`."
+                        "description": "Tab target id (returned by `tabs.list`, `tabs.new`, or extension-backed `tabs.open_user_tabs`) for `tabs.select`, `tabs.close`, `tabs.claim`, `tabs.release`, and `tabs.finalize`."
+                    },
+                    "steal": {
+                        "type": "boolean",
+                        "description": "For extension-backed `tabs.claim` only: if true, explicitly steal a tab lease held by another Hope session. Defaults to false; without it a busy tab fails closed."
+                    },
+                    "keep": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "For extension-backed `tabs.finalize`: target ids of Hope-created tabs to keep open. Claimed user Chrome tabs are released and kept open regardless."
                     },
                     "ref": {
                         "type": "integer",
-                        "description": "Element ref id from the most recent `snapshot.role`. Used by every `act.kind`. Stale refs are auto-recovered once (re-snapshot + role+text fuzzy match) before bubbling up an error — successful recovery is flagged in the result with `(ref auto-recovered)`."
+                        "description": "Element ref id from the most recent `snapshot.role`. Used by every `act.kind`; also crops `snapshot.format=screenshot` to that element when provided. Stale refs are auto-recovered once for actions (re-snapshot + role+text fuzzy match) before bubbling up an error — successful recovery is flagged in the result with `(ref auto-recovered)`."
                     },
                     "target_ref": {
                         "type": "integer",
@@ -630,6 +639,18 @@ pub fn get_available_tools() -> Vec<ToolDefinition> {
                         "type": "string",
                         "description": "JavaScript expression for `control.op=evaluate`. URL literals inside fetch/import/XHR/new URL are SSRF-checked; dynamic URL construction is NOT validated."
                     },
+                    "method": {
+                        "type": "string",
+                        "description": "CDP method for `control.op=raw_cdp`, for example `Accessibility.getFullAXTree`, `Network.getCookies`, `Target.getTargets`, or `Runtime.evaluate`. Hope Agent validates the method name shape and then lets Chrome decide whether the method is supported."
+                    },
+                    "params": {
+                        "type": "object",
+                        "description": "JSON object of CDP parameters for `control.op=raw_cdp`. Raw CDP parameters are not payload-scanned; use this advanced path only when the normal higher-level browser action is insufficient."
+                    },
+                    "download_id": {
+                        "type": "integer",
+                        "description": "Chrome download id for `control.op=download_cancel`, from approved `observe.kind=downloads` entries."
+                    },
                     "full_page": {
                         "type": "boolean",
                         "description": "Capture full page for `snapshot.format=screenshot` (default: false)."
@@ -638,6 +659,10 @@ pub fn get_available_tools() -> Vec<ToolDefinition> {
                         "type": "string",
                         "enum": ["png", "jpeg"],
                         "description": "Image format for `snapshot.format=screenshot` (default: png)."
+                    },
+                    "annotate": {
+                        "type": "boolean",
+                        "description": "For `snapshot.format=screenshot`: overlay visible element ref ids and bounding boxes from a fresh role snapshot. Ignored for element crop (`ref`) because crop coordinates are already scoped to one element."
                     },
                     "output_path": {
                         "type": "string",
@@ -1542,7 +1567,7 @@ pub fn get_available_tools() -> Vec<ToolDefinition> {
                         "description": "Settings category to read. Use 'all' for an overview (includes risk-level groupings).",
                         "enum": [
                             "all", "user", "theme", "language", "ui_effects", "prevent_sleep", "sidebar_ui", "proxy",
-                            "web_search", "web_fetch", "compact", "session_title", "notification", "startup_notification",
+                            "web_search", "web_fetch", "browser", "compact", "session_title", "notification", "startup_notification",
                             "temperature", "tool_timeout", "approval", "unattended_approval",
                             "image_generate", "canvas", "image", "pdf",
                             "async_tools", "deferred_tools",
@@ -1583,10 +1608,10 @@ pub fn get_available_tools() -> Vec<ToolDefinition> {
                 "properties": {
                     "category": {
                         "type": "string",
-                        "description": "Update application settings for a category. HIGH-risk: proxy, embedding, shortcuts, skills, server, acp_control, skill_env, security, security.ssrf, smart_mode, mcp_global, unattended_approval, auto_update — require explicit user confirmation first. `security` toggles the global dangerous-mode switch that skips ALL tool approvals; `smart_mode` reshapes which tool calls auto-approve; `mcp_global` is the MCP subsystem kill switch; `unattended_approval` decides whether approvals with no human surface (cron / headless / ACP / subagent) auto-deny or auto-proceed.",
+                        "description": "Update application settings for a category. HIGH-risk: proxy, embedding, shortcuts, skills, server, acp_control, skill_env, security, security.ssrf, smart_mode, mcp_global, unattended_approval, auto_update, browser — require explicit user confirmation first. `browser` gates whether the agent drives the user's real logged-in Chrome (extension backend) and toggles the raw-CDP escape hatch (extension.allowRawCdp). `security` toggles the global dangerous-mode switch that skips ALL tool approvals; `smart_mode` reshapes which tool calls auto-approve; `mcp_global` is the MCP subsystem kill switch; `unattended_approval` decides whether approvals with no human surface (cron / headless / ACP / subagent) auto-deny or auto-proceed.",
                         "enum": [
                             "user", "theme", "language", "ui_effects", "prevent_sleep", "sidebar_ui", "proxy",
-                            "web_search", "web_fetch", "compact", "session_title", "notification", "startup_notification",
+                            "web_search", "web_fetch", "browser", "compact", "session_title", "notification", "startup_notification",
                             "temperature", "tool_timeout", "approval", "unattended_approval",
                             "image_generate", "canvas", "image", "pdf",
                             "async_tools", "deferred_tools",

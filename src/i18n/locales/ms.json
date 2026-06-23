@@ -93,6 +93,14 @@
         "body": "Tindakan pelayar ini akan menjalankan JavaScript sewenang-wenangnya dalam tab aktif. Mod Smart boleh membenarkannya secara automatik melalui tag keyakinan tinggi atau model hakim.",
         "title": "JavaScript pelayar"
       },
+      "browser_raw_cdp": {
+        "title": "Advanced browser CDP command",
+        "body": "This browser action will send a raw Chrome DevTools Protocol command to a real Chrome tab. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
+      },
+      "browser_download_action": {
+        "title": "Browser download action",
+        "body": "This browser action will read or interrupt Chrome download activity. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
+      },
       "mac_control_action": {
         "title": "Tindakan Mac Control",
         "body": "Panggilan kawalan macOS ini menukar fokus/keadaan desktop. Sahkan sebelum Hope Agent mengaktifkan app lain."
@@ -100,6 +108,10 @@
       "mac_control_dangerous_action": {
         "title": "Tindakan Mac Control berbahaya",
         "body": "Panggilan kawalan macOS ini boleh menutup tetingkap, keluar daripada aplikasi, mengesahkan dialog atau mencetuskan menu yang memusnahkan. Pengesahan diperlukan setiap kali; Benarkan Sentiasa tidak tersedia."
+      },
+      "browser_chrome_access": {
+        "title": "Real Chrome access",
+        "body": "This browser action will read or control the user's real Chrome state through the extension. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
       }
     },
     "title": "Command Approval Required",
@@ -596,7 +608,15 @@
         "mac": "Kawalan Mac"
       }
     },
-    "reasoningDisabledHint": "Penaakulan tidak didayakan untuk model ini. Untuk melaraskan kedalaman penaakulan, edit model ini di \"Tetapan → Penyedia Model\" dan hidupkan \"Sokongan penaakulan/pemikiran\"."
+    "reasoningDisabledHint": "Penaakulan tidak didayakan untuk model ini. Untuk melaraskan kedalaman penaakulan, edit model ini di \"Tetapan → Penyedia Model\" dan hidupkan \"Sokongan penaakulan/pemikiran\".",
+    "browserExtensionNudge": {
+      "installTitle": "Biar AI mengawal Chrome sebenar anda",
+      "installBody": "Pasang sambungan Hope Agent untuk mengendalikan Chrome yang telah anda log masuk. Buat masa ini ia berjalan dalam pelayar terpencil.",
+      "reloadTitle": "Muat semula sambungan Chrome",
+      "reloadBody": "Sambungan yang dipasang tidak sepadan dengan hos. Muat semula untuk memulihkan kawalan Chrome sebenar anda.",
+      "openSettings": "Buka tetapan",
+      "dismiss": "Jangan tunjuk lagi"
+    }
   },
   "codexAuth": {
     "expiredDescription": "Token OAuth Codex anda tidak lagi sah. Sila log masuk semula untuk meneruskan.",
@@ -2751,7 +2771,90 @@
       "statusConnected": "Pelayar sedang berjalan",
       "statusDisconnected": "Tidak berjalan",
       "title": "Pelayar",
-      "untitledTab": "Tanpa tajuk"
+      "untitledTab": "Tanpa tajuk",
+      "advanced": {
+        "section": "Lanjutan",
+        "sectionHint": "Pilihan lanjutan untuk backend sambungan Chrome. Perubahan berkuat kuasa selepas anda klik Simpan.",
+        "backendLabel": "Backend pelayar",
+        "backendExtensionFirst": "Sambungan dahulu (lalai)",
+        "backendExtensionFirstDesc": "Pacu Chrome sebenar anda melalui sambungan apabila tersedia; jika tidak, kembali kepada CDP terpencil.",
+        "backendCdpOnly": "CDP terpencil sahaja",
+        "backendCdpOnlyDesc": "Guna Chrome baharu yang terpencil sahaja; jangan sekali-kali menyentuh pelayar sebenar anda.",
+        "backendExtensionOnly": "Sambungan sahaja",
+        "backendExtensionOnlyDesc": "Guna Chrome sebenar anda sahaja; terus gagal apabila sambungan tidak tersedia.",
+        "enableLabel": "Dayakan backend sambungan Chrome",
+        "enableHint": "Benarkan AI memacu Chrome sebenar anda yang telah dilog masuk (termasuk semua Cookie dan sesi) melalui sambungan.",
+        "rawCdpLabel": "Benarkan raw CDP (lanjutan)",
+        "rawCdpHint": "Membenarkan AI menghantar sebarang arahan DevTools Protocol kepada Chrome sebenar anda. Setiap panggilan masih memerlukan kelulusan bagi setiap penggunaan dan kaedah berbahaya (membaca Cookie, dll.) disekat; biarkan ini dimatikan melainkan anda memang memerlukannya."
+      },
+      "extension": {
+        "title": "Sambungan Chrome",
+        "kindReady": "Disambungkan",
+        "kindHostMissing": "Hos asli tiada",
+        "kindBrokerUnavailable": "Broker tidak berjalan",
+        "kindVersionMismatch": "Protokol tidak sepadan",
+        "kindExtensionMissing": "Tidak disambungkan",
+        "statusReady": "Sambungan Chrome Hope Agent telah disambungkan.",
+        "statusHostMissing": "Hos pemesejan asli Chrome belum dipasang.",
+        "statusBrokerUnavailable": "Broker sambungan Chrome tidak berjalan.",
+        "statusExtensionMissing": "Sambungan Chrome Hope Agent tidak disambungkan.",
+        "statusVersionMismatch": "Versi protokol sambungan tidak sepadan dengan hos. Muat semula sambungan untuk mengemas kininya.",
+        "versionLine": "Sambungan {{version}} · protokol {{protocol}}",
+        "unknown": "tidak diketahui",
+        "loadUnpackedPath": "Muatkan tanpa pakej: {{path}}",
+        "stopControl": "Hentikan kawalan pelayar",
+        "stepInstallExtension": "Pasang sambungan Chrome",
+        "stepInstallExtensionHint": "Guna halaman Chrome Web Store, kemudian kembali ke sini dan muat semula.",
+        "openWebStore": "Buka Chrome Web Store",
+        "stepOpenExtensions": "Buka sambungan Chrome",
+        "stepOpenExtensionsHint": "Aktifkan Mod pembangun, kemudian guna Muatkan tanpa pakej.",
+        "stepLoadUnpacked": "Muatkan sambungan tanpa pakej",
+        "alphaFallback": "Sandaran Alpha: muatkan tanpa pakej",
+        "stepInstallHost": "Pasang hos asli",
+        "openChromeExtensions": "Buka chrome://extensions",
+        "showFolder": "Tunjuk folder",
+        "copyPath": "Salin laluan",
+        "showHost": "Tunjuk hos",
+        "copyHostPath": "Salin laluan hos",
+        "hostPathUnavailable": "Laluan hos asli tidak tersedia",
+        "extensionPathUnavailable": "Laluan sambungan tidak tersedia",
+        "extensionIdPlaceholder": "ID sambungan Chrome",
+        "hostPathPlaceholder": "Laluan mutlak ha-browser-host",
+        "installHost": "Pasang hos asli",
+        "nativeHostLabel": "hos asli",
+        "nativeHostPathLabel": "Laluan hos asli",
+        "extensionFolderLabel": "folder sambungan",
+        "extensionPathLabel": "Laluan sambungan",
+        "toast": {
+          "idRequired": "ID sambungan Chrome diperlukan",
+          "hostInstalled": "Manifes hos asli dipasang",
+          "hostInstallFailed": "Pemasangan hos asli gagal",
+          "controlStopped": "Kawalan pelayar dihentikan",
+          "controlStopFailed": "Gagal menghentikan kawalan pelayar",
+          "copied": "{{item}} disalin",
+          "copyFailed": "Gagal menyalin {{item}}",
+          "revealFailed": "Gagal memaparkan {{item}}",
+          "connected": "Sambungan disambungkan — AI kini boleh menggunakan Chrome sebenar anda"
+        },
+        "fallbackLabel": "Kembali kepada Chrome terurus",
+        "fallbackHint": "Jika sambungan tidak tersedia, gunakan Chrome terurus terpencil secara automatik dan bukannya gagal.",
+        "setupGuide": "Panduan persediaan"
+      },
+      "methodLabel": "Kaedah kawalan pelayar",
+      "tabCount": "{{count}} tab",
+      "method": {
+        "extension": "Sambungan",
+        "managed": "Chrome terurus",
+        "attach": "Sambung ke Chrome",
+        "extensionDesc": "Kawal Chrome sebenar yang telah anda log masuk melalui sambungan — ia berkongsi kuki dan sesi anda. Disyorkan.",
+        "managedDesc": "Hope Agent melancarkan dan menyelenggara instans Chrome terpencil sendiri. Terbaik untuk automasi.",
+        "attachDesc": "Sambung ke Chrome yang anda lancarkan sendiri dengan --remote-debugging-port."
+      },
+      "rawCdpConfirm": {
+        "title": "Benarkan raw CDP?",
+        "body": "Ini membenarkan AI menghantar perintah DevTools Protocol sewenang-wenangnya ke Chrome sebenar anda. Setiap panggilan masih memerlukan kelulusan anda setiap kali dan kaedah berbahaya kekal disekat, tetapi dayakan hanya jika anda benar-benar memerlukannya.",
+        "continue": "Dayakan"
+      }
     },
     "bytes": "bait",
     "canvas": "Canvas",
@@ -3932,6 +4035,7 @@
     "skillCommandDispatch": "Penghantaran arahan",
     "skillContentPreview": "Pratonton Markdown",
     "skillContentRaw": "Kandungan mentah",
+    "skillCurrentOs": "OS semasa",
     "skillDisabled": "Dilumpuhkan",
     "skillEnabled": "Didayakan",
     "skillEnvClear": "Kosongkan",
@@ -3948,14 +4052,7 @@
     },
     "skillFiles": "Fail",
     "skillHealth": "Kesihatan",
-    "skillCurrentOs": "OS semasa",
     "skillHardBlocked": "Tidak serasi",
-    "skillMissingAnyBins": "Perlukan satu binari",
-    "skillMissingBins": "Binari tiada",
-    "skillMissingConfig": "Tetapan tiada",
-    "skillMissingEnv": "Pembolehubah persekitaran tiada",
-    "skillNeedsSetup": "Perlukan persediaan",
-    "skillSupportedOs": "OS disokong",
     "skillInstall": "Pasang",
     "skillInstallFailed": "Pemasangan gagal",
     "skillInstallSuccess": "Berjaya dipasang",
@@ -3963,12 +4060,18 @@
     "skillInvocationPolicy": "Polisi panggilan",
     "skillMaxChars": "Aksara maksimum prompt",
     "skillMaxCount": "Skill maksimum dalam prompt",
+    "skillMissingAnyBins": "Perlukan satu binari",
+    "skillMissingBins": "Binari tiada",
+    "skillMissingConfig": "Tetapan tiada",
+    "skillMissingEnv": "Pembolehubah persekitaran tiada",
     "skillModelInvocable": "Boleh dipanggil model",
+    "skillNeedsSetup": "Perlukan persediaan",
     "skillSkipsRequirements": "Langkau semakan kebergantungan",
     "skillStatusBlocked": "Disekat oleh allowlist",
     "skillStatusDisabled": "Dilumpuhkan",
     "skillStatusEligible": "Tersedia",
     "skillStatusMissing": "Kebergantungan hilang",
+    "skillSupportedOs": "OS disokong",
     "skillUserInvocable": "Boleh dipanggil pengguna",
     "skills": "Kemahiran",
     "skillsAutoReview": {

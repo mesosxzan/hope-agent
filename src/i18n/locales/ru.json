@@ -93,6 +93,14 @@
         "body": "Это действие браузера выполнит произвольный JavaScript в активной вкладке. Режим Smart может автоматически разрешить его по метке высокой уверенности или решению модели-судьи.",
         "title": "JavaScript в браузере"
       },
+      "browser_raw_cdp": {
+        "title": "Advanced browser CDP command",
+        "body": "This browser action will send a raw Chrome DevTools Protocol command to a real Chrome tab. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
+      },
+      "browser_download_action": {
+        "title": "Browser download action",
+        "body": "This browser action will read or interrupt Chrome download activity. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
+      },
       "mac_control_action": {
         "title": "Действие Mac Control",
         "body": "Этот вызов управления macOS изменяет фокус или состояние рабочего стола. Подтвердите, прежде чем Hope Agent активирует другое приложение."
@@ -100,6 +108,10 @@
       "mac_control_dangerous_action": {
         "title": "Опасное действие Mac Control",
         "body": "Этот вызов управления macOS может закрывать окна, завершать приложения, подтверждать диалоги или запускать разрушительные пункты меню. Требуется подтверждение каждого вызова; «Всегда разрешать» недоступно."
+      },
+      "browser_chrome_access": {
+        "title": "Real Chrome access",
+        "body": "This browser action will read or control the user's real Chrome state through the extension. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
       }
     },
     "title": "Command Approval Required",
@@ -596,7 +608,15 @@
         "mac": "Управление Mac"
       }
     },
-    "reasoningDisabledHint": "Для этой модели рассуждения не включены. Чтобы настроить глубину рассуждений, откройте «Настройки → Поставщики моделей», измените эту модель и включите «Поддержку рассуждений»."
+    "reasoningDisabledHint": "Для этой модели рассуждения не включены. Чтобы настроить глубину рассуждений, откройте «Настройки → Поставщики моделей», измените эту модель и включите «Поддержку рассуждений».",
+    "browserExtensionNudge": {
+      "installTitle": "Пусть ИИ управляет вашим реальным Chrome",
+      "installBody": "Установите расширение Hope Agent, чтобы управлять Chrome с выполненным входом. Пока что работа идёт в изолированном браузере.",
+      "reloadTitle": "Перезагрузите расширение Chrome",
+      "reloadBody": "Установленное расширение не соответствует хосту. Перезагрузите его, чтобы восстановить управление вашим реальным Chrome.",
+      "openSettings": "Открыть настройки",
+      "dismiss": "Больше не показывать"
+    }
   },
   "codexAuth": {
     "expiredDescription": "Ваш OAuth-токен Codex больше не действителен. Войдите снова, чтобы продолжить.",
@@ -2751,7 +2771,90 @@
       "statusConnected": "Браузер запущен",
       "statusDisconnected": "Не запущен",
       "title": "Браузер",
-      "untitledTab": "Без названия"
+      "untitledTab": "Без названия",
+      "advanced": {
+        "section": "Дополнительно",
+        "sectionHint": "Дополнительные параметры бэкенда расширения Chrome. Изменения вступают в силу после нажатия «Сохранить».",
+        "backendLabel": "Бэкенд браузера",
+        "backendExtensionFirst": "Сначала расширение (по умолчанию)",
+        "backendExtensionFirstDesc": "Управлять вашим настоящим Chrome через расширение, когда оно доступно; иначе переключаться на изолированный CDP.",
+        "backendCdpOnly": "Только изолированный CDP",
+        "backendCdpOnlyDesc": "Использовать только новый изолированный Chrome; никогда не затрагивать ваш настоящий браузер.",
+        "backendExtensionOnly": "Только расширение",
+        "backendExtensionOnlyDesc": "Использовать только ваш настоящий Chrome; при недоступности расширения сразу выдавать ошибку.",
+        "enableLabel": "Включить бэкенд расширения Chrome",
+        "enableHint": "Разрешить ИИ управлять вашим настоящим Chrome с активной сессией (включая все Cookie и сессии) через расширение.",
+        "rawCdpLabel": "Разрешить raw CDP (дополнительно)",
+        "rawCdpHint": "Позволяет ИИ отправлять произвольные команды протокола DevTools вашему настоящему Chrome. Каждый вызов по-прежнему требует отдельного подтверждения, а опасные методы (чтение Cookie и т. п.) заблокированы; не включайте это без особой необходимости."
+      },
+      "extension": {
+        "title": "Расширение Chrome",
+        "kindReady": "Подключено",
+        "kindHostMissing": "Нативный хост отсутствует",
+        "kindBrokerUnavailable": "Брокер не запущен",
+        "kindVersionMismatch": "Несовпадение протокола",
+        "kindExtensionMissing": "Не подключено",
+        "statusReady": "Расширение Hope Agent для Chrome подключено.",
+        "statusHostMissing": "Нативный хост обмена сообщениями Chrome не установлен.",
+        "statusBrokerUnavailable": "Брокер расширения Chrome не запущен.",
+        "statusExtensionMissing": "Расширение Hope Agent для Chrome не подключено.",
+        "statusVersionMismatch": "Версия протокола расширения не совпадает с хостом. Перезагрузите расширение, чтобы обновить его.",
+        "versionLine": "Расширение {{version}} · протокол {{protocol}}",
+        "unknown": "неизвестно",
+        "loadUnpackedPath": "Загрузить распакованное: {{path}}",
+        "stopControl": "Остановить управление браузером",
+        "stepInstallExtension": "Установите расширение Chrome",
+        "stepInstallExtensionHint": "Откройте страницу в Chrome Web Store, затем вернитесь сюда и обновите.",
+        "openWebStore": "Открыть Chrome Web Store",
+        "stepOpenExtensions": "Откройте расширения Chrome",
+        "stepOpenExtensionsHint": "Включите режим разработчика, затем нажмите «Загрузить распакованное».",
+        "stepLoadUnpacked": "Загрузите распакованное расширение",
+        "alphaFallback": "Запасной вариант Alpha: загрузить распакованное",
+        "stepInstallHost": "Установите нативный хост",
+        "openChromeExtensions": "Открыть chrome://extensions",
+        "showFolder": "Показать папку",
+        "copyPath": "Копировать путь",
+        "showHost": "Показать хост",
+        "copyHostPath": "Копировать путь к хосту",
+        "hostPathUnavailable": "Путь к нативному хосту недоступен",
+        "extensionPathUnavailable": "Путь к расширению недоступен",
+        "extensionIdPlaceholder": "ID расширения Chrome",
+        "hostPathPlaceholder": "Абсолютный путь к ha-browser-host",
+        "installHost": "Установить нативный хост",
+        "nativeHostLabel": "нативный хост",
+        "nativeHostPathLabel": "Путь к нативному хосту",
+        "extensionFolderLabel": "папка расширения",
+        "extensionPathLabel": "Путь к расширению",
+        "toast": {
+          "idRequired": "Требуется ID расширения Chrome",
+          "hostInstalled": "Манифест нативного хоста установлен",
+          "hostInstallFailed": "Не удалось установить нативный хост",
+          "controlStopped": "Управление браузером остановлено",
+          "controlStopFailed": "Не удалось остановить управление браузером",
+          "copied": "{{item}} скопировано",
+          "copyFailed": "Не удалось скопировать: {{item}}",
+          "revealFailed": "Не удалось открыть: {{item}}",
+          "connected": "Расширение подключено — ИИ теперь может использовать ваш реальный Chrome"
+        },
+        "fallbackLabel": "Переходить на управляемый Chrome",
+        "fallbackHint": "Если расширение недоступно, автоматически использовать изолированный управляемый Chrome вместо ошибки.",
+        "setupGuide": "Руководство по настройке"
+      },
+      "methodLabel": "Способ управления браузером",
+      "tabCount": "Вкладок: {{count}}",
+      "method": {
+        "extension": "Расширение",
+        "managed": "Управляемый Chrome",
+        "attach": "Подключение к Chrome",
+        "extensionDesc": "Управляйте своим реальным Chrome с выполненным входом через расширение — оно использует ваши куки и сеансы. Рекомендуется.",
+        "managedDesc": "Hope Agent запускает и поддерживает собственный изолированный экземпляр Chrome. Лучше всего для автоматизации.",
+        "attachDesc": "Подключитесь к Chrome, который вы сами запустили с --remote-debugging-port."
+      },
+      "rawCdpConfirm": {
+        "title": "Разрешить raw CDP?",
+        "body": "Это позволит ИИ отправлять произвольные команды DevTools Protocol в ваш реальный Chrome. Каждый вызов по-прежнему требует вашего отдельного подтверждения, а опасные методы остаются заблокированными, но включайте это только если вам это действительно нужно.",
+        "continue": "Включить"
+      }
     },
     "bytes": "байт",
     "canvas": "Холст",
@@ -3932,6 +4035,7 @@
     "skillCommandDispatch": "Диспатч команд",
     "skillContentPreview": "Предпросмотр Markdown",
     "skillContentRaw": "Исходное содержимое",
+    "skillCurrentOs": "Текущая ОС",
     "skillDisabled": "Отключено",
     "skillEnabled": "Включено",
     "skillEnvClear": "Очистить",
@@ -3948,14 +4052,7 @@
     },
     "skillFiles": "Файлы",
     "skillHealth": "Состояние",
-    "skillCurrentOs": "Текущая ОС",
     "skillHardBlocked": "Несовместимо",
-    "skillMissingAnyBins": "Нужен один исполняемый файл",
-    "skillMissingBins": "Отсутствуют исполняемые файлы",
-    "skillMissingConfig": "Отсутствуют настройки",
-    "skillMissingEnv": "Отсутствуют переменные окружения",
-    "skillNeedsSetup": "Требуется настройка",
-    "skillSupportedOs": "Поддерживаемые ОС",
     "skillInstall": "Установить",
     "skillInstallFailed": "Ошибка установки",
     "skillInstallSuccess": "Успешно установлено",
@@ -3963,12 +4060,18 @@
     "skillInvocationPolicy": "Политика вызова",
     "skillMaxChars": "Макс. символов в prompt",
     "skillMaxCount": "Макс. skills в prompt",
+    "skillMissingAnyBins": "Нужен один исполняемый файл",
+    "skillMissingBins": "Отсутствуют исполняемые файлы",
+    "skillMissingConfig": "Отсутствуют настройки",
+    "skillMissingEnv": "Отсутствуют переменные окружения",
     "skillModelInvocable": "Вызывается моделью",
+    "skillNeedsSetup": "Требуется настройка",
     "skillSkipsRequirements": "Пропускает проверки зависимостей",
     "skillStatusBlocked": "Заблокирована allowlist",
     "skillStatusDisabled": "Отключена",
     "skillStatusEligible": "Доступна",
     "skillStatusMissing": "Отсутствуют зависимости",
+    "skillSupportedOs": "Поддерживаемые ОС",
     "skillUserInvocable": "Вызывается пользователем",
     "skills": "Навыки",
     "skillsAutoReview": {

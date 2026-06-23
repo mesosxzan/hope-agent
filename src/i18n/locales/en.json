@@ -93,6 +93,14 @@
         "body": "This browser action will run arbitrary JavaScript in the active tab. Smart mode may auto-allow it via a high-confidence tag or judge model.",
         "title": "Browser JavaScript"
       },
+      "browser_raw_cdp": {
+        "title": "Advanced browser CDP command",
+        "body": "This browser action will send a raw Chrome DevTools Protocol command to a real Chrome tab. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
+      },
+      "browser_download_action": {
+        "title": "Browser download action",
+        "body": "This browser action will read or interrupt Chrome download activity. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
+      },
       "mac_control_action": {
         "title": "Mac Control action",
         "body": "This macOS control call changes desktop focus/state. Confirm before Hope Agent activates another app."
@@ -100,6 +108,10 @@
       "mac_control_dangerous_action": {
         "title": "Dangerous Mac Control action",
         "body": "This macOS control call may close windows, quit apps, confirm dialogs, or trigger destructive menus. Per-call confirmation required; AllowAlways unavailable."
+      },
+      "browser_chrome_access": {
+        "title": "Real Chrome access",
+        "body": "This browser action will read or control the user's real Chrome state through the extension. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
       }
     },
     "title": "Command Approval Required",
@@ -596,7 +608,15 @@
         "mac": "Mac control"
       }
     },
-    "reasoningDisabledHint": "Reasoning is not enabled for this model. To adjust the reasoning depth, edit the model under Settings → Model Providers and turn on \"Reasoning\"."
+    "reasoningDisabledHint": "Reasoning is not enabled for this model. To adjust the reasoning depth, edit the model under Settings → Model Providers and turn on \"Reasoning\".",
+    "browserExtensionNudge": {
+      "installTitle": "Let the AI drive your real Chrome",
+      "installBody": "Install the Hope Agent extension to operate your signed-in Chrome. For now it runs in an isolated browser.",
+      "reloadTitle": "Reload the Chrome extension",
+      "reloadBody": "The installed extension doesn’t match the host. Reload it to restore control of your real Chrome.",
+      "openSettings": "Open settings",
+      "dismiss": "Don’t show again"
+    }
   },
   "codexAuth": {
     "expiredDescription": "Your Codex OAuth token is no longer valid. Please sign in again to continue.",
@@ -2751,7 +2771,90 @@
       "statusConnected": "Browser running",
       "statusDisconnected": "Not running",
       "title": "Browser",
-      "untitledTab": "Untitled"
+      "untitledTab": "Untitled",
+      "advanced": {
+        "section": "Advanced",
+        "sectionHint": "Advanced options for the Chrome extension backend. Changes take effect after you click Save.",
+        "backendLabel": "Browser backend",
+        "backendExtensionFirst": "Extension first (default)",
+        "backendExtensionFirstDesc": "Drive your real Chrome through the extension when available; otherwise fall back to isolated CDP.",
+        "backendCdpOnly": "Isolated CDP only",
+        "backendCdpOnlyDesc": "Use a fresh, isolated Chrome only; never touch your real browser.",
+        "backendExtensionOnly": "Extension only",
+        "backendExtensionOnlyDesc": "Use your real Chrome only; fail outright when the extension is unavailable.",
+        "enableLabel": "Enable Chrome extension backend",
+        "enableHint": "Let the AI drive your signed-in real Chrome (including all cookies and sessions) through the extension.",
+        "rawCdpLabel": "Allow raw CDP (advanced)",
+        "rawCdpHint": "Lets the AI send arbitrary DevTools Protocol commands to your real Chrome. Each call still requires per-use approval and dangerous methods (reading cookies, etc.) are blocked; keep this off unless you specifically need it."
+      },
+      "extension": {
+        "title": "Chrome Extension",
+        "kindReady": "Connected",
+        "kindHostMissing": "Native host missing",
+        "kindBrokerUnavailable": "Broker not running",
+        "kindVersionMismatch": "Protocol mismatch",
+        "kindExtensionMissing": "Not connected",
+        "statusReady": "The Hope Agent Chrome extension is connected.",
+        "statusHostMissing": "The Chrome native messaging host is not installed.",
+        "statusBrokerUnavailable": "The Chrome extension broker is not running.",
+        "statusExtensionMissing": "The Hope Agent Chrome extension is not connected.",
+        "statusVersionMismatch": "The extension's protocol version doesn't match the host. Reload the extension to update it.",
+        "versionLine": "Extension {{version}} · protocol {{protocol}}",
+        "unknown": "unknown",
+        "loadUnpackedPath": "Load unpacked: {{path}}",
+        "stopControl": "Stop browser control",
+        "stepInstallExtension": "Install the Chrome extension",
+        "stepInstallExtensionHint": "Use the Chrome Web Store page, then return here and refresh.",
+        "openWebStore": "Open Chrome Web Store",
+        "stepOpenExtensions": "Open Chrome extensions",
+        "stepOpenExtensionsHint": "Enable Developer mode, then use Load unpacked.",
+        "stepLoadUnpacked": "Load the unpacked extension",
+        "alphaFallback": "Alpha fallback: load unpacked",
+        "stepInstallHost": "Install the native host",
+        "openChromeExtensions": "Open chrome://extensions",
+        "showFolder": "Show folder",
+        "copyPath": "Copy path",
+        "showHost": "Show host",
+        "copyHostPath": "Copy host path",
+        "hostPathUnavailable": "Native host path unavailable",
+        "extensionPathUnavailable": "Extension path unavailable",
+        "extensionIdPlaceholder": "Chrome extension id",
+        "hostPathPlaceholder": "ha-browser-host absolute path",
+        "installHost": "Install native host",
+        "nativeHostLabel": "native host",
+        "nativeHostPathLabel": "Native host path",
+        "extensionFolderLabel": "extension folder",
+        "extensionPathLabel": "Extension path",
+        "toast": {
+          "idRequired": "Chrome extension id is required",
+          "hostInstalled": "Native host manifest installed",
+          "hostInstallFailed": "Native host install failed",
+          "controlStopped": "Browser control stopped",
+          "controlStopFailed": "Stop browser control failed",
+          "copied": "{{item}} copied",
+          "copyFailed": "Copy {{item}} failed",
+          "revealFailed": "Reveal {{item}} failed",
+          "connected": "Extension connected — the AI can now use your real Chrome"
+        },
+        "fallbackLabel": "Fall back to managed Chrome",
+        "fallbackHint": "If the extension isn’t available, automatically use an isolated managed Chrome instead of failing.",
+        "setupGuide": "Setup guide"
+      },
+      "methodLabel": "Browser control method",
+      "tabCount": "{{count}} tabs",
+      "method": {
+        "extension": "Extension",
+        "managed": "Managed Chrome",
+        "attach": "Attach to Chrome",
+        "extensionDesc": "Drive your signed-in real Chrome through the extension — it shares your cookies and sessions. Recommended.",
+        "managedDesc": "Hope Agent launches and maintains its own isolated Chrome. Best for automation.",
+        "attachDesc": "Attach to a Chrome you started yourself with --remote-debugging-port."
+      },
+      "rawCdpConfirm": {
+        "title": "Allow raw CDP?",
+        "body": "This lets the AI send arbitrary DevTools Protocol commands to your real Chrome. Every call still needs your per-use approval and dangerous methods stay blocked, but only enable it if you specifically need it.",
+        "continue": "Enable"
+      }
     },
     "bytes": "bytes",
     "canvas": "Canvas",

@@ -186,6 +186,12 @@ pub fn share_dir() -> Result<PathBuf> {
     Ok(root_dir()?.join("share"))
 }
 
+/// Temporary large-object store for Chrome Extension native-messaging blobs:
+/// ~/.hope-agent/browser-extension/blobs/
+pub fn browser_extension_blobs_dir() -> Result<PathBuf> {
+    Ok(root_dir()?.join("browser-extension").join("blobs"))
+}
+
 // ── Cron ────────────────────────────────────────────────────────
 
 /// Cron database path: ~/.hope-agent/cron.db
@@ -326,6 +332,50 @@ pub fn browser_managed_runner_dir() -> Result<PathBuf> {
 /// single workspace-wide revision isn't representable).
 pub fn browser_runtime_dir() -> Result<PathBuf> {
     Ok(root_dir()?.join("browser").join("runtime"))
+}
+
+/// Chrome Extension integration runtime directory:
+/// `~/.hope-agent/browser-extension/`.
+pub fn browser_extension_dir() -> Result<PathBuf> {
+    Ok(root_dir()?.join("browser-extension"))
+}
+
+/// Discovery file read by the Native Messaging host to find the local Core
+/// broker. Rebuildable runtime state, rewritten on broker startup.
+pub fn browser_extension_broker_discovery_path() -> Result<PathBuf> {
+    Ok(browser_extension_dir()?.join("broker.json"))
+}
+
+pub fn browser_extension_broker_socket_path() -> Result<PathBuf> {
+    Ok(browser_extension_dir()?.join("broker.sock"))
+}
+
+pub fn browser_extension_registry_path() -> Result<PathBuf> {
+    Ok(browser_extension_dir()?.join("registry.json"))
+}
+
+/// Stable copy of the unpacked browser extension for local ("Load unpacked")
+/// install: `~/.hope-agent/extension/browser/`. The app bundle's own copy lives
+/// inside the `.app` (or the platform resource dir) and its path changes when
+/// the app is updated or moved; loading that path in Chrome would break on
+/// update. This stable copy is what the user loads, so it survives app updates
+/// (refreshed in place). Built with `join`, so the separator is correct on
+/// Windows / Linux / macOS; the `extension/` parent leaves room for other
+/// browser engines later (e.g. `extension/firefox`).
+pub fn browser_extension_unpacked_dir() -> Result<PathBuf> {
+    Ok(root_dir()?.join("extension").join("browser"))
+}
+
+/// Completion marker for the stable unpacked-extension copy:
+/// `~/.hope-agent/extension/.browser-synced`. Written only after a FULL mirror
+/// succeeds; readers treat the stable copy as usable only when this marker is
+/// present, so a copy interrupted partway (crash / disk full) — which may have
+/// `manifest.json` but be missing other files — never shadows the bundled
+/// source with a broken extension. Lives beside `browser/` (not inside it) so
+/// it is never pruned by the mirror and Chrome (which ignores dotfiles anyway)
+/// never sees it as part of the loaded extension.
+pub fn browser_extension_unpacked_marker() -> Result<PathBuf> {
+    Ok(root_dir()?.join("extension").join(".browser-synced"))
 }
 
 /// Per-revision Chromium runtime directory:
@@ -547,6 +597,7 @@ pub fn ensure_dirs() -> Result<()> {
         logs_dir()?,
         models_cache_dir()?,
         browser_profiles_dir()?,
+        browser_extension_dir()?,
         backups_dir()?,
         generated_images_dir()?,
         canvas_dir()?,

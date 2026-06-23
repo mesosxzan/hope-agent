@@ -93,6 +93,14 @@
         "body": "這次瀏覽器操作會在目前分頁執行任意 JavaScript。Smart 模式可由高信心標記或判官模型自動放行。",
         "title": "瀏覽器執行腳本"
       },
+      "browser_raw_cdp": {
+        "title": "進階瀏覽器 CDP 命令",
+        "body": "這次瀏覽器操作會向真實 Chrome 分頁傳送原始 Chrome DevTools Protocol 命令。它走正常工具審批流；始終允許、Smart 模式和 YOLO 都按目前會話策略生效。"
+      },
+      "browser_download_action": {
+        "title": "瀏覽器下載操作",
+        "body": "這次瀏覽器操作會讀取或中斷 Chrome 下載活動。它走正常工具審批流；始終允許、Smart 模式和 YOLO 都按目前會話策略生效。"
+      },
       "mac_control_action": {
         "title": "Mac 控制操作",
         "body": "這次 macOS 控制會改變桌面焦點/狀態。Hope Agent 啟用其他 App 前需要你確認。"
@@ -100,6 +108,10 @@
       "mac_control_dangerous_action": {
         "title": "危險 Mac 控制動作",
         "body": "這次 macOS 控制呼叫可能關閉視窗、結束應用程式、確認對話框或觸發破壞性選單。必須逐次確認，不能使用永遠允許。"
+      },
+      "browser_chrome_access": {
+        "title": "真實 Chrome 存取",
+        "body": "這次瀏覽器操作會透過擴充功能讀取或控制使用者真實 Chrome 狀態。它走正常工具審批流；始終允許、Smart 模式和 YOLO 都按目前會話策略生效。"
       }
     },
     "title": "Command Approval Required",
@@ -596,7 +608,15 @@
         "mac": "Mac 控制"
       }
     },
-    "reasoningDisabledHint": "此模型未啟用推理。如需調整推理深度,請在「設定 → 模型服務商」中編輯該模型並開啟「支援推理/思考」。"
+    "reasoningDisabledHint": "此模型未啟用推理。如需調整推理深度,請在「設定 → 模型服務商」中編輯該模型並開啟「支援推理/思考」。",
+    "browserExtensionNudge": {
+      "installTitle": "讓 AI 操作你已登入的 Chrome",
+      "installBody": "安裝 Hope Agent 擴充功能即可操作你已登入的 Chrome;目前正使用隔離瀏覽器執行。",
+      "reloadTitle": "請重新載入 Chrome 擴充功能",
+      "reloadBody": "已安裝的擴充功能與宿主版本不符,重新載入即可恢復對真實 Chrome 的控制。",
+      "openSettings": "前往設定",
+      "dismiss": "不再顯示"
+    }
   },
   "codexAuth": {
     "expiredDescription": "你的 Codex OAuth 認證令牌已失效，請重新登錄以繼續使用。",
@@ -2751,7 +2771,90 @@
       "statusConnected": "瀏覽器執行中",
       "statusDisconnected": "未執行",
       "title": "瀏覽器",
-      "untitledTab": "未命名"
+      "untitledTab": "未命名",
+      "advanced": {
+        "section": "進階",
+        "sectionHint": "針對 Chrome 擴充功能後端的進階選項；修改後點擊儲存生效。",
+        "backendLabel": "瀏覽器後端",
+        "backendExtensionFirst": "擴充功能優先（預設）",
+        "backendExtensionFirstDesc": "有擴充功能時透過擴充功能驅動你的真實 Chrome，否則回退到隔離 CDP。",
+        "backendCdpOnly": "僅隔離 CDP",
+        "backendCdpOnlyDesc": "僅使用隔離的全新 Chrome，絕不接觸你的真實瀏覽器。",
+        "backendExtensionOnly": "僅擴充功能",
+        "backendExtensionOnlyDesc": "僅使用你的真實 Chrome，擴充功能無法使用時直接報錯。",
+        "enableLabel": "啟用 Chrome 擴充功能後端",
+        "enableHint": "允許 AI 透過擴充功能驅動你已登入的真實 Chrome（包含全部 Cookie 與工作階段）。",
+        "rawCdpLabel": "允許 raw CDP（進階）",
+        "rawCdpHint": "允許 AI 向你的真實 Chrome 發送任意 DevTools 協定命令。每次呼叫仍需逐次核准，且危險方法（讀取 Cookie 等）已被攔截；如非必要，建議保持關閉。"
+      },
+      "extension": {
+        "title": "Chrome 擴充功能",
+        "kindReady": "已連線",
+        "kindHostMissing": "原生主機未安裝",
+        "kindBrokerUnavailable": "代理未執行",
+        "kindVersionMismatch": "通訊協定版本不符",
+        "kindExtensionMissing": "未連線",
+        "statusReady": "Hope Agent Chrome 擴充功能已連線。",
+        "statusHostMissing": "Chrome 原生訊息主機尚未安裝。",
+        "statusBrokerUnavailable": "Chrome 擴充功能代理未執行。",
+        "statusExtensionMissing": "Hope Agent Chrome 擴充功能未連線。",
+        "statusVersionMismatch": "擴充功能的通訊協定版本與主機不符。請重新載入擴充功能以更新。",
+        "versionLine": "擴充功能 {{version}} · 通訊協定 {{protocol}}",
+        "unknown": "未知",
+        "loadUnpackedPath": "載入未封裝項目：{{path}}",
+        "stopControl": "停止瀏覽器控制",
+        "stepInstallExtension": "安裝 Chrome 擴充功能",
+        "stepInstallExtensionHint": "使用 Chrome Web Store 頁面安裝，然後回到這裡重新整理。",
+        "openWebStore": "開啟 Chrome Web Store",
+        "stepOpenExtensions": "開啟 Chrome 擴充功能頁",
+        "stepOpenExtensionsHint": "啟用開發人員模式，然後使用「載入未封裝項目」。",
+        "stepLoadUnpacked": "載入未封裝的擴充功能",
+        "alphaFallback": "Alpha 備援：載入未封裝項目",
+        "stepInstallHost": "安裝原生主機",
+        "openChromeExtensions": "開啟 chrome://extensions",
+        "showFolder": "顯示資料夾",
+        "copyPath": "複製路徑",
+        "showHost": "顯示主機",
+        "copyHostPath": "複製主機路徑",
+        "hostPathUnavailable": "原生主機路徑無法使用",
+        "extensionPathUnavailable": "擴充功能路徑無法使用",
+        "extensionIdPlaceholder": "Chrome 擴充功能 ID",
+        "hostPathPlaceholder": "ha-browser-host 絕對路徑",
+        "installHost": "安裝原生主機",
+        "nativeHostLabel": "原生主機",
+        "nativeHostPathLabel": "原生主機路徑",
+        "extensionFolderLabel": "擴充功能資料夾",
+        "extensionPathLabel": "擴充功能路徑",
+        "toast": {
+          "idRequired": "請填寫 Chrome 擴充功能 ID",
+          "hostInstalled": "原生主機資訊清單已安裝",
+          "hostInstallFailed": "原生主機安裝失敗",
+          "controlStopped": "已停止瀏覽器控制",
+          "controlStopFailed": "停止瀏覽器控制失敗",
+          "copied": "已複製{{item}}",
+          "copyFailed": "複製{{item}}失敗",
+          "revealFailed": "開啟{{item}}失敗",
+          "connected": "擴充功能已連線——AI 現在可操作你的真實 Chrome"
+        },
+        "fallbackLabel": "回退至託管 Chrome",
+        "fallbackHint": "擴充功能無法使用時,自動改用獨立的託管 Chrome,而非直接失敗。",
+        "setupGuide": "安裝指南"
+      },
+      "methodLabel": "瀏覽器控制方式",
+      "tabCount": "{{count}} 個分頁",
+      "method": {
+        "extension": "擴充功能",
+        "managed": "託管 Chrome",
+        "attach": "連線 Chrome",
+        "extensionDesc": "透過擴充功能驅動你已登入的真實 Chrome——共用你的 Cookie 與工作階段。建議使用。",
+        "managedDesc": "Hope Agent 會啟動並維護獨立的 Chrome 執行個體。最適合自動化。",
+        "attachDesc": "連線到你自己以 --remote-debugging-port 啟動的 Chrome。"
+      },
+      "rawCdpConfirm": {
+        "title": "允許 raw CDP?",
+        "body": "這會允許 AI 向你的真實 Chrome 傳送任意 DevTools 協定指令。每次呼叫仍需你逐次核准、危險方法仍會被封鎖,但請僅在確有需要時啟用。",
+        "continue": "啟用"
+      }
     },
     "bytes": "位元組",
     "canvas": "畫布",
@@ -3932,6 +4035,7 @@
     "skillCommandDispatch": "命令分發",
     "skillContentPreview": "Markdown 預覽",
     "skillContentRaw": "原始內容",
+    "skillCurrentOs": "目前 OS",
     "skillDisabled": "已禁用",
     "skillEnabled": "已啟用",
     "skillEnvClear": "清除",
@@ -3948,14 +4052,7 @@
     },
     "skillFiles": "文件列表",
     "skillHealth": "健康狀態",
-    "skillCurrentOs": "目前 OS",
     "skillHardBlocked": "不相容",
-    "skillMissingAnyBins": "需要以下任一工具",
-    "skillMissingBins": "缺少命令列工具",
-    "skillMissingConfig": "缺少設定項",
-    "skillMissingEnv": "缺少環境變數",
-    "skillNeedsSetup": "需要設定",
-    "skillSupportedOs": "支援的 OS",
     "skillInstall": "安裝",
     "skillInstallFailed": "安裝失敗",
     "skillInstallSuccess": "安裝成功",
@@ -3963,12 +4060,18 @@
     "skillInvocationPolicy": "調用策略",
     "skillMaxChars": "提示詞最大字符數",
     "skillMaxCount": "提示詞中最大技能數",
+    "skillMissingAnyBins": "需要以下任一工具",
+    "skillMissingBins": "缺少命令列工具",
+    "skillMissingConfig": "缺少設定項",
+    "skillMissingEnv": "缺少環境變數",
     "skillModelInvocable": "模型可調用",
+    "skillNeedsSetup": "需要設定",
     "skillSkipsRequirements": "跳過依賴檢查",
     "skillStatusBlocked": "被允許列表限制",
     "skillStatusDisabled": "已禁用",
     "skillStatusEligible": "可用",
     "skillStatusMissing": "缺少依賴",
+    "skillSupportedOs": "支援的 OS",
     "skillUserInvocable": "用戶可調用",
     "skills": "技能",
     "skillsAutoReview": {

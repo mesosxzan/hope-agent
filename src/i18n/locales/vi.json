@@ -93,6 +93,14 @@
         "body": "Thao tác trình duyệt này sẽ chạy JavaScript tùy ý trong tab đang hoạt động. Chế độ Smart có thể tự động cho phép bằng thẻ độ tin cậy cao hoặc mô hình giám khảo.",
         "title": "JavaScript trình duyệt"
       },
+      "browser_raw_cdp": {
+        "title": "Advanced browser CDP command",
+        "body": "This browser action will send a raw Chrome DevTools Protocol command to a real Chrome tab. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
+      },
+      "browser_download_action": {
+        "title": "Browser download action",
+        "body": "This browser action will read or interrupt Chrome download activity. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
+      },
       "mac_control_action": {
         "title": "Thao tác Mac Control",
         "body": "Lệnh điều khiển macOS này thay đổi tiêu điểm/trạng thái màn hình. Hãy xác nhận trước khi Hope Agent kích hoạt ứng dụng khác."
@@ -100,6 +108,10 @@
       "mac_control_dangerous_action": {
         "title": "Tác vụ Mac Control nguy hiểm",
         "body": "Lệnh điều khiển macOS này có thể đóng cửa sổ, thoát ứng dụng, xác nhận hộp thoại hoặc kích hoạt menu phá hủy. Cần xác nhận từng lần; không thể dùng Luôn cho phép."
+      },
+      "browser_chrome_access": {
+        "title": "Real Chrome access",
+        "body": "This browser action will read or control the user's real Chrome state through the extension. It uses the normal tool approval flow; AllowAlways, Smart mode, and YOLO follow the active session policy."
       }
     },
     "title": "Command Approval Required",
@@ -596,7 +608,15 @@
         "mac": "Điều khiển Mac"
       }
     },
-    "reasoningDisabledHint": "Mô hình này chưa bật suy luận. Để điều chỉnh độ sâu suy luận, hãy chỉnh sửa mô hình trong \"Cài đặt → Nhà cung cấp mô hình\" và bật \"Hỗ trợ suy luận/tư duy\"."
+    "reasoningDisabledHint": "Mô hình này chưa bật suy luận. Để điều chỉnh độ sâu suy luận, hãy chỉnh sửa mô hình trong \"Cài đặt → Nhà cung cấp mô hình\" và bật \"Hỗ trợ suy luận/tư duy\".",
+    "browserExtensionNudge": {
+      "installTitle": "Để AI điều khiển Chrome thật của bạn",
+      "installBody": "Cài tiện ích Hope Agent để vận hành Chrome đã đăng nhập của bạn. Hiện đang chạy trong trình duyệt cách ly.",
+      "reloadTitle": "Tải lại tiện ích Chrome",
+      "reloadBody": "Tiện ích đã cài không khớp với host. Tải lại để khôi phục quyền điều khiển Chrome thật của bạn.",
+      "openSettings": "Mở cài đặt",
+      "dismiss": "Không hiển thị lại"
+    }
   },
   "codexAuth": {
     "expiredDescription": "Token OAuth của Codex không còn hợp lệ. Vui lòng đăng nhập lại để tiếp tục.",
@@ -2751,7 +2771,90 @@
       "statusConnected": "Trình duyệt đang chạy",
       "statusDisconnected": "Không chạy",
       "title": "Trình duyệt",
-      "untitledTab": "Không tiêu đề"
+      "untitledTab": "Không tiêu đề",
+      "advanced": {
+        "section": "Nâng cao",
+        "sectionHint": "Tùy chọn nâng cao cho backend tiện ích mở rộng Chrome. Thay đổi có hiệu lực sau khi bạn nhấn Lưu.",
+        "backendLabel": "Backend trình duyệt",
+        "backendExtensionFirst": "Ưu tiên tiện ích mở rộng (mặc định)",
+        "backendExtensionFirstDesc": "Điều khiển Chrome thật của bạn qua tiện ích mở rộng khi khả dụng; nếu không thì quay về CDP biệt lập.",
+        "backendCdpOnly": "Chỉ CDP biệt lập",
+        "backendCdpOnlyDesc": "Chỉ dùng một Chrome mới, biệt lập; không bao giờ chạm vào trình duyệt thật của bạn.",
+        "backendExtensionOnly": "Chỉ tiện ích mở rộng",
+        "backendExtensionOnlyDesc": "Chỉ dùng Chrome thật của bạn; báo lỗi ngay khi tiện ích mở rộng không khả dụng.",
+        "enableLabel": "Bật backend tiện ích mở rộng Chrome",
+        "enableHint": "Cho phép AI điều khiển Chrome thật đã đăng nhập của bạn (bao gồm toàn bộ Cookie và phiên) qua tiện ích mở rộng.",
+        "rawCdpLabel": "Cho phép raw CDP (nâng cao)",
+        "rawCdpHint": "Cho phép AI gửi lệnh DevTools Protocol tùy ý đến Chrome thật của bạn. Mỗi lần gọi vẫn cần phê duyệt riêng và các phương thức nguy hiểm (đọc Cookie, v.v.) đã bị chặn; hãy giữ tắt trừ khi bạn thực sự cần."
+      },
+      "extension": {
+        "title": "Tiện ích mở rộng Chrome",
+        "kindReady": "Đã kết nối",
+        "kindHostMissing": "Thiếu native host",
+        "kindBrokerUnavailable": "Broker chưa chạy",
+        "kindVersionMismatch": "Giao thức không khớp",
+        "kindExtensionMissing": "Chưa kết nối",
+        "statusReady": "Tiện ích mở rộng Chrome của Hope Agent đã được kết nối.",
+        "statusHostMissing": "Chrome native messaging host chưa được cài đặt.",
+        "statusBrokerUnavailable": "Broker của tiện ích mở rộng Chrome chưa chạy.",
+        "statusExtensionMissing": "Tiện ích mở rộng Chrome của Hope Agent chưa được kết nối.",
+        "statusVersionMismatch": "Phiên bản giao thức của tiện ích không khớp với host. Hãy tải lại tiện ích để cập nhật.",
+        "versionLine": "Tiện ích {{version}} · giao thức {{protocol}}",
+        "unknown": "không xác định",
+        "loadUnpackedPath": "Tải tiện ích đã giải nén: {{path}}",
+        "stopControl": "Dừng điều khiển trình duyệt",
+        "stepInstallExtension": "Cài đặt tiện ích mở rộng Chrome",
+        "stepInstallExtensionHint": "Cài qua trang Chrome Web Store, sau đó quay lại đây và làm mới.",
+        "openWebStore": "Mở Chrome Web Store",
+        "stepOpenExtensions": "Mở trang tiện ích mở rộng Chrome",
+        "stepOpenExtensionsHint": "Bật Chế độ nhà phát triển, rồi dùng Tải tiện ích đã giải nén.",
+        "stepLoadUnpacked": "Tải tiện ích đã giải nén",
+        "alphaFallback": "Phương án Alpha: tải tiện ích đã giải nén",
+        "stepInstallHost": "Cài đặt native host",
+        "openChromeExtensions": "Mở chrome://extensions",
+        "showFolder": "Hiện thư mục",
+        "copyPath": "Sao chép đường dẫn",
+        "showHost": "Hiện host",
+        "copyHostPath": "Sao chép đường dẫn host",
+        "hostPathUnavailable": "Đường dẫn native host không khả dụng",
+        "extensionPathUnavailable": "Đường dẫn tiện ích không khả dụng",
+        "extensionIdPlaceholder": "ID tiện ích mở rộng Chrome",
+        "hostPathPlaceholder": "Đường dẫn tuyệt đối của ha-browser-host",
+        "installHost": "Cài đặt native host",
+        "nativeHostLabel": "native host",
+        "nativeHostPathLabel": "Đường dẫn native host",
+        "extensionFolderLabel": "thư mục tiện ích",
+        "extensionPathLabel": "Đường dẫn tiện ích",
+        "toast": {
+          "idRequired": "Cần nhập ID tiện ích mở rộng Chrome",
+          "hostInstalled": "Đã cài đặt tệp kê khai native host",
+          "hostInstallFailed": "Cài đặt native host thất bại",
+          "controlStopped": "Đã dừng điều khiển trình duyệt",
+          "controlStopFailed": "Dừng điều khiển trình duyệt thất bại",
+          "copied": "Đã sao chép {{item}}",
+          "copyFailed": "Sao chép {{item}} thất bại",
+          "revealFailed": "Mở {{item}} thất bại",
+          "connected": "Đã kết nối tiện ích — AI giờ có thể dùng Chrome thật của bạn"
+        },
+        "fallbackLabel": "Dự phòng bằng Chrome do ứng dụng quản lý",
+        "fallbackHint": "Khi tiện ích mở rộng không khả dụng, tự động dùng một Chrome quản lý độc lập thay vì báo lỗi.",
+        "setupGuide": "Hướng dẫn thiết lập"
+      },
+      "methodLabel": "Phương thức điều khiển trình duyệt",
+      "tabCount": "{{count}} thẻ",
+      "method": {
+        "extension": "Tiện ích mở rộng",
+        "managed": "Chrome do ứng dụng quản lý",
+        "attach": "Kết nối tới Chrome",
+        "extensionDesc": "Điều khiển Chrome thật đã đăng nhập của bạn thông qua tiện ích mở rộng — nó dùng chung cookie và phiên của bạn. Khuyến nghị.",
+        "managedDesc": "Hope Agent khởi chạy và duy trì một phiên bản Chrome riêng biệt, độc lập. Phù hợp nhất cho tự động hóa.",
+        "attachDesc": "Kết nối tới một Chrome mà bạn tự khởi chạy với --remote-debugging-port."
+      },
+      "rawCdpConfirm": {
+        "title": "Cho phép raw CDP?",
+        "body": "Việc này cho phép AI gửi các lệnh DevTools Protocol tùy ý tới Chrome thật của bạn. Mỗi lần gọi vẫn cần bạn phê duyệt riêng và các phương thức nguy hiểm vẫn bị chặn, nhưng chỉ bật khi bạn thực sự cần.",
+        "continue": "Bật"
+      }
     },
     "bytes": "byte",
     "canvas": "Canvas",
@@ -3932,6 +4035,7 @@
     "skillCommandDispatch": "Điều phối lệnh",
     "skillContentPreview": "Xem trước Markdown",
     "skillContentRaw": "Nội dung gốc",
+    "skillCurrentOs": "Hệ điều hành hiện tại",
     "skillDisabled": "Đã tắt",
     "skillEnabled": "Đã bật",
     "skillEnvClear": "Xóa",
@@ -3948,14 +4052,7 @@
     },
     "skillFiles": "Tệp tin",
     "skillHealth": "Sức khỏe",
-    "skillCurrentOs": "Hệ điều hành hiện tại",
     "skillHardBlocked": "Không tương thích",
-    "skillMissingAnyBins": "Cần một tệp nhị phân",
-    "skillMissingBins": "Thiếu tệp nhị phân",
-    "skillMissingConfig": "Thiếu cài đặt",
-    "skillMissingEnv": "Thiếu biến môi trường",
-    "skillNeedsSetup": "Cần thiết lập",
-    "skillSupportedOs": "Hệ điều hành hỗ trợ",
     "skillInstall": "Cài đặt",
     "skillInstallFailed": "Cài đặt thất bại",
     "skillInstallSuccess": "Đã cài đặt thành công",
@@ -3963,12 +4060,18 @@
     "skillInvocationPolicy": "Chính sách gọi",
     "skillMaxChars": "Ký tự prompt tối đa",
     "skillMaxCount": "Số skill tối đa trong prompt",
+    "skillMissingAnyBins": "Cần một tệp nhị phân",
+    "skillMissingBins": "Thiếu tệp nhị phân",
+    "skillMissingConfig": "Thiếu cài đặt",
+    "skillMissingEnv": "Thiếu biến môi trường",
     "skillModelInvocable": "Mô hình có thể gọi",
+    "skillNeedsSetup": "Cần thiết lập",
     "skillSkipsRequirements": "Bỏ qua kiểm tra phụ thuộc",
     "skillStatusBlocked": "Bị chặn bởi danh sách cho phép",
     "skillStatusDisabled": "Đã vô hiệu",
     "skillStatusEligible": "Khả dụng",
     "skillStatusMissing": "Thiếu phụ thuộc",
+    "skillSupportedOs": "Hệ điều hành hỗ trợ",
     "skillUserInvocable": "Người dùng có thể gọi",
     "skills": "Kỹ năng",
     "skillsAutoReview": {
