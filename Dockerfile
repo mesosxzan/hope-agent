@@ -45,9 +45,11 @@ WORKDIR /work
 
 # Install dependencies in a separate layer keyed on lockfile changes so
 # editing source files doesn't trigger a full `pnpm install`.
-COPY package.json .npmrc ./
+# --ignore-scripts: postinstall scripts (e.g. patch-codemirror) need source
+# files that aren't copied yet; we run them explicitly after COPY.
+COPY package.json pnpm-lock.yaml .npmrc ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install 
+    pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy the frontend sources and build.
 COPY index.html vite.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json eslint.config.js ./
@@ -55,9 +57,9 @@ COPY src ./src
 COPY public ./public
 COPY scripts ./scripts
 
-# Docker installs dependencies with --ignore-scripts, so apply the
-# CodeMirror EditContext patch explicitly before bundling the web UI.
-#RUN node scripts/patch-codemirror-edit-context.mjs
+# pnpm install was run with --ignore-scripts, so apply the CodeMirror
+# EditContext patch explicitly before bundling the web UI.
+RUN node scripts/patch-codemirror-edit-context.mjs
 
 RUN pnpm build && \
     # Sanity check — the rust stage assumes /work/dist/index.html exists
