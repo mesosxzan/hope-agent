@@ -2,7 +2,10 @@ mod api_provider;
 pub mod config;
 pub mod factory;
 mod fallback_provider;
+#[cfg(feature = "local-embeddings")]
 mod local_provider;
+#[cfg(not(feature = "local-embeddings"))]
+mod local_provider_stub;
 pub(crate) mod utils;
 
 // ── Re-exports for backward compatibility ───────────────────────
@@ -21,4 +24,7 @@ pub use factory::create_embedding_provider;
 // Also re-export provider structs that were public
 pub use api_provider::ApiEmbeddingProvider;
 pub use fallback_provider::FallbackEmbeddingProvider;
+#[cfg(feature = "local-embeddings")]
 pub use local_provider::LocalEmbeddingProvider;
+#[cfg(not(feature = "local-embeddings"))]
+pub use local_provider_stub::LocalEmbeddingProvider;

@@ -43,7 +43,7 @@ http = "1"
 
 # Non-workspace dependencies (core-specific)
 sqlite-vec = "0.1"
-fastembed = "5"
+fastembed = { version = "5", optional = true }
 zerocopy = { version = "0.8", features = ["derive"] }
 cron = "0.13"
 pdf-extract = "0.10"
@@ -109,6 +109,10 @@ default = []
 # Docker bin leaves the feature off so the runtime doesn't need wayland /
 # pipewire / gtk-3 shared libs.
 desktop-tools = ["dep:arboard", "dep:xcap"]
+# Enables local ONNX-based text embeddings (fastembed / ort-sys).
+# Disabled in Docker builds where the ort-sys CDN (pyke.io) is
+# unreachable and pre-built ONNX Runtime binaries are unavailable.
+local-embeddings = ["dep:fastembed"]
 
 [target.'cfg(target_os = "macos")'.dependencies]
 block2 = "0.6.2"
