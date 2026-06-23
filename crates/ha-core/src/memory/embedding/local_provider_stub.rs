@@ -2,8 +2,8 @@
 //! always returns an error so the rest of the codebase compiles without
 //! fastembed / ort-sys.
 
-use anyhow::Result;
 use crate::memory::traits::EmbeddingProvider;
+use anyhow::Result;
 
 pub struct LocalEmbeddingProvider {
     dims: u32,
