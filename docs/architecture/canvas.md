@@ -171,19 +171,22 @@ CREATE INDEX idx_canvas_projects_session    ON canvas_projects(session_id, updat
 
 ### 创建路径详解
 
-```
-LLM tool_call → action_create
-  ├─ get_canvas_db()                        # 懒打开（含 mkdir parent）
-  ├─ project::create_project(...)           # tools/canvas/project.rs:11-60
-  │   ├─ uuid::new_v4()                     # 生成 project_id
-  │   ├─ paths::canvas_project_dir(id)
-  │   ├─ renderer::write_project_files(...) # 按 content_type 编译 index.html
-  │   ├─ db.create_project(&CanvasProject)  # 插入项目行
-  │   └─ db.create_version(&v1)             # 写 v1（message: "Initial version"）
-  ├─ app_info!("tool", "canvas", ...)
-  ├─ if cached_config().canvas.auto_show:
-  │     emit_canvas_event("canvas_show", build_show_payload(..., session_id))
-  └─ Ok(json{ status, project_id, version: 1, message })
+```mermaid
+flowchart TD
+    TC["LLM tool_call → action_create"]
+    DB["get_canvas_db() 懒打开（含 mkdir parent）"]
+    CP["project::create_project(...)（tools/canvas/project.rs:11-60）"]
+    CP1["uuid::new_v4() 生成 project_id"]
+    CP2["paths::canvas_project_dir(id)"]
+    CP3["renderer::write_project_files(...) 按 content_type 编译 index.html"]
+    CP4["db.create_project(&CanvasProject) 插入项目行"]
+    CP5["db.create_version(&v1) 写 v1（Initial version）"]
+    LOG["app_info!(tool, canvas, ...)"]
+    SHOW["if canvas.auto_show → emit_canvas_event(canvas_show, build_show_payload(...))"]
+    OK["Ok(json: status, project_id, version=1, message)"]
+
+    TC --> DB --> CP --> LOG --> SHOW --> OK
+    CP --> CP1 --> CP2 --> CP3 --> CP4 --> CP5
 ```
 
 **`build_show_payload`** 把 `session_id` 嵌进去（[`tools/canvas/mod.rs:98-111`](../../crates/ha-core/src/tools/canvas/mod.rs#L98-L111)），前端用它过滤跨会话事件——cron 触发的 canvas_show 不会让用户当前会话弹出别人的画布。
