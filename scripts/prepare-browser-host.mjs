@@ -59,18 +59,21 @@ if (!existsSync(source) || !statSync(source).isFile()) {
 
 // Dev: copy next to the dev binary where the running app's current_exe-relative
 // host lookup finds it (`<target>/debug/browser-host/`); cargo's direct
-// `<target>/debug/<host>` is already fresh too. Release: bundle into Tauri
-// resources for packaging.
-const outDir = DEV
-  ? join(targetDir, "browser-host")
-  : join(repoRoot, "src-tauri", "resources", "browser-host")
-mkdirSync(outDir, { recursive: true })
-const dest = join(outDir, basename(hostName))
-copyFileSync(source, dest)
-if (process.platform !== "win32") {
-  chmodSync(dest, 0o755)
+// `<target>/debug/<host>` is already fresh too. Tauri still validates declared
+// resource paths in dev, so also stage a copy under src-tauri/resources.
+// Release: bundle into Tauri resources for packaging.
+const outDirs = DEV
+  ? [join(targetDir, "browser-host"), join(repoRoot, "src-tauri", "resources", "browser-host")]
+  : [join(repoRoot, "src-tauri", "resources", "browser-host")]
+for (const outDir of outDirs) {
+  mkdirSync(outDir, { recursive: true })
+  const dest = join(outDir, basename(hostName))
+  copyFileSync(source, dest)
+  if (process.platform !== "win32") {
+    chmodSync(dest, 0o755)
+  }
+  console.log(`[prepare-browser-host] copied ${source} -> ${dest}`)
 }
-console.log(`[prepare-browser-host] copied ${source} -> ${dest}`)
 
 function inferTargetTriple(platform, arch) {
   if (!platform || !arch) return ""
