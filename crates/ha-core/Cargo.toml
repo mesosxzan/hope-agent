@@ -43,7 +43,7 @@ http = "1"
 
 # Non-workspace dependencies (core-specific)
 sqlite-vec = "0.1"
-fastembed = "5"
+fastembed = "5.17"
 zerocopy = { version = "0.8", features = ["derive"] }
 cron = "0.13"
 pdf-extract = "0.10"
