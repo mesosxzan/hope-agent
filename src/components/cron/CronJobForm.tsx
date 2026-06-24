@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { toast } from "sonner"
 import { getTransport } from "@/lib/transport-provider"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
@@ -26,6 +27,37 @@ import CronExpressionBuilder from "./CronExpressionBuilder"
 import type { AgentInfo } from "@/types/chat"
 import type { ChannelAccountConfig } from "@/components/settings/channel-panel/types"
 import type { ProjectMeta } from "@/types/project"
+
+/** Commonly used IANA timezones for the cron timezone selector. */
+const COMMON_TIMEZONES = [
+  "Asia/Shanghai",
+  "Asia/Hong_Kong",
+  "Asia/Taipei",
+  "Asia/Tokyo",
+  "Asia/Kolkata",
+  "Asia/Singapore",
+  "Asia/Bangkok",
+  "Asia/Dubai",
+  "Asia/Seoul",
+  "Asia/Karachi",
+  "Asia/Jakarta",
+  "Europe/London",
+  "Europe/Berlin",
+  "Europe/Paris",
+  "Europe/Moscow",
+  "Europe/Istanbul",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Sao_Paulo",
+  "America/Toronto",
+  "America/Mexico_City",
+  "Australia/Sydney",
+  "Australia/Melbourne",
+  "Pacific/Auckland",
+  "UTC",
+]
 
 // Matches the shape returned by `channel_list_sessions` (see
 // `src-tauri/src/commands/channel.rs::channel_list_sessions`).
@@ -118,6 +150,10 @@ export default function CronJobForm({
 
   const [message, setMessage] = useState(job?.payload.prompt ?? "")
   const [agentId, setAgentId] = useState(job?.payload.agentId ?? AUTO_AGENT_VALUE)
+  const [cronTimezone, setCronTimezone] = useState(
+    job?.schedule.type === "cron" ? (job.schedule.timezone ?? "Asia/Shanghai") : "Asia/Shanghai",
+  )
+  const [reuseSession, setReuseSession] = useState(job?.reuseSession ?? false)
   const [projectId, setProjectId] = useState(
     job ? (job.projectId ?? NO_PROJECT_VALUE) : (defaultProjectId ?? NO_PROJECT_VALUE),
   )
@@ -274,7 +310,9 @@ export default function CronJobForm({
           maxFailures: parseInt(maxFailures) || 5,
           notifyOnComplete,
           deliveryTargets: validTargets,
+          reuseSession,
         }
+        console.log("[CronJobForm] cron_update_job:", JSON.stringify(updated, null, 2))
         await getTransport().call("cron_update_job", { job: updated })
       } else {
         const schedule = buildSchedule()
@@ -292,12 +330,16 @@ export default function CronJobForm({
             maxFailures: parseInt(maxFailures) || 5,
             notifyOnComplete,
             deliveryTargets: validTargets,
+            reuseSession,
           },
         })
+        console.log("[CronJobForm] cron_create_job: reuseSession=", reuseSession)
       }
+      toast.success(isEditing ? t("cron.updateSuccess", "任务已更新") : t("cron.createSuccess", "任务已创建"))
       onSave()
     } catch (e: unknown) {
       setError(String(e))
+      toast.error(String(e))
     } finally {
       setSaving(false)
     }
@@ -324,7 +366,7 @@ export default function CronJobForm({
         }
       }
       case "cron":
-        return { type: "cron", expression: cronExpression, timezone: null }
+        return { type: "cron", expression: cronExpression, timezone: cronTimezone }
     }
   }
 
@@ -438,6 +480,7 @@ export default function CronJobForm({
 
           {/* Schedule Config -- Cron (visual builder + raw editor) */}
           {scheduleType === "cron" && (
+            <>
             <CronExpressionBuilder
               cronFreq={cronFreq}
               setCronFreq={setCronFreq}
@@ -453,7 +496,35 @@ export default function CronJobForm({
               setCronRawExpr={setCronRawExpr}
               cronExpression={cronExpression}
             />
+
+            {/* Timezone */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                {t("cron.timezone")}
+              </label>
+              <Select value={cronTimezone} onValueChange={setCronTimezone}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {COMMON_TIMEZONES.map((tz) => (
+                    <SelectItem key={tz} value={tz}>
+                      {tz}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            </>
           )}
+
+          {/* Reuse Session (available for all schedule types) */}
+          <div className="flex items-center gap-2">
+            <Switch checked={reuseSession} onCheckedChange={setReuseSession} />
+            <label className="text-xs font-medium text-muted-foreground">
+              {t("cron.reuseSession")}
+            </label>
+          </div>
 
           {/* Message */}
           <div>

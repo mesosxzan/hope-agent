@@ -106,6 +106,24 @@ impl CronDB {
                 ON cron_jobs(project_id);",
         )?;
 
+        // Migration: add reuse_session column if missing
+        let has_reuse_session: bool = conn
+            .prepare("SELECT reuse_session FROM cron_jobs LIMIT 0")
+            .is_ok();
+        if !has_reuse_session {
+            conn.execute_batch(
+                "ALTER TABLE cron_jobs ADD COLUMN reuse_session INTEGER NOT NULL DEFAULT 0;",
+            )?;
+        }
+
+        // Migration: add last_session_id column if missing
+        let has_last_session_id: bool = conn
+            .prepare("SELECT last_session_id FROM cron_jobs LIMIT 0")
+            .is_ok();
+        if !has_last_session_id {
+            conn.execute_batch("ALTER TABLE cron_jobs ADD COLUMN last_session_id TEXT;")?;
+        }
+
         backfill_every_schedule_start_at(&conn)?;
 
         Ok(Self {
@@ -143,8 +161,8 @@ impl CronDB {
             .lock()
             .map_err(|e| anyhow::anyhow!("CronDB lock poisoned: {e}"))?;
         conn.execute(
-            "INSERT INTO cron_jobs (id, name, description, project_id, schedule_json, payload_json, status, next_run_at, max_failures, notify_on_complete, delivery_targets_json, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'active', ?7, ?8, ?9, ?10, ?11, ?11)",
+            "INSERT INTO cron_jobs (id, name, description, project_id, schedule_json, payload_json, status, next_run_at, max_failures, notify_on_complete, delivery_targets_json, reuse_session, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'active', ?7, ?8, ?9, ?10, ?11, ?12, ?12)",
             params![
                 id,
                 input.name,
@@ -156,6 +174,7 @@ impl CronDB {
                 max_failures,
                 notify as i32,
                 delivery_targets_json,
+                input.reuse_session.unwrap_or(false) as i32,
                 now_str
             ],
         )?;
@@ -177,6 +196,8 @@ impl CronDB {
             updated_at: now_str,
             notify_on_complete: notify,
             delivery_targets,
+            reuse_session: input.reuse_session.unwrap_or(false),
+            last_session_id: None,
         })
     }
 
@@ -186,6 +207,14 @@ impl CronDB {
         if let CronSchedule::Cron { ref expression, .. } = job.schedule {
             validate_cron_expression(expression)?;
         }
+
+        app_info!(
+            "cron",
+            "db",
+            "update_job: id={}, reuse_session={}",
+            job.id,
+            job.reuse_session
+        );
 
         let now = Utc::now();
         let now_str = now.to_rfc3339();
@@ -207,8 +236,8 @@ impl CronDB {
             .lock()
             .map_err(|e| anyhow::anyhow!("CronDB lock poisoned: {e}"))?;
         conn.execute(
-            "UPDATE cron_jobs SET name=?1, description=?2, project_id=?3, schedule_json=?4, payload_json=?5, status=?6, next_run_at=?7, max_failures=?8, notify_on_complete=?9, delivery_targets_json=?10, updated_at=?11
-             WHERE id=?12",
+            "UPDATE cron_jobs SET name=?1, description=?2, project_id=?3, schedule_json=?4, payload_json=?5, status=?6, next_run_at=?7, max_failures=?8, notify_on_complete=?9, delivery_targets_json=?10, reuse_session=?11, updated_at=?12
+             WHERE id=?13",
             params![
                 job.name,
                 job.description,
@@ -220,6 +249,7 @@ impl CronDB {
                 job.max_failures,
                 job.notify_on_complete as i32,
                 delivery_targets_json,
+                job.reuse_session as i32,
                 now_str,
                 job.id
             ],
@@ -241,6 +271,19 @@ impl CronDB {
         Ok(())
     }
 
+    /// Update the `last_session_id` field of a job.
+    pub fn update_job_last_session_id(&self, id: &str, session_id: &str) -> Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| anyhow::anyhow!("CronDB lock poisoned: {e}"))?;
+        conn.execute(
+            "UPDATE cron_jobs SET last_session_id=?1 WHERE id=?2",
+            params![session_id, id],
+        )?;
+        Ok(())
+    }
+
     /// Delete a job by ID.
     pub fn delete_job(&self, id: &str) -> Result<()> {
         let conn = self
@@ -258,7 +301,7 @@ impl CronDB {
             .lock()
             .map_err(|e| anyhow::anyhow!("CronDB lock poisoned: {e}"))?;
         let mut stmt = conn.prepare(
-            "SELECT id, name, description, schedule_json, payload_json, status, next_run_at, last_run_at, running_at, consecutive_failures, max_failures, created_at, updated_at, notify_on_complete, delivery_targets_json, project_id
+            "SELECT id, name, description, schedule_json, payload_json, status, next_run_at, last_run_at, running_at, consecutive_failures, max_failures, created_at, updated_at, notify_on_complete, delivery_targets_json, project_id, reuse_session, last_session_id
              FROM cron_jobs WHERE id=?1"
         )?;
         let mut rows = stmt.query(params![id])?;
@@ -303,7 +346,7 @@ impl CronDB {
             .lock()
             .map_err(|e| anyhow::anyhow!("CronDB lock poisoned: {e}"))?;
         let mut stmt = conn.prepare(
-            "SELECT id, name, description, schedule_json, payload_json, status, next_run_at, last_run_at, running_at, consecutive_failures, max_failures, created_at, updated_at, notify_on_complete, delivery_targets_json, project_id
+            "SELECT id, name, description, schedule_json, payload_json, status, next_run_at, last_run_at, running_at, consecutive_failures, max_failures, created_at, updated_at, notify_on_complete, delivery_targets_json, project_id, reuse_session, last_session_id
              FROM cron_jobs ORDER BY created_at DESC"
         )?;
         let rows = stmt.query_map([], |row| {
@@ -1011,6 +1054,8 @@ pub(crate) fn row_to_cron_job(row: &rusqlite::Row) -> Result<CronJob> {
         updated_at: row.get(12)?,
         notify_on_complete: row.get::<_, i32>(13).unwrap_or(1) != 0,
         delivery_targets,
+        reuse_session: row.get::<_, i32>(16).unwrap_or(0) != 0,
+        last_session_id: row.get(17).ok().flatten(),
     })
 }
 
@@ -1060,6 +1105,7 @@ mod tests {
                 max_failures: None,
                 notify_on_complete: None,
                 delivery_targets: None,
+                reuse_session: None,
             })
             .expect("add job");
 
@@ -1110,6 +1156,7 @@ mod tests {
                 max_failures: None,
                 notify_on_complete: None,
                 delivery_targets: None,
+                reuse_session: None,
             })
             .expect("add job");
 
@@ -1154,6 +1201,7 @@ mod tests {
                 max_failures: None,
                 notify_on_complete: None,
                 delivery_targets: None,
+                reuse_session: None,
             })
             .expect("add job");
 
@@ -1369,6 +1417,7 @@ mod tests {
                 max_failures: None,
                 notify_on_complete: None,
                 delivery_targets: None,
+                reuse_session: None,
             })
             .expect("add job");
         let due_at = (Utc::now() - chrono::Duration::seconds(1)).to_rfc3339();
@@ -1421,6 +1470,7 @@ mod tests {
                 max_failures: None,
                 notify_on_complete: None,
                 delivery_targets: None,
+                reuse_session: None,
             })
             .expect("add job");
 
@@ -1451,6 +1501,7 @@ mod tests {
                 max_failures: None,
                 notify_on_complete: None,
                 delivery_targets: None,
+                reuse_session: None,
             })
             .expect("add job");
         let original_next_run = job.next_run_at.clone();

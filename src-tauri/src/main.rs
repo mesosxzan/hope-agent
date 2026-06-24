@@ -267,7 +267,7 @@ fn run_acp_server(args: &[String]) {
     // the handler `std::process::exit(0)` runs before the bg_rt teardown
     // path so this is safe.
     bg_rt.spawn(async {
-        ha_core::crash_flush::install_signal_handlers();
+        ha_core::crash_flush::install_signal_handlers_with_sigint();
     });
 
     // Run the ACP server (blocks on stdin)
@@ -442,7 +442,7 @@ fn run_server(args: &[String]) {
     let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
     rt.block_on(async {
         tokio::spawn(ha_core::start_background_tasks());
-        ha_core::crash_flush::install_signal_handlers();
+        ha_core::crash_flush::install_signal_handlers_with_sigint();
         if let Err(e) = ha_server::start_server(config, ctx).await {
             eprintln!("[server] Server error: {}", e);
             std::process::exit(1);

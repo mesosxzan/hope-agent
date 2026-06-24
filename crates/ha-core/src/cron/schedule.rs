@@ -1,5 +1,6 @@
 use anyhow::Result;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, FixedOffset, Utc};
+use chrono_tz::Tz;
 use cron::Schedule as CronExpression;
 use std::str::FromStr;
 
@@ -98,15 +99,46 @@ pub fn compute_next_every_run(
     DateTime::<Utc>::from_timestamp_millis(next_ms)
 }
 
-/// Parse cron expression and find the next occurrence after `after`.
+/// Default timezone for cron jobs when none is specified.
+pub const DEFAULT_CRON_TIMEZONE: &str = "Asia/Shanghai";
+
+/// Parse cron expression and find the next occurrence after `after`,
+/// using the specified IANA timezone (e.g. "Asia/Shanghai") for calendar
+/// expansion. Falls back to `DEFAULT_CRON_TIMEZONE` when timezone is `None`.
 fn compute_next_cron(
     expression: &str,
-    _timezone: Option<&str>,
+    timezone: Option<&str>,
     after: &DateTime<Utc>,
 ) -> Option<DateTime<Utc>> {
     let schedule = CronExpression::from_str(expression).ok()?;
-    // Find next occurrence after `after`
-    schedule.after(after).next()
+    let tz_name = timezone.unwrap_or(DEFAULT_CRON_TIMEZONE);
+
+    // Try IANA timezone first (e.g. "Asia/Shanghai"), fall back to fixed offset.
+    if let Ok(tz) = tz_name.parse::<Tz>() {
+        let after_local = after.with_timezone(&tz);
+        schedule
+            .after(&after_local)
+            .next()
+            .map(|dt| dt.with_timezone(&Utc))
+    } else if let Ok(offset) = parse_fixed_offset(tz_name) {
+        let after_local = after.with_timezone(&offset);
+        schedule
+            .after(&after_local)
+            .next()
+            .map(|dt| dt.with_timezone(&Utc))
+    } else {
+        // Unknown timezone string — fall back to UTC.
+        schedule.after(after).next()
+    }
+}
+
+/// Parse a fixed-offset timezone string like "+08:00" or "+0800".
+fn parse_fixed_offset(s: &str) -> Result<FixedOffset> {
+    let normalized = normalize_tz_offset(&format!("2000-01-01T00:00:00{s}"));
+    if let Ok(dt) = DateTime::parse_from_rfc3339(&normalized) {
+        return Ok(*dt.offset());
+    }
+    anyhow::bail!("invalid fixed offset: {s}")
 }
 
 /// Validate a cron expression. Returns Ok if valid, Err with message if not.

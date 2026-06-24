@@ -42,6 +42,8 @@ export interface CronJob {
   updatedAt: string
   notifyOnComplete: boolean
   deliveryTargets: CronDeliveryTarget[]
+  reuseSession: boolean
+  lastSessionId?: string | null
 }
 
 export interface CronRunLog {
