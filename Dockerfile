@@ -32,9 +32,14 @@ FROM --platform=$BUILDPLATFORM node:20-bookworm-slim AS web
 # lockfile resolution is reproducible. `corepack prepare --activate`
 # downloads the pinned tarball; `pnpm-lock.yaml` was generated with the
 # same version.
-ENV COREPACK_DEFAULT_TO_LATEST=0 \
-    HUSKY=0
-RUN corepack enable && corepack prepare pnpm@10.33.1 --activate
+# Install pnpm via npm with npmmirror registry.  The node:20 slim image
+# bundles npm which can use a mirror — unlike corepack which has its own
+# registry config and proxy crash bugs.  npmmirror may lag behind the
+# official registry but pnpm 10.33.1 has been available there since
+# 2025-06.  The `pnpm --version` guard ensures the right version landed.
+RUN npm config set registry https://registry.npmmirror.com/ && \
+    npm install -g pnpm@10.33.1 && \
+    pnpm --version
 
 WORKDIR /work
 
