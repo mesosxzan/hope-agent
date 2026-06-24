@@ -95,7 +95,7 @@ WORKDIR /work
 # of the index and is significantly faster.  This only affects the build
 # stage; the runtime stage has no cargo.
 RUN mkdir -p /usr/local/cargo && \
-    printf '[source.crates-io]\nreplace-with = "ustc"\n\n[source.ustc]\nregistry = "sparse+https://mirrors.ustc.edu.cn/crates.io-index/"\n\n[net]\ngit-fetch-with-cli = true\n' \
+    printf '[source.crates-io]\nreplace-with = "rsproxy"\n\n[source.rsproxy]\nregistry = "sparse+https://rsproxy.cn/crates.io-index/"\n\n[net]\ngit-fetch-with-cli = true\n' \
     > /usr/local/cargo/config.toml
 
 # Copy the workspace metadata first so dependency compilation is cached
