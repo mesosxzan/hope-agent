@@ -4,10 +4,7 @@ use std::sync::Arc;
 use super::api_provider::ApiEmbeddingProvider;
 use super::config::{EmbeddingConfig, EmbeddingProviderType};
 use super::fallback_provider::FallbackEmbeddingProvider;
-#[cfg(feature = "local-embeddings")]
 use super::local_provider::LocalEmbeddingProvider;
-#[cfg(not(feature = "local-embeddings"))]
-use super::local_provider_stub::LocalEmbeddingProvider;
 use crate::memory::traits::EmbeddingProvider;
 
 // ── Auto-selection Logic ────────────────────────────────────────

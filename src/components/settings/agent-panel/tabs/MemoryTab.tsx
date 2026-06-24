@@ -104,7 +104,15 @@ export default function MemoryTab({ agentId, openclawMode, config, updateConfig 
   }
 
   const useGlobalBudget = !config.memory?.budget
-  const budgetValue: MemoryBudgetConfig = config.memory?.budget ?? { ...DEFAULT_MEMORY_BUDGET }
+  const rawBudget = config.memory?.budget
+  const budgetValue: MemoryBudgetConfig = {
+    ...DEFAULT_MEMORY_BUDGET,
+    ...rawBudget,
+    sqliteSections: {
+      ...DEFAULT_MEMORY_BUDGET.sqliteSections,
+      ...rawBudget?.sqliteSections,
+    },
+  }
 
   const updateMemoryBudget = (next: MemoryBudgetConfig | null) => {
     const prevMemory = config.memory ?? DEFAULT_AGENT_MEMORY
