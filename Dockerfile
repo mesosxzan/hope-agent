@@ -90,6 +90,14 @@ RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 update && \
 
 WORKDIR /work
 
+# Use USTC mirror for crates.io-index to speed up dependency resolution
+# inside the Great Firewall.  The sparse protocol avoids a full git clone
+# of the index and is significantly faster.  This only affects the build
+# stage; the runtime stage has no cargo.
+RUN mkdir -p /usr/local/cargo && \
+    printf '[source.crates-io]\nreplace-with = "ustc"\n\n[source.ustc]\nregistry = "sparse+https://mirrors.ustc.edu.cn/crates.io-index/"\n\n[net]\ngit-fetch-with-cli = true\n' \
+    > /usr/local/cargo/config.toml
+
 # Copy the workspace metadata first so dependency compilation is cached
 # independently of source-only edits.
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
