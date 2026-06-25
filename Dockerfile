@@ -131,8 +131,7 @@ COPY --from=web /work/dist ./dist
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/work/target \
     RUSTFLAGS="-C link-arg=-fuse-ld=mold" \
-    no_proxy=cdn.pyke.io,localhost,127.0.0.1 \
-    NO_PROXY=cdn.pyke.io,localhost,127.0.0.1 \
+    http_proxy= https_proxy= HTTP_PROXY= HTTPS_PROXY= no_proxy= NO_PROXY= \
     cargo build --release --locked -p ha-server --bin hope-agent-server && \
     cp /work/target/release/hope-agent-server /usr/local/bin/hope-agent
 
