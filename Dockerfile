@@ -70,6 +70,13 @@ RUN pnpm build && \
 # -------------------------------------------------------------------
 FROM rust:1.95.0-trixie AS rust
 
+# Point rustup at the Tsinghua mirror so the "syncing channel updates"
+# triggered by rust-toolchain.toml's `channel = "stable"` doesn't hang
+# on static.rust-lang.org inside the Great Firewall.  Only
+# RUSTUP_DIST_SERVER is needed — modern rustup derives the manifest URL
+# from it automatically.
+ENV RUSTUP_DIST_SERVER=https://mirrors.tuna.tsinghua.edu.cn/rustup
+
 # protobuf-compiler is required by `prost-build` at compile time.
 # pkg-config is needed by several -sys crates even though OpenSSL is
 # vendored.
