@@ -48,8 +48,10 @@ pub async fn get_server_status(
 }
 
 pub async fn add_server(
-    Json(draft): Json<McpServerDraft>,
+    body: axum::body::Bytes,
 ) -> Result<Json<McpServerSummary>, AppError> {
+    let draft: McpServerDraft = serde_json::from_slice(&body)
+        .map_err(|e| AppError::bad_request(e.to_string()))?;
     api::add_server(draft)
         .await
         .map(Json)
@@ -58,8 +60,10 @@ pub async fn add_server(
 
 pub async fn update_server(
     Path(id): Path<String>,
-    Json(draft): Json<McpServerDraft>,
+    body: axum::body::Bytes,
 ) -> Result<Json<McpServerSummary>, AppError> {
+    let draft: McpServerDraft = serde_json::from_slice(&body)
+        .map_err(|e| AppError::bad_request(e.to_string()))?;
     api::update_server(&id, draft)
         .await
         .map(Json)

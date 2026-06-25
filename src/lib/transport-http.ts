@@ -1056,19 +1056,24 @@ export class HttpTransport implements Transport {
 
     // Tauri commands use named params like `{ config: ProviderConfig }`,
     // but some HTTP routes expect a flat JSON body (e.g. `Json<ProviderConfig>`).
-    // Flatten the `config` wrapper only for commands where the HTTP endpoint
-    // expects a bare ProviderConfig, not a `{ config, ... }` wrapper struct.
+    // Flatten the wrapper key only for commands where the HTTP endpoint
+    // expects a bare struct, not a `{ config, ... }` / `{ draft, ... }` wrapper.
     // Commands like test_model keep `{ config, modelId }` intact.
-    const FLATTEN_CONFIG_COMMANDS = new Set([
-      "test_provider", "add_provider", "update_provider",
-    ]);
+    const FLATTEN_WRAPPER_COMMANDS: Record<string, string> = {
+      test_provider: "config",
+      add_provider: "config",
+      update_provider: "config",
+      mcp_add_server: "draft",
+      mcp_update_server: "draft",
+    };
     let flatArgs = args;
+    const wrapperKey = FLATTEN_WRAPPER_COMMANDS[command];
     if (
-      FLATTEN_CONFIG_COMMANDS.has(command) &&
-      args && typeof args.config === "object" && args.config !== null && !Array.isArray(args.config)
+      wrapperKey &&
+      args && typeof args[wrapperKey] === "object" && args[wrapperKey] !== null && !Array.isArray(args[wrapperKey])
     ) {
-      const { config, ...rest } = args;
-      flatArgs = { ...(config as Record<string, unknown>), ...rest };
+      const { [wrapperKey]: wrapper, ...rest } = args;
+      flatArgs = { ...(wrapper as Record<string, unknown>), ...rest };
     }
 
     const { url: rawUrl, remainingArgs } = buildUrl(this.baseUrl, def, flatArgs);
