@@ -99,14 +99,12 @@ RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 update && \
 
 WORKDIR /work
 
-# Use Tsinghua (tuna) mirror for crates.io-index to speed up dependency
-# resolution inside the Great Firewall.  The git protocol (non-sparse) is
-# used because sparse indexes from Chinese mirrors have been unreliable
-# (incomplete sync, missing basic crates like `anyhow`).  The full git
-# clone is slower on the first build but the Docker cache mount persists
-# it across rebuilds.
+# Use rsproxy.cn (ByteDance) sparse index for crates.io.  The sparse
+# protocol is much faster than the legacy git clone and rsproxy is
+# currently the most reliable crates.io mirror inside the Great Firewall.
+# The Docker cache mount persists the registry across rebuilds.
 RUN mkdir -p /usr/local/cargo && \
-    printf '[source.crates-io]\nreplace-with = "tuna"\n\n[source.tuna]\nregistry = "https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git"\n\n[net]\ngit-fetch-with-cli = true\nretry = 5\n' \
+    printf '[source.crates-io]\nreplace-with = "rsproxy"\n\n[source.rsproxy]\nregistry = "sparse+https://rsproxy.cn/index/"\n\n[net]\nretry = 5\n' \
     > /usr/local/cargo/config.toml
 
 # Copy the workspace metadata first so dependency compilation is cached
