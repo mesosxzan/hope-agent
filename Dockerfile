@@ -70,12 +70,14 @@ RUN pnpm build && \
 # -------------------------------------------------------------------
 FROM rust:1.95.0-trixie AS rust
 
-# Point rustup at the Tsinghua mirror so the "syncing channel updates"
-# triggered by rust-toolchain.toml's `channel = "stable"` doesn't hang
-# on static.rust-lang.org inside the Great Firewall.  Only
-# RUSTUP_DIST_SERVER is needed — modern rustup derives the manifest URL
-# from it automatically.
-ENV RUSTUP_DIST_SERVER=https://mirrors.tuna.tsinghua.edu.cn/rustup
+# The base image already ships Rust 1.95.0 — the exact version pinned by
+# rust-toolchain.toml.  We deliberately do NOT copy rust-toolchain.toml
+# into the build context (see the COPY line below).  If present, rustup
+# reads `channel = "stable"` and tries to sync the latest stable channel
+# manifest from the network, which either hangs (static.rust-lang.org is
+# blocked) or fails ("no release found") behind the Great Firewall.
+# Without the file, rustup uses the pre-installed 1.95.0 toolchain
+# directly — same compiler, no network round-trip.
 
 # protobuf-compiler is required by `prost-build` at compile time.
 # pkg-config is needed by several -sys crates even though OpenSSL is
@@ -109,7 +111,10 @@ RUN mkdir -p /usr/local/cargo && \
 
 # Copy the workspace metadata first so dependency compilation is cached
 # independently of source-only edits.
-COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+# rust-toolchain.toml is intentionally omitted — see the comment at the
+# top of this stage.  Cargo doesn't need it; only rustup does, and the
+# base image already has the right toolchain installed.
+COPY Cargo.toml Cargo.lock ./
 COPY crates/ha-core/Cargo.toml crates/ha-core/Cargo.toml
 COPY crates/ha-server/Cargo.toml crates/ha-server/Cargo.toml
 COPY src-tauri/Cargo.toml src-tauri/Cargo.toml
