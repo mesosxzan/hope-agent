@@ -47,11 +47,9 @@ pub async fn get_server_status(
         .ok_or_else(|| AppError::not_found(format!("MCP server '{id}' not found")))
 }
 
-pub async fn add_server(
-    body: axum::body::Bytes,
-) -> Result<Json<McpServerSummary>, AppError> {
-    let draft: McpServerDraft = serde_json::from_slice(&body)
-        .map_err(|e| AppError::bad_request(e.to_string()))?;
+pub async fn add_server(body: axum::body::Bytes) -> Result<Json<McpServerSummary>, AppError> {
+    let draft: McpServerDraft =
+        serde_json::from_slice(&body).map_err(|e| AppError::bad_request(e.to_string()))?;
     api::add_server(draft)
         .await
         .map(Json)
@@ -62,8 +60,8 @@ pub async fn update_server(
     Path(id): Path<String>,
     body: axum::body::Bytes,
 ) -> Result<Json<McpServerSummary>, AppError> {
-    let draft: McpServerDraft = serde_json::from_slice(&body)
-        .map_err(|e| AppError::bad_request(e.to_string()))?;
+    let draft: McpServerDraft =
+        serde_json::from_slice(&body).map_err(|e| AppError::bad_request(e.to_string()))?;
     api::update_server(&id, draft)
         .await
         .map(Json)
