@@ -138,8 +138,18 @@ COPY --from=web /work/dist ./dist
 # The bin is named `hope-agent-server` upstream to avoid colliding with
 # src-tauri's `hope-agent` in `target/release/`; we rename it back to
 # `hope-agent` on the copy so the in-container command stays unchanged.
+# Docker 构建面向 server 部署，通过环境变量覆盖 release profile 以加快编译：
+#   CARGO_PROFILE_RELEASE_LTO=off      — 关闭 LTO，跳过跨 crate 内联的链接
+#                                        阶段（thin LTO 是 Docker 编译的主要瓶颈）
+#   CARGO_PROFILE_RELEASE_OPT_LEVEL=2  — 从默认 3 降到 2，编译稍快，运行性能
+#                                        损失通常可忽略
+# 根 Cargo.toml 的 [profile.release] 用 lto="thin" + opt-level 3 追求最优运行
+# 性能；此覆盖只影响 Docker 镜像构建，不影响 release.yml bare-binary（走独立
+# CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1）。二进制输出路径不变（仍 target/release/）。
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/work/target \
+    CARGO_PROFILE_RELEASE_LTO=off \
+    CARGO_PROFILE_RELEASE_OPT_LEVEL=2 \
     RUSTFLAGS="-C link-arg=-fuse-ld=mold" \
     http_proxy= https_proxy= HTTP_PROXY= HTTPS_PROXY= no_proxy= NO_PROXY= \
     cargo build --release --locked -p ha-server --bin hope-agent-server && \
