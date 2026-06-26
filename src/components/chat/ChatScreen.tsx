@@ -1403,6 +1403,7 @@ export default function ChatScreen({
     setLoadingSessionIds: session.setLoadingSessionIds,
     sessionCacheRef: session.sessionCacheRef,
     reloadSessions: refreshUnreadState,
+    setCurrentSessionId: session.setCurrentSessionId,
     onTurnStarted: stream.handleTurnStarted,
     onTurnEnded: stream.handleTurnEnded,
   })

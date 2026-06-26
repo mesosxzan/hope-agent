@@ -149,6 +149,8 @@ pub fn classify_error(error_msg: &str) -> FailoverReason {
         || lower.contains("incomplete message")
         || lower.contains("unexpected eof")
         || lower.contains("connection closed before message completed")
+        || lower.contains("no content received")
+        || lower.contains("sse stream ended with no content")
     {
         return FailoverReason::Timeout;
     }

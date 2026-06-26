@@ -289,6 +289,14 @@ pub async fn chat(
     // Tauri `chat` command — explicit-session callers must use the dedicated
     // setter to change it.
     if new_session_created {
+        // Broadcast session_created immediately so the HTTP-mode frontend can
+        // promote its `__pending__` cache key to the real session ID before
+        // `chat:stream_delta` events arrive over the WebSocket.  The Tauri
+        // path sends `session_created` on the per-call Channel before the
+        // engine starts; the HTTP path has no Channel, so the EventBus is the
+        // only delivery mechanism.
+        ha_core::chat_engine::stream_broadcast::broadcast_session_created(&sid);
+
         if let Some(wd) = body.working_dir.as_ref().filter(|s| !s.trim().is_empty()) {
             db.update_session_working_dir(&sid, Some(wd.clone()))
                 .map_err(|e| AppError::bad_request(e.to_string()))?;
