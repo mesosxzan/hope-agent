@@ -3493,6 +3493,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
 
