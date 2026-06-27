@@ -175,6 +175,7 @@ pub fn validate_timezone(s: &str) -> Result<()> {
 }
 
 /// Parse a fixed-offset timezone string like "+08:00" or "+0800".
+#[allow(dead_code)]
 fn parse_fixed_offset(s: &str) -> Result<FixedOffset> {
     let normalized = normalize_tz_offset(&format!("2000-01-01T00:00:00{s}"));
     if let Ok(dt) = DateTime::parse_from_rfc3339(&normalized) {

@@ -1188,6 +1188,7 @@ pub(crate) fn emit_cron_disabled_event(
 }
 
 /// Helper: create a new cron session with title and cron marker.
+#[allow(dead_code)]
 fn create_cron_session(
     session_db: &Arc<crate::session::SessionDB>,
     agent_id: &str,
@@ -1460,6 +1461,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         let claimed = db
@@ -1521,6 +1523,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         let next_before = job.next_run_at.clone();
@@ -1593,6 +1596,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         let claimed = db

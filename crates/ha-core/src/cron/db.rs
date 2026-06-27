@@ -1989,6 +1989,7 @@ mod tests {
             job_timeout_secs: None,
             permission_mode_override: None,
             sandbox_mode_override: None,
+            reuse_session: None,
         }
     }
 
@@ -2018,6 +2019,7 @@ mod tests {
                 job_timeout_secs: Some(1800),
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         assert_eq!(job.job_timeout_secs, Some(1800));
@@ -2116,6 +2118,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
 
@@ -2929,6 +2932,7 @@ mod tests {
             job_timeout_secs: None,
             permission_mode_override: None,
             sandbox_mode_override: None,
+            reuse_session: None,
         };
         let a = db.add_job(&mk("a")).expect("add a");
         let b = db.add_job(&mk("b")).expect("add b");
@@ -2973,6 +2977,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         let claimed = db
@@ -3029,6 +3034,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
 
@@ -3093,6 +3099,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
 
@@ -3145,6 +3152,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
 
@@ -3194,6 +3202,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         {
@@ -3241,6 +3250,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         // Rewrite to a PAST timestamp + paused, simulating a one-shot that elapsed
@@ -3294,6 +3304,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         for _ in 0..10 {
@@ -3336,6 +3347,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         let claimed = db
@@ -3378,6 +3390,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add")
         };
@@ -3442,6 +3455,7 @@ mod tests {
             job_timeout_secs: None,
             permission_mode_override: None,
             sandbox_mode_override: None,
+            reuse_session: None,
         };
 
         let past = db
