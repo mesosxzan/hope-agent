@@ -21,7 +21,9 @@ pub use timeline::{cron_run_timeline, delete_job_and_sessions};
 pub use db::CronDB;
 
 // Re-export schedule functions
-pub use schedule::{validate_cron_expression, validate_schedule, validate_timezone,DEFAULT_CRON_TIMEZONE};
+pub use schedule::{
+    validate_cron_expression, validate_schedule, validate_timezone, DEFAULT_CRON_TIMEZONE,
+};
 
 // Re-export scheduler
 pub use scheduler::start_scheduler;
