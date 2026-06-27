@@ -1025,6 +1025,32 @@ pub async fn set_theme(Json(body): Json<Value>) -> Result<Json<Value>, AppError>
     Ok(Json(json!({ "saved": true })))
 }
 
+/// `GET /api/config/color-theme` -- get color theme ("default" | "ocean" | "aurora" | "rose").
+pub async fn get_color_theme() -> Result<Json<Value>, AppError> {
+    let store = load_config()?;
+    Ok(Json(json!(store
+        .color_theme
+        .unwrap_or_else(|| "default".to_string()))))
+}
+
+/// `POST /api/config/color-theme` -- set color theme.
+pub async fn set_color_theme(Json(body): Json<Value>) -> Result<Json<Value>, AppError> {
+    let color_theme = body
+        .get("colorTheme")
+        .and_then(|v| v.as_str())
+        .unwrap_or("default")
+        .to_string();
+    ha_core::config::mutate_config(("theme", "http"), |store| {
+        store.color_theme = if color_theme == "default" {
+            None
+        } else {
+            Some(color_theme)
+        };
+        Ok(())
+    })?;
+    Ok(Json(json!({ "saved": true })))
+}
+
 /// `POST /api/config/window-theme` -- desktop-only, no-op in server mode.
 pub async fn set_window_theme(Json(_body): Json<Value>) -> Result<Json<Value>, AppError> {
     Ok(Json(json!({ "ok": true, "note": "desktop-only" })))

@@ -164,6 +164,24 @@ impl CronDB {
                 ON cron_jobs(project_id);",
         )?;
 
+        // Migration: add reuse_session column if missing
+        let has_reuse_session: bool = conn
+            .prepare("SELECT reuse_session FROM cron_jobs LIMIT 0")
+            .is_ok();
+        if !has_reuse_session {
+            conn.execute_batch(
+                "ALTER TABLE cron_jobs ADD COLUMN reuse_session INTEGER NOT NULL DEFAULT 0;",
+            )?;
+        }
+
+        // Migration: add last_session_id column if missing
+        let has_last_session_id: bool = conn
+            .prepare("SELECT last_session_id FROM cron_jobs LIMIT 0")
+            .is_ok();
+        if !has_last_session_id {
+            conn.execute_batch("ALTER TABLE cron_jobs ADD COLUMN last_session_id TEXT;")?;
+        }
+
         backfill_every_schedule_start_at(&conn)?;
         backfill_cron_schedule_timezone(&conn)?;
 
@@ -258,6 +276,8 @@ impl CronDB {
             job_timeout_secs: input.job_timeout_secs,
             permission_mode_override: input.permission_mode_override,
             sandbox_mode_override: input.sandbox_mode_override,
+            reuse_session: input.reuse_session.unwrap_or(false),
+            last_session_id: None,
         })
     }
 
@@ -273,6 +293,14 @@ impl CronDB {
     pub fn update_job(&self, job: &CronJob) -> Result<()> {
         // Persistence chokepoint — validate the whole schedule (see `add_job`).
         validate_schedule(&job.schedule)?;
+
+        app_info!(
+            "cron",
+            "db",
+            "update_job: id={}, reuse_session={}",
+            job.id,
+            job.reuse_session
+        );
 
         let now = Utc::now();
         let now_str = now.to_rfc3339();
@@ -470,6 +498,19 @@ impl CronDB {
         Ok(())
     }
 
+    /// Update the `last_session_id` field of a job.
+    pub fn update_job_last_session_id(&self, id: &str, session_id: &str) -> Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| anyhow::anyhow!("CronDB lock poisoned: {e}"))?;
+        conn.execute(
+            "UPDATE cron_jobs SET last_session_id=?1 WHERE id=?2",
+            params![session_id, id],
+        )?;
+        Ok(())
+    }
+
     /// Delete a job by ID.
     pub fn delete_job(&self, id: &str) -> Result<()> {
         // C15: if the job is mid-run, request cancellation first so the in-flight
@@ -519,7 +560,7 @@ impl CronDB {
             .lock()
             .map_err(|e| anyhow::anyhow!("CronDB lock poisoned: {e}"))?;
         let mut stmt = conn.prepare(
-            "SELECT id, name, description, schedule_json, payload_json, status, next_run_at, last_run_at, running_at, consecutive_failures, max_failures, created_at, updated_at, notify_on_complete, delivery_targets_json, project_id, prefix_delivery_with_name, job_timeout_secs, permission_mode_override, sandbox_mode_override
+            "SELECT id, name, description, schedule_json, payload_json, status, next_run_at, last_run_at, running_at, consecutive_failures, max_failures, created_at, updated_at, notify_on_complete, delivery_targets_json, project_id, reuse_session, last_session_id ,prefix_delivery_with_name, job_timeout_secs, permission_mode_override, sandbox_mode_override
              FROM cron_jobs WHERE id=?1"
         )?;
         let mut rows = stmt.query(params![id])?;
@@ -1844,6 +1885,9 @@ pub(crate) fn row_to_cron_job(row: &rusqlite::Row) -> Result<CronJob> {
             .ok()
             .flatten()
             .map(|s| crate::permission::SandboxMode::parse_or_default(&s)),
+        // Index 20 / 21, appended after sandbox_mode_override (19).
+        reuse_session: row.get::<_, i32>(20).ok().map(|v| v != 0).unwrap_or(false),
+        last_session_id: row.get::<_, Option<String>>(21).ok().flatten(),
     })
 }
 
@@ -1898,6 +1942,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
 
@@ -1961,6 +2006,7 @@ mod tests {
             job_timeout_secs: None,
             permission_mode_override: None,
             sandbox_mode_override: None,
+            reuse_session: None,
         }
     }
 
@@ -1990,6 +2036,7 @@ mod tests {
                 job_timeout_secs: Some(1800),
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         assert_eq!(job.job_timeout_secs, Some(1800));
@@ -2032,6 +2079,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: Some(SessionMode::Smart),
                 sandbox_mode_override: Some(SandboxMode::Isolated),
+                reuse_session: None,
             })
             .expect("add job");
         assert_eq!(job.permission_mode_override, Some(SessionMode::Smart));
@@ -2088,6 +2136,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
 
@@ -2408,6 +2457,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
 
@@ -2456,6 +2506,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
 
@@ -2756,6 +2807,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         let due_at = (Utc::now() - chrono::Duration::seconds(1)).to_rfc3339();
@@ -2812,6 +2864,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
 
@@ -2846,6 +2899,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         let original_next_run = job.next_run_at.clone();
@@ -2896,6 +2950,7 @@ mod tests {
             job_timeout_secs: None,
             permission_mode_override: None,
             sandbox_mode_override: None,
+            reuse_session: None,
         };
         let a = db.add_job(&mk("a")).expect("add a");
         let b = db.add_job(&mk("b")).expect("add b");
@@ -2940,6 +2995,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         let claimed = db
@@ -2996,6 +3052,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
 
@@ -3060,6 +3117,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
 
@@ -3112,6 +3170,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
 
@@ -3161,6 +3220,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         {
@@ -3208,6 +3268,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         // Rewrite to a PAST timestamp + paused, simulating a one-shot that elapsed
@@ -3261,6 +3322,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         for _ in 0..10 {
@@ -3303,6 +3365,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         let claimed = db
@@ -3345,6 +3408,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add")
         };
@@ -3492,6 +3556,7 @@ mod tests {
             job_timeout_secs: None,
             permission_mode_override: None,
             sandbox_mode_override: None,
+            reuse_session: None,
         };
 
         let past = db

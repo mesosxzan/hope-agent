@@ -80,27 +80,58 @@ fn finalize_active_turns_for_shutdown() {
 /// Install signal handlers (SIGINT/SIGTERM on Unix, ctrl_c/ctrl_break on
 /// Windows) that flush active persisters and exit cleanly. Idempotent.
 /// MUST be called from within a tokio runtime — uses `tokio::spawn`.
+///
+/// **Desktop (Tauri) mode**: SIGINT (Ctrl+C) is *not* intercepted so the
+/// signal propagates to the parent process chain (`pnpm tauri dev` → vite).
+/// Intercepting it would cause `std::process::exit(0)` to kill only the
+/// hope-agent child while leaving vite/pnpm orphaned — the user then has
+/// to `kill -9` them manually. Desktop exits through Tauri's own
+/// `RunEvent::Exit` path instead. SIGTERM is still handled so `kill
+/// $PID` works for clean shutdown.
+///
+/// **Server / ACP mode**: both SIGINT and SIGTERM are handled because
+/// these modes run as foreground daemons where Ctrl+C is the expected
+/// way to stop the process.
 pub fn install_signal_handlers() {
-    if SIGNAL_HANDLERS_INSTALLED.set(()).is_err() {
+    install_signal_handlers_inner(false);
+}
+
+/// Like [`install_signal_handlers`] but forces SIGINT handling even in
+/// desktop mode. Used by server and ACP entrypoints that *are* the
+/// foreground process and need Ctrl+C to trigger clean shutdown.
+pub fn install_signal_handlers_with_sigint() {
+    install_signal_handlers_inner(true);
+}
+
+fn install_signal_handlers_inner(force_sigint: bool) {
+    // Desktop setup.rs may have already installed SIGTERM-only handlers.
+    // `force_sigint` (server / ACP mode) must still be able to register
+    // its own SIGINT handler even after that first call. Track whether
+    // SIGINT has been registered separately so the `OnceLock` that guards
+    // idempotency of install_signal_handlers() doesn't also block
+    // install_signal_handlers_with_sigint().
+    let already_installed = SIGNAL_HANDLERS_INSTALLED.set(()).is_err();
+
+    // Desktop mode: skip SIGINT handler so Ctrl+C propagates to the
+    // parent process chain (pnpm → tauri-cli → vite). SIGTERM is still
+    // handled for `kill $PID` clean shutdown.
+    let handle_sigint = force_sigint || !crate::app_init::is_desktop();
+
+    // If the first call already registered SIGINT and we're being asked
+    // to do it again with the same setting, nothing to do. If the first
+    // call was SIGTERM-only (desktop) and now force_sigint is true
+    // (e.g. desktop `hope-agent server start` subcommand), we MUST
+    // still proceed to install the SIGINT handler.
+    if already_installed && !force_sigint {
         return;
     }
 
     #[cfg(unix)]
     {
-        tokio::spawn(async {
+        tokio::spawn(async move {
             use tokio::signal::unix::{signal, SignalKind};
-            let mut sigint = match signal(SignalKind::interrupt()) {
-                Ok(s) => s,
-                Err(e) => {
-                    app_warn!(
-                        "session",
-                        "stream_persist",
-                        "install SIGINT handler failed: {}",
-                        e
-                    );
-                    return;
-                }
-            };
+
+            // SIGTERM is always handled — `kill $PID` should flush.
             let mut sigterm = match signal(SignalKind::terminate()) {
                 Ok(s) => s,
                 Err(e) => {
@@ -113,14 +144,39 @@ pub fn install_signal_handlers() {
                     return;
                 }
             };
-            tokio::select! {
-                _ = sigint.recv() => {
-                    app_info!("session", "stream_persist", "received SIGINT, clean shutdown");
+
+            if handle_sigint {
+                let mut sigint = match signal(SignalKind::interrupt()) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        app_warn!(
+                            "session",
+                            "stream_persist",
+                            "install SIGINT handler failed: {}",
+                            e
+                        );
+                        return;
+                    }
+                };
+                tokio::select! {
+                    _ = sigint.recv() => {
+                        app_info!("session", "stream_persist", "received SIGINT, clean shutdown");
+                    }
+                    _ = sigterm.recv() => {
+                        app_info!("session", "stream_persist", "received SIGTERM, clean shutdown");
+                    }
                 }
-                _ = sigterm.recv() => {
-                    app_info!("session", "stream_persist", "received SIGTERM, clean shutdown");
-                }
+            } else {
+                // Desktop: only SIGTERM. SIGINT falls through to the
+                // default disposition so the parent process tree exits.
+                sigterm.recv().await;
+                app_info!(
+                    "session",
+                    "stream_persist",
+                    "received SIGTERM, clean shutdown"
+                );
             }
+
             fire_shutdown_session_end().await;
             run_clean_shutdown();
         });
@@ -128,7 +184,9 @@ pub fn install_signal_handlers() {
 
     #[cfg(windows)]
     {
-        tokio::spawn(async {
+        tokio::spawn(async move {
+            // Windows: Ctrl+C / Ctrl+Break are always handled because
+            // the signal model differs (no SIGINT propagation issue).
             let mut ctrl_c = match tokio::signal::windows::ctrl_c() {
                 Ok(s) => s,
                 Err(e) => {
@@ -193,8 +251,16 @@ async fn fire_shutdown_session_end() {
 /// pre-flush DB state and then dangles the flushed rows as orphans
 /// the next launch's restore would miss.
 fn run_clean_shutdown() -> ! {
+    clean_shutdown_no_exit();
+    std::process::exit(0);
+}
+
+/// Same as `run_clean_shutdown` but without `std::process::exit(0)`.
+/// Used by the Tauri desktop `RunEvent::Exit` handler — the process
+/// is already exiting, so calling `exit` again would skip Tauri's own
+/// teardown and potentially corrupt state.
+pub fn clean_shutdown_no_exit() {
     crate::chat_engine::finalize::sentinel::write_clean_marker();
     active_persisters::flush_all_blocking();
     finalize_active_turns_for_shutdown();
-    std::process::exit(0);
 }

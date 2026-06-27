@@ -151,6 +151,7 @@ export default function ProviderEditPage({
     setError("")
     try {
       await getTransport().call("update_provider", {
+        providerId: provider.id,
         config: {
           ...provider,
           name: editName,

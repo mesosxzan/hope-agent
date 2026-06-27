@@ -17,6 +17,7 @@ import {
 const EVENT_CHAT_STREAM_DELTA = "chat:stream_delta"
 const EVENT_CHAT_STREAM_END = "chat:stream_end"
 const EVENT_CHAT_TURN_STARTED = "chat:turn_started"
+const EVENT_CHAT_SESSION_CREATED = "chat:session_created"
 
 // `chat:stream_end` is the primary signal that clears a session's `loading`
 // flag. If that event is ever missed (dropped frame, race, process boundary,
@@ -52,6 +53,12 @@ export interface UseChatStreamReattachDeps {
   setLoadingSessionIds: React.Dispatch<React.SetStateAction<Set<string>>>
   sessionCacheRef: React.MutableRefObject<Map<string, Message[]>>
   reloadSessions: () => Promise<void>
+  /** Promote `__pending__` to the real session ID. Shared with `useChatStream`
+   *  which also calls this on its in-flight `session_created` event. The
+   *  reattach path needs it so the EventBus-delivered `chat:session_created`
+   *  (arriving before the POST resolves) can rename the cache key before
+   *  `chat:stream_delta` events land. */
+  setCurrentSessionId: (id: string) => void
   onTurnStarted?: (sessionId: string, turnId: string) => void
   onTurnEnded?: (
     sessionId: string,
@@ -112,6 +119,7 @@ export function useChatStreamReattach(deps: UseChatStreamReattachDeps): void {
     setLoadingSessionIds,
     sessionCacheRef,
     reloadSessions,
+    setCurrentSessionId,
     onTurnStarted,
     onTurnEnded,
   } = deps
@@ -130,6 +138,75 @@ export function useChatStreamReattach(deps: UseChatStreamReattachDeps): void {
     })
     return unlisten
   }, [onTurnStarted])
+
+  // In HTTP mode `startChat` is a synchronous POST that resolves after the
+  // engine finishes, so the in-flight `session_created` event synthesized by
+  // `transport-http.ts` arrives *after* all `chat:stream_delta` events have
+  // already landed over the WebSocket.  The backend now broadcasts
+  // `chat:session_created` via EventBus immediately after creating the
+  // session, so the frontend can promote its `__pending__` cache key before
+  // the first stream delta arrives.  This mirrors the Tauri path where
+  // `session_created` is sent on the per-call Channel before the engine
+  // starts.
+  useEffect(() => {
+    const unlisten = getTransport().listen(EVENT_CHAT_SESSION_CREATED, (raw) => {
+      const payload = raw as { sessionId?: string } | null
+      if (!payload?.sessionId) return
+      const sid = payload.sessionId
+
+      // Only promote if we still have a `__pending__` entry — the
+      // `useChatStream` in-flight path may have already done this.
+      const pending = sessionCacheRef.current.get("__pending__")
+      if (!pending) return
+
+      sessionCacheRef.current.delete("__pending__")
+      // If a stream_delta already created an entry for the real ID
+      // (race: delta arrived before this event), merge the pending
+      // optimistic messages (user + assistant placeholder) with the
+      // existing data so we don't lose either.
+      const existing = sessionCacheRef.current.get(sid)
+      if (existing && existing.length > 0) {
+        // Prepend the optimistic user message if the existing data
+        // doesn't already start with one, then ensure an assistant
+        // placeholder exists for subsequent deltas to append to.
+        const hasUserMsg = existing.some((m) => m.role === "user")
+        const merged: Message[] = []
+        if (!hasUserMsg) {
+          // Inject optimistic user message(s) from pending
+          for (const m of pending) {
+            if (m.role === "user") merged.push(m)
+          }
+        }
+        merged.push(...existing)
+        // Ensure an assistant placeholder at the tail
+        const lastMerged = merged[merged.length - 1]
+        if (!lastMerged || lastMerged.role !== "assistant") {
+          // Find the assistant placeholder from pending
+          const assistantPlaceholder = pending.find((m) => m.role === "assistant")
+          if (assistantPlaceholder) merged.push(assistantPlaceholder)
+        }
+        sessionCacheRef.current.set(sid, merged)
+      } else {
+        sessionCacheRef.current.set(sid, pending)
+      }
+
+      loadingSessionsRef.current.add(sid)
+      setLoadingSessionIds(new Set(loadingSessionsRef.current))
+      // Update the ref synchronously so subsequent `stream_delta` events
+      // arriving in the same microtask batch see the correct session ID
+      // (the state update via `setCurrentSessionId` is deferred to the
+      // next React render).
+      currentSessionIdRef.current = sid
+      setCurrentSessionId(sid)
+      // Also set messages immediately so the UI reflects the optimistic
+      // placeholders without waiting for the React state update cascade.
+      const cached = sessionCacheRef.current.get(sid)
+      if (cached) setMessages(cached)
+      void reloadSessions()
+    })
+    return unlisten
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     const unlisten = getTransport().listen(EVENT_CHAT_STREAM_DELTA, (raw) => {

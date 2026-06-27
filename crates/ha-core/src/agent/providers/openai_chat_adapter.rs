@@ -726,12 +726,58 @@ async fn parse_chat_completions_sse(
     let mut usage = ChatUsage::default();
     let mut think_filter = ThinkTagFilter::new();
     let mut first_token_time: Option<u64> = None;
+    // Track whether the SSE stream was interrupted mid-read so we can
+    // tolerate the error when partial output has already been collected,
+    // or surface a retryable error when no content was received at all.
+    let mut stream_error: Option<anyhow::Error> = None;
 
     let mut stream = resp.bytes_stream();
     let mut buffer = String::new();
 
     while let Some(chunk) = super::cancel::next_chunk_or_cancel(&mut stream, cancel).await {
-        let chunk = chunk?;
+        let chunk = match chunk {
+            Ok(c) => c,
+            Err(e) => {
+                let err = anyhow::anyhow!("SSE stream read error: {}", e);
+                // If we already have partial text or tool calls, salvage
+                // what we have rather than failing the entire request.
+                // This mirrors the OpenAI Responses adapter's stream-error
+                // tolerance and is especially important for HTTP / Docker
+                // deployments where reverse proxies / load balancers may
+                // close the SSE connection after a long tool loop.
+                if !collected_text.is_empty() || !tool_calls.is_empty() || !pending_calls.is_empty()
+                {
+                    if let Some(logger) = crate::get_logger() {
+                        logger.log(
+                            "warn",
+                            "agent",
+                            "agent::parse_chat_completions_sse::stream_error_tolerated",
+                            &format!(
+                                "SSE stream read error after partial output; salvaging: {}chars text, {} tool_calls",
+                                collected_text.len(),
+                                tool_calls.len(),
+                            ),
+                            Some(
+                                json!({
+                                    "error": e.to_string(),
+                                    "text_length": collected_text.len(),
+                                    "tool_call_count": tool_calls.len(),
+                                    "pending_tool_call_count": pending_calls.len(),
+                                })
+                                .to_string(),
+                            ),
+                            None,
+                            None,
+                        );
+                    }
+                    stream_error = Some(err);
+                    break;
+                }
+                // No partial output — propagate the error so the failover
+                // executor can classify and retry / rotate.
+                return Err(err);
+            }
+        };
         buffer.push_str(&String::from_utf8_lossy(&chunk));
 
         while let Some(idx) = buffer.find("\n\n") {
@@ -859,8 +905,40 @@ async fn parse_chat_completions_sse(
                             }
                         }
                     }
+                } else {
+                    // SSE data line was not valid JSON — log and skip.
+                    // This can happen when the server sends malformed
+                    // chunks (e.g. truncated by a reverse proxy).
+                    if let Some(logger) = crate::get_logger() {
+                        logger.log(
+                            "warn",
+                            "agent",
+                            "agent::parse_chat_completions_sse::sse_json_parse_error",
+                            &format!(
+                                "Failed to parse SSE JSON data ({} bytes)",
+                                data.len(),
+                            ),
+                            Some(
+                                json!({
+                                    "data_preview": if data.len() > 200 { &data[..200] } else { &data },
+                                })
+                                .to_string(),
+                            ),
+                            None,
+                            None,
+                        );
+                    }
                 }
             }
+        }
+    }
+
+    // If the stream was interrupted AND we collected nothing, propagate the
+    // stream error directly so the caller gets a meaningful message instead
+    // of a generic "No content received".
+    if collected_text.is_empty() && tool_calls.is_empty() {
+        if let Some(err) = stream_error.take() {
+            return Err(err.context("SSE stream ended with no content"));
         }
     }
 

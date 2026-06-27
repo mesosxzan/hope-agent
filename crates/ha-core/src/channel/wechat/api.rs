@@ -131,23 +131,49 @@ impl WeChatApi {
         context_token: Option<&str>,
     ) -> Result<String> {
         let message_id = format!("hope-agent-wechat-{}", Uuid::new_v4().simple());
-        self.post_json(
-            "ilink/bot/sendmessage",
-            json!({
-                "msg": {
-                    "from_user_id": "",
-                    "to_user_id": to_user_id,
-                    "client_id": message_id,
-                    "message_type": MESSAGE_TYPE_BOT,
-                    "message_state": 2,
-                    "item_list": item_list,
-                    "context_token": context_token,
-                },
-                "base_info": base_info(),
-            }),
-            15_000,
-        )
-        .await?;
+        let mut msg = json!({
+            "from_user_id": "",
+            "to_user_id": to_user_id,
+            "client_id": message_id,
+            "message_type": MESSAGE_TYPE_BOT,
+            "message_state": 2,
+            "item_list": item_list,
+        });
+        // WeChat ilink rejects `context_token: null` with ret=-2. Omit the
+        // field entirely when no token is available (cron delivery, first
+        // outbound message before any inbound message, etc.).
+        if let Some(token) = context_token {
+            msg["context_token"] = json!(token);
+        }
+        let raw = self
+            .post_json(
+                "ilink/bot/sendmessage",
+                json!({
+                    "msg": msg,
+                    "base_info": base_info(),
+                }),
+                15_000,
+            )
+            .await?;
+
+        // Check business-level error code. WeChat ilink API returns HTTP 200
+        // even when the message was rejected (e.g. expired session / invalid
+        // context_token). Parse the JSON body and surface `ret` / `errcode`
+        // so callers (cron delivery, IM reply, etc.) don't silently swallow
+        // failures.
+        if let Ok(resp) = serde_json::from_str::<WeChatSendMsgResponse>(&raw) {
+            let ret = resp.ret.unwrap_or(0);
+            let errcode = resp.errcode.unwrap_or(0);
+            if ret != 0 || errcode != 0 {
+                return Err(anyhow::anyhow!(
+                    "WeChat sendmessage failed: ret={} errcode={} errmsg={}",
+                    ret,
+                    errcode,
+                    resp.errmsg.as_deref().unwrap_or("unknown")
+                ));
+            }
+        }
+
         Ok(message_id)
     }
 
@@ -163,17 +189,16 @@ impl WeChatApi {
         ilink_user_id: &str,
         context_token: Option<&str>,
     ) -> Result<GetConfigResponse> {
-        let raw = self
-            .post_json(
-                "ilink/bot/getconfig",
-                json!({
-                    "ilink_user_id": ilink_user_id,
-                    "context_token": context_token,
-                    "base_info": base_info(),
-                }),
-                10_000,
-            )
-            .await?;
+        let mut body = json!({
+            "ilink_user_id": ilink_user_id,
+            "base_info": base_info(),
+        });
+        // WeChat ilink rejects `context_token: null` with ret=-2.
+        // Omit the field entirely when no token is available.
+        if let Some(token) = context_token {
+            body["context_token"] = json!(token);
+        }
+        let raw = self.post_json("ilink/bot/getconfig", body, 10_000).await?;
         serde_json::from_str(&raw).context("Failed to decode WeChat getConfig response")
     }
 
@@ -380,6 +405,18 @@ pub struct GetUpdatesResponse {
     pub longpolling_timeout_ms: Option<u64>,
 }
 
+/// Response body for `ilink/bot/sendmessage`. WeChat returns HTTP 200 even
+/// on business-level failures; `ret` and `errcode` must be checked.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct WeChatSendMsgResponse {
+    #[serde(default)]
+    pub ret: Option<i32>,
+    #[serde(default)]
+    pub errcode: Option<i32>,
+    #[serde(default)]
+    pub errmsg: Option<String>,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct WeChatMessage {
     #[serde(default)]
@@ -506,6 +543,8 @@ pub struct GetConfigResponse {
     pub ret: Option<i32>,
     #[serde(default)]
     pub errmsg: Option<String>,
+    #[serde(default)]
+    pub context_token: Option<String>,
     #[serde(default)]
     pub typing_ticket: Option<String>,
 }

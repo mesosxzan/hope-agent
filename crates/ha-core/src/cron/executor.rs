@@ -1187,6 +1187,27 @@ pub(crate) fn emit_cron_disabled_event(
     }
 }
 
+/// Helper: create a new cron session with title and cron marker.
+#[allow(dead_code)]
+fn create_cron_session(
+    session_db: &Arc<crate::session::SessionDB>,
+    agent_id: &str,
+    project_id: Option<&str>,
+    job_name: &str,
+) -> String {
+    match session_db.create_session_with_project(agent_id, project_id, None) {
+        Ok(meta) => {
+            let _ = session_db.update_session_title(&meta.id, job_name);
+            let _ = session_db.mark_session_cron(&meta.id);
+            meta.id
+        }
+        Err(e) => {
+            app_error!("cron", "executor", "Failed to create session: {}", e);
+            String::new()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1364,6 +1385,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         {
@@ -1439,6 +1461,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         let claimed = db
@@ -1500,6 +1523,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         let next_before = job.next_run_at.clone();
@@ -1572,6 +1596,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         let claimed = db

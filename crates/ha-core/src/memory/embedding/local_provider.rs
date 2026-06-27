@@ -25,7 +25,7 @@ impl LocalEmbeddingProvider {
         let cache_dir = crate::paths::models_cache_dir()?;
 
         let model = fastembed::TextEmbedding::try_new(
-            fastembed::InitOptions::new(fe_model)
+            fastembed::TextInitOptions::new(fe_model)
                 .with_cache_dir(cache_dir)
                 .with_show_download_progress(false),
         )

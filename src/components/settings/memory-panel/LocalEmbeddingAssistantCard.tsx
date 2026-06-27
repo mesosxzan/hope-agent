@@ -459,7 +459,7 @@ export default function LocalEmbeddingAssistantCard({
                 <span>·</span>
                 <span>
                   {t("settings.localEmbedding.contextWindow", {
-                    n: recommended.contextWindow.toLocaleString(),
+                    n: (recommended.contextWindow ?? 0).toLocaleString(),
                   })}
                 </span>
                 <span>·</span>
