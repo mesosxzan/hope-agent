@@ -184,7 +184,6 @@ mod tests {
     use super::*;
     use crate::provider::{ApiType, ProviderConfig};
     use crate::session::SessionDB;
-    use chrono::Utc;
     use rusqlite::params;
 
     fn make_provider(name: &str, base_url: &str, api: ApiType) -> ProviderConfig {

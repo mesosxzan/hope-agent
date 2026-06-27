@@ -135,45 +135,6 @@ pub async fn access_log(request: Request, next: Next) -> Response {
     response
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn constant_time_eq_matches_equal_inputs() {
-        assert!(constant_time_eq(b"abc", b"abc"));
-        assert!(constant_time_eq(b"", b""));
-    }
-
-    #[test]
-    fn constant_time_eq_rejects_unequal_length() {
-        assert!(!constant_time_eq(b"abc", b"abcd"));
-        assert!(!constant_time_eq(b"abc", b""));
-    }
-
-    #[test]
-    fn constant_time_eq_rejects_different_content() {
-        assert!(!constant_time_eq(b"abc", b"abd"));
-    }
-
-    #[test]
-    fn percent_decode_handles_encoded_symbols() {
-        assert_eq!(percent_decode_form_value("hello%20world"), b"hello world");
-        assert_eq!(percent_decode_form_value("a%2Bb%3Dc"), b"a+b=c");
-        assert_eq!(percent_decode_form_value("plain"), b"plain");
-        // `+` decodes to space per application/x-www-form-urlencoded.
-        assert_eq!(percent_decode_form_value("a+b"), b"a b");
-    }
-
-    #[test]
-    fn percent_decode_tolerates_bad_sequences() {
-        // Malformed `%Q1` must not crash; passes through as literal.
-        assert_eq!(percent_decode_form_value("%Q1"), b"%Q1");
-        // Trailing `%` with no digits passes through.
-        assert_eq!(percent_decode_form_value("abc%"), b"abc%");
-    }
-}
-
 // ── Timezone Conversion Middleware ──────────────────────────────────
 
 /// Middleware that converts UTC timestamps in JSON responses to the user's
@@ -231,4 +192,43 @@ pub async fn convert_timezone(request: Request, next: Next) -> Response {
     };
 
     (parts.status, parts.headers, Body::from(converted)).into_response()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn constant_time_eq_matches_equal_inputs() {
+        assert!(constant_time_eq(b"abc", b"abc"));
+        assert!(constant_time_eq(b"", b""));
+    }
+
+    #[test]
+    fn constant_time_eq_rejects_unequal_length() {
+        assert!(!constant_time_eq(b"abc", b"abcd"));
+        assert!(!constant_time_eq(b"abc", b""));
+    }
+
+    #[test]
+    fn constant_time_eq_rejects_different_content() {
+        assert!(!constant_time_eq(b"abc", b"abd"));
+    }
+
+    #[test]
+    fn percent_decode_handles_encoded_symbols() {
+        assert_eq!(percent_decode_form_value("hello%20world"), b"hello world");
+        assert_eq!(percent_decode_form_value("a%2Bb%3Dc"), b"a+b=c");
+        assert_eq!(percent_decode_form_value("plain"), b"plain");
+        // `+` decodes to space per application/x-www-form-urlencoded.
+        assert_eq!(percent_decode_form_value("a+b"), b"a b");
+    }
+
+    #[test]
+    fn percent_decode_tolerates_bad_sequences() {
+        // Malformed `%Q1` must not crash; passes through as literal.
+        assert_eq!(percent_decode_form_value("%Q1"), b"%Q1");
+        // Trailing `%` with no digits passes through.
+        assert_eq!(percent_decode_form_value("abc%"), b"abc%");
+    }
 }
