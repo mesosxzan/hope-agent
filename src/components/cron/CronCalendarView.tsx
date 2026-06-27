@@ -264,8 +264,13 @@ export default function CronCalendarView({
 
   async function handleToggle(job: CronJob) {
     const enabled = job.status !== "active"
-    await getTransport().call("cron_toggle_job", { id: job.id, enabled })
-    refreshAll()
+    try {
+      await getTransport().call("cron_toggle_job", { id: job.id, enabled })
+      toast.success(enabled ? t("cron.resumeSuccess", "任务已恢复") : t("cron.pauseSuccess", "任务已暂停"))
+      refreshAll()
+    } catch (e) {
+      toast.error(String(e))
+    }
   }
 
   function handleDelete(job: CronJob) {
@@ -294,8 +299,13 @@ export default function CronCalendarView({
   }
 
   async function handleRunNow(job: CronJob) {
-    await getTransport().call("cron_run_now", { id: job.id })
-    setTimeout(refreshAll, 2000)
+    try {
+      await getTransport().call("cron_run_now", { id: job.id })
+      toast.success(t("cron.runNowSuccess", "已触发立即执行"))
+      setTimeout(refreshAll, 2000)
+    } catch (e) {
+      toast.error(String(e))
+    }
   }
 
   const deleteUi = (
@@ -516,7 +526,12 @@ export default function CronCalendarView({
                             .get(day)!
                             .slice(0, 4)
                             .map((evt, j) => {
-                              const dotColor = runLogDotColor(evt.runLog?.status, evt.status)
+                              const dotColor =
+                                evt.runLog?.status === "success"
+                                  ? "bg-emerald-500"
+                                  : evt.runLog?.status === "error"
+                                    ? "bg-red-500"
+                                    : statusColor(evt.status)
                               return (
                                 <IconTip key={j} label={evt.jobName}>
                                   <span

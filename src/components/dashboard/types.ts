@@ -221,6 +221,8 @@ export interface CronJob {
   createdAt: string
   updatedAt: string
   notifyOnComplete: boolean
+  reuseSession: boolean
+  lastSessionId?: string | null
 }
 
 export type Granularity = "day" | "week" | "month"

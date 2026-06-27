@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, FixedOffset, Utc};
 use chrono_tz::Tz;
 use cron::Schedule as CronExpression;
 use std::str::FromStr;
@@ -99,13 +99,12 @@ pub fn compute_next_every_run(
     DateTime::<Utc>::from_timestamp_millis(next_ms)
 }
 
-/// Parse cron expression and find the next occurrence after `after`.
-///
-/// When `timezone` names a valid IANA zone the cron wall-clock fields are
-/// interpreted in that zone (DST-aware), then converted back to UTC for storage.
-/// An absent / empty / unknown zone falls back to UTC interpretation (the
-/// historical behavior). `parse_schedule` rejects invalid zones up front, so the
-/// `None` fallback here is only hit by zone-less (legacy / explicit-UTC) jobs.
+/// Default timezone for cron jobs when none is specified.
+pub const DEFAULT_CRON_TIMEZONE: &str = "Asia/Shanghai";
+
+/// Parse cron expression and find the next occurrence after `after`,
+/// using the specified IANA timezone (e.g. "Asia/Shanghai") for calendar
+/// expansion. Falls back to `DEFAULT_CRON_TIMEZONE` when timezone is `None`.
 fn compute_next_cron(
     expression: &str,
     timezone: Option<&str>,
@@ -173,6 +172,15 @@ pub fn validate_timezone(s: &str) -> Result<()> {
             s.trim()
         )
     }
+}
+
+/// Parse a fixed-offset timezone string like "+08:00" or "+0800".
+fn parse_fixed_offset(s: &str) -> Result<FixedOffset> {
+    let normalized = normalize_tz_offset(&format!("2000-01-01T00:00:00{s}"));
+    if let Ok(dt) = DateTime::parse_from_rfc3339(&normalized) {
+        return Ok(*dt.offset());
+    }
+    anyhow::bail!("invalid fixed offset: {s}")
 }
 
 /// Validate a cron expression. Returns Ok if valid, Err with message if not.

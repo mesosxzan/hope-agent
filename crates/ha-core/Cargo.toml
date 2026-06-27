@@ -20,6 +20,7 @@ anyhow = { workspace = true }
 async-trait = { workspace = true }
 log = { workspace = true }
 chrono = { workspace = true }
+chrono-tz = { workspace = true }
 uuid = { workspace = true }
 rusqlite = { workspace = true }
 reqwest = { workspace = true }
@@ -42,13 +43,12 @@ http = "1"
 
 # Non-workspace dependencies (core-specific)
 sqlite-vec = "0.1"
-fastembed = "5"
+fastembed = "5.17"
 zerocopy = { version = "0.8", features = ["derive"] }
 cron = "0.13"
-# IANA timezone support for cron schedules (DST-aware). chrono-tz carries the
-# full zone table; iana-time-zone (already transitive via chrono) detects the
-# host zone for the legacy null→local backfill.
-chrono-tz = "0.10"
+# IANA timezone support for cron schedules (DST-aware).
+# chrono-tz carries the full zone table (workspace dep); iana-time-zone (already
+# transitive via chrono) detects the host zone for the legacy null→local backfill.
 iana-time-zone = "0.1"
 pdf-extract = "0.10"
 pdfium-render = "0.9"

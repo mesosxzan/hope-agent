@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
-import { useTheme, type ThemeMode } from "@/hooks/useTheme"
+import { useTheme, type ThemeMode, COLOR_THEMES } from "@/hooks/useTheme"
 import { Button } from "@/components/ui/button"
 import { Monitor, Sun, Moon, Check } from "lucide-react"
 
@@ -32,7 +32,7 @@ const THEME_OPTIONS: {
 
 export default function AppearancePanel() {
   const { t } = useTranslation()
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, colorTheme, setColorTheme } = useTheme()
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
@@ -67,6 +67,37 @@ export default function AppearancePanel() {
             {theme === opt.mode && <Check className="h-4 w-4 text-primary shrink-0" />}
           </Button>
         ))}
+      </div>
+
+      {/* Color theme selector */}
+      <div className="mt-6">
+        <h3 className="text-sm font-semibold text-foreground mb-1">{t("theme.colorScheme", "配色方案")}</h3>
+        <p className="text-xs text-muted-foreground mb-3">{t("theme.colorSchemeDesc", "选择界面配色风格")}</p>
+        <div className="grid grid-cols-4 gap-2">
+          {COLOR_THEMES.map((ct) => (
+            <button
+              key={ct.id}
+              className={cn(
+                "flex flex-col items-center gap-1.5 rounded-lg border-2 p-2.5 transition-all",
+                colorTheme === ct.id
+                  ? "border-primary bg-primary/5"
+                  : "border-transparent bg-secondary/40 hover:bg-secondary/70",
+              )}
+              onClick={() => setColorTheme(ct.id)}
+            >
+              <span
+                className="h-6 w-6 rounded-full border shadow-sm"
+                style={{ backgroundColor: ct.preview }}
+              />
+              <span className={cn(
+                "text-[0.6875rem] leading-tight",
+                colorTheme === ct.id ? "text-primary font-medium" : "text-muted-foreground",
+              )}>
+                {t(ct.labelKey, ct.id === "default" ? "默认" : ct.id === "ocean" ? "海洋" : ct.id === "aurora" ? "极光" : "玫瑰")}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )

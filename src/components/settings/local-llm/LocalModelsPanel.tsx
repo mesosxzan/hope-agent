@@ -1359,7 +1359,7 @@ export default function LocalModelsPanel() {
                           </span>
                           <span>
                             {t("settings.localLlm.contextWindow", {
-                              n: model.contextWindow.toLocaleString(),
+                              n: (model.contextWindow ?? 0).toLocaleString(),
                             })}
                           </span>
                         </div>

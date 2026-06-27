@@ -92,9 +92,6 @@ import WorkspacePanel from "./workspace/WorkspacePanel"
 import BackgroundJobsPanel from "./background-jobs/BackgroundJobsPanel"
 import { useBackgroundJobs } from "./background-jobs/useBackgroundJobs"
 import { resolveWorkspaceTaskExecutionState } from "./workspace/taskExecutionState"
-import { messagesHaveFileActivity } from "./workspace/useSessionFileChanges"
-import { messagesHaveUrlActivity } from "./workspace/useSessionUrlSources"
-import { messagesHaveKnowledgeActivity } from "./workspace/useSessionKnowledge"
 import { useModelState } from "./hooks/useModelState"
 import SystemPromptDialog from "./SystemPromptDialog"
 import { PlanPanel } from "./plan-mode/PlanPanel"
@@ -1450,6 +1447,7 @@ export default function ChatScreen({
     setLoadingSessionIds: session.setLoadingSessionIds,
     sessionCacheRef: session.sessionCacheRef,
     reloadSessions: refreshUnreadState,
+    setCurrentSessionId: session.setCurrentSessionId,
     onTurnStarted: stream.handleTurnStarted,
     onTurnEnded: stream.handleTurnEnded,
   })
@@ -2266,22 +2264,6 @@ export default function ChatScreen({
       }
     }
   }, [])
-
-  // 首次有任务/文件/来源时自动展开 Workspace 面板一次；用户关闭后本会话不再
-  // 自动弹（仿 browser/mac-control 的 dismissed 模型）。用便宜的存在性检查(短路)，
-  // 完整聚合在 WorkspacePanel 内部、面板打开时才进行。
-  const hasWorkspaceContent =
-    (taskProgressSnapshot?.total ?? 0) > 0 ||
-    messagesHaveFileActivity(session.messages) ||
-    messagesHaveUrlActivity(session.messages) ||
-    messagesHaveKnowledgeActivity(session.messages)
-  // 依赖里带 currentSessionId：切到「已有内容」的旧会话时 hasWorkspaceContent 不发生
-  // false→true 跳变，靠 session 变化触发本 effect 重跑(配合 session-reset 复位
-  // dismissedRef)，否则旧会话切回来面板不会自动展开。
-  useEffect(() => {
-    if (!hasWorkspaceContent || workspacePanelDismissedRef.current) return
-    setShowWorkspacePanel((prev) => (prev ? prev : true))
-  }, [hasWorkspaceContent, session.currentSessionId])
 
   const workspaceTaskExecutionState = resolveWorkspaceTaskExecutionState(
     session.currentSessionId

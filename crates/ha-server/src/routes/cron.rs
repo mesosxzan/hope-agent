@@ -42,6 +42,12 @@ pub async fn update_job(
     Path(_id): Path<String>,
     Json(body): Json<UpdateJobBody>,
 ) -> Result<Json<Value>, AppError> {
+    log::info!(
+        "update_job: id={}, reuse_session={}, last_session_id={:?}",
+        body.job.id,
+        body.job.reuse_session,
+        body.job.last_session_id,
+    );
     db()?.update_job(&body.job)?;
     Ok(Json(json!({ "updated": true })))
 }

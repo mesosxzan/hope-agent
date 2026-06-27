@@ -511,6 +511,25 @@ pub async fn set_theme(theme: String) -> Result<(), CmdError> {
 }
 
 #[tauri::command]
+pub async fn get_color_theme() -> Result<String, CmdError> {
+    let store = ha_core::config::load_config()?;
+    Ok(store.color_theme.unwrap_or_else(|| "default".to_string()))
+}
+
+#[tauri::command]
+pub async fn set_color_theme(color_theme: String) -> Result<(), CmdError> {
+    ha_core::config::mutate_config(("theme", "settings-ui"), |store| {
+        store.color_theme = if color_theme == "default" {
+            None
+        } else {
+            Some(color_theme)
+        };
+        Ok(())
+    })
+    .map_err(Into::into)
+}
+
+#[tauri::command]
 pub async fn get_language() -> Result<String, CmdError> {
     let store = ha_core::config::load_config()?;
     Ok(store.language)

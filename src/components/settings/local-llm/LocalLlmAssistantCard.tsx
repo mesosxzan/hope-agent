@@ -504,7 +504,7 @@ export default function LocalLlmAssistantCard({
                   <span>·</span>
                   <span>
                     {t("settings.localLlm.contextWindow", {
-                      n: recommended.contextWindow.toLocaleString(),
+                      n: (recommended.contextWindow ?? 0).toLocaleString(),
                     })}
                   </span>
                   {recommended.reasoning && (

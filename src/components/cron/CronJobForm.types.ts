@@ -52,6 +52,8 @@ export interface CronJob {
   permissionModeOverride?: "default" | "smart" | "yolo" | null
   /** Per-job sandbox-mode override; null/undefined = follow the agent default. */
   sandboxModeOverride?: "off" | "standard" | "isolated" | "workspace" | "trusted" | null
+  reuseSession: boolean
+  lastSessionId?: string | null
 }
 
 export interface CronRunLog {

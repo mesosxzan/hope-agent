@@ -1193,10 +1193,10 @@ pub(crate) async fn send_text_chunks(
     let last_idx = chunks.len().saturating_sub(1);
 
     for (i, chunk) in chunks.iter().enumerate() {
-        // Per-chunk throttle: same 50ms gap deliver_media_to_chat uses to
-        // dodge Telegram / LINE / WeChat per-chat flood protections.
+        // Per-chunk throttle: 300ms gap to dodge rate limits on platforms
+        // like Telegram / Slack / Feishu that throttle rapid sends.
         if i > 0 {
-            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(300)).await;
         }
         let chunk_buttons = if i == last_idx {
             buttons.to_vec()

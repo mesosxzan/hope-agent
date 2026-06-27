@@ -62,6 +62,13 @@ export default defineConfig({
   server: {
     port: 1420,
     strictPort: true,
+    hmr: {
+      // In Tauri dev mode the WebView loads from localhost:1420.
+      // Ensure the HMR WebSocket uses the same host so the client
+      // can connect (default Vite HMR host can be 0.0.0.0 which
+      // the WebView may reject).
+      host: "localhost",
+    },
   },
   test: {
     // Default to node — pure-logic tests don't need DOM. Component tests

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { toast } from "sonner"
 import { getTransport } from "@/lib/transport-provider"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
@@ -109,16 +110,25 @@ export default function CronJobDetail({
   async function handleToggle() {
     if (!job) return
     const enabled = job.status !== "active"
-    await getTransport().call("cron_toggle_job", { id: job.id, enabled })
-    fetchData()
-    onRefresh()
+    try {
+      await getTransport().call("cron_toggle_job", { id: job.id, enabled })
+      toast.success(enabled ? t("cron.resumeSuccess", "任务已恢复") : t("cron.pauseSuccess", "任务已暂停"))
+      fetchData()
+      onRefresh()
+    } catch (e) {
+      toast.error(String(e))
+    }
   }
 
   async function handleRunNow() {
     if (!job) return
-    await getTransport().call("cron_run_now", { id: job.id })
-    // Refresh after a short delay to pick up the run log
-    setTimeout(fetchData, 2000)
+    try {
+      await getTransport().call("cron_run_now", { id: job.id })
+      toast.success(t("cron.runNowSuccess", "已触发立即执行"))
+      setTimeout(fetchData, 2000)
+    } catch (e) {
+      toast.error(String(e))
+    }
   }
 
   async function handleCancelRun() {
@@ -126,8 +136,11 @@ export default function CronJobDetail({
     setCancelling(true)
     try {
       await getTransport().call("cancel_runtime_task", { kind: "cron", id: job.id })
+      toast.success(t("cron.cancelSuccess", "已取消执行"))
       await fetchData()
       onRefresh()
+    } catch (e) {
+      toast.error(String(e))
     } finally {
       setCancelling(false)
     }

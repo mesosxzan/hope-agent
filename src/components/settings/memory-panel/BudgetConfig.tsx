@@ -43,8 +43,8 @@ export default function BudgetConfig() {
   const load = useCallback(async () => {
     try {
       const cfg = await getTransport().call<MemoryBudgetConfig>("get_memory_budget_config")
-      setConfig(cfg)
-      setOriginal(cfg)
+      setConfig({ ...DEFAULT_MEMORY_BUDGET, ...cfg, sqliteSections: { ...DEFAULT_MEMORY_BUDGET.sqliteSections, ...cfg.sqliteSections } })
+      setOriginal({ ...DEFAULT_MEMORY_BUDGET, ...cfg, sqliteSections: { ...DEFAULT_MEMORY_BUDGET.sqliteSections, ...cfg.sqliteSections } })
       setLoaded(true)
     } catch (e) {
       logger.error("settings", "BudgetConfig::load", "Failed to load memory budget", e)
