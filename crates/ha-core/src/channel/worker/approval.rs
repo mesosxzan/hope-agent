@@ -1176,14 +1176,18 @@ const ALLOW_ALWAYS_ALIASES: &[&str] = &[
     "总是允许",
     "永远",
     "始终",
+    "總是",
+    "總是允許",
+    "永遠",
 ];
 
 const ALLOW_ONCE_ALIASES: &[&str] = &[
-    "1", "y", "yes", "ok", "okay", "allow", "approve", "好", "好的", "同意", "允许", "可以", "行",
+    "1", "y", "yes", "ok", "okay", "allow", "approve", "好", "好的", "同意", "允许", "允許",
+    "可以", "行",
 ];
 
 const DENY_ALIASES: &[&str] = &[
-    "3", "n", "no", "deny", "block", "stop", "cancel", "不", "不行", "拒绝", "否", "取消",
+    "3", "n", "no", "deny", "block", "stop", "cancel", "不", "不行", "拒绝", "拒絕", "否", "取消",
 ];
 
 // ── Shared callback handler (eliminates boilerplate in channel plugins) ──
@@ -2289,10 +2293,15 @@ mod tests {
             ("好的", ApprovalResponse::AllowOnce),
             ("同意", ApprovalResponse::AllowOnce),
             ("允许", ApprovalResponse::AllowOnce),
+            ("允許", ApprovalResponse::AllowOnce),
             ("总是", ApprovalResponse::AllowAlways),
+            ("總是", ApprovalResponse::AllowAlways),
+            ("總是允許", ApprovalResponse::AllowAlways),
             ("永远", ApprovalResponse::AllowAlways),
+            ("永遠", ApprovalResponse::AllowAlways),
             ("不", ApprovalResponse::Deny),
             ("拒绝", ApprovalResponse::Deny),
+            ("拒絕", ApprovalResponse::Deny),
             ("取消", ApprovalResponse::Deny),
         ] {
             let parsed = parse_approval_reply(input).unwrap_or_else(|| panic!("failed: {input:?}"));
