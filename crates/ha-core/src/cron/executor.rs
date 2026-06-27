@@ -1,5 +1,4 @@
 use anyhow::Result;
-use chrono::Utc;
 use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::Arc;
 
@@ -99,7 +98,7 @@ impl Drop for RunningMarkerGuard {
                     let _ = self.cron_db.finalize_run_log(
                         run_log_id,
                         "error",
-                        &Utc::now().to_rfc3339(),
+                        &crate::user_config::now_local_rfc3339(),
                         None,
                         None,
                         Some("Interrupted (run did not reach a terminal path)"),
@@ -478,7 +477,7 @@ pub(crate) async fn execute_claimed_job(
     };
 
     let duration_ms = start_time.elapsed().as_millis() as u64;
-    let finished_at = Utc::now().to_rfc3339();
+    let finished_at = crate::user_config::now_local_rfc3339();
     // C08: user cancel vs timeout. On the normal path any set flag is the user's;
     // on the timeout path our own grace-cancel must NOT count — only a cancel the
     // user set before the timeout fired (captured above) does.
@@ -1013,7 +1012,7 @@ pub(crate) fn record_failure(
     immediate: bool,
 ) {
     let duration_ms = start_time.elapsed().as_millis() as u64;
-    let finished_at = Utc::now().to_rfc3339();
+    let finished_at = crate::user_config::now_local_rfc3339();
 
     let _ = cron_db.finalize_or_insert_run_log(
         run_log_id,

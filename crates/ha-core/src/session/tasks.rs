@@ -120,7 +120,7 @@ impl SessionDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         conn.execute(
             "INSERT INTO tasks (session_id, content, active_form, batch_id, status, created_at, updated_at)
              VALUES (?1, ?2, ?3, ?4, 'pending', ?5, ?5)",
@@ -149,7 +149,7 @@ impl SessionDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         conn.execute(
             "UPDATE tasks
                 SET status = COALESCE(?1, status),

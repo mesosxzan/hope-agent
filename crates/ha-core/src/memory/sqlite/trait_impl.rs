@@ -15,7 +15,7 @@ use crate::memory::types::*;
 impl MemoryBackend for SqliteMemoryBackend {
     fn add(&self, entry: NewMemory) -> Result<i64> {
         let conn = self.write_conn()?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let tags_json = serde_json::to_string(&entry.tags)?;
 
         let (scope_type, scope_agent_id, scope_project_id) = match &entry.scope {
@@ -82,7 +82,7 @@ impl MemoryBackend for SqliteMemoryBackend {
 
     fn update(&self, id: i64, content: &str, tags: &[String]) -> Result<()> {
         let conn = self.write_conn()?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let tags_json = serde_json::to_string(tags)?;
 
         // Regenerate embedding if provider is configured
@@ -126,7 +126,7 @@ impl MemoryBackend for SqliteMemoryBackend {
 
     fn toggle_pin(&self, id: i64, pinned: bool) -> Result<()> {
         let conn = self.write_conn()?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let affected = conn.execute(
             "UPDATE memories SET pinned = ?1, updated_at = ?2 WHERE id = ?3",
             params![pinned as i64, now, id],
@@ -1020,7 +1020,7 @@ pub fn open_default() -> Result<SqliteMemoryBackend> {
 fn hidden_claim_linked_memory_ids(
     conn: &rusqlite::Connection,
 ) -> Result<std::collections::HashSet<i64>> {
-    let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+    let now = crate::util::now_rfc3339();
     let mut stmt = conn.prepare(
         // Only `managed` links participate in hiding: a managed link means the
         // claim OWNS that shadow memory (created by the dual-write). `detached`
@@ -1079,7 +1079,7 @@ fn hidden_claim_linked_memory_ids(
 fn covered_by_active_claim_memory_ids(
     conn: &rusqlite::Connection,
 ) -> Result<std::collections::HashSet<i64>> {
-    let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+    let now = crate::util::now_rfc3339();
     // Threshold-aligned with the Pinned segment (PINNED_MIN_SALIENCE): only a
     // claim that actually clears the pin bar — and therefore injects via Pinned —
     // may drop its shadow memory from the legacy section. A lower-salience managed

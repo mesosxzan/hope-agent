@@ -84,7 +84,7 @@ pub async fn spawn_subagent(
     let _ = session_db.update_session_title(&child_session_id, &task_preview);
 
     // 5. Insert run record
-    let now = chrono::Utc::now().to_rfc3339();
+    let now = crate::user_config::now_local_rfc3339();
     let attachment_count = params.attachments.len() as u32;
     let run = SubagentRun {
         run_id: run_id.clone(),
@@ -335,7 +335,7 @@ pub(crate) fn launch_subagent_run(
         let result = futures_util::FutureExt::catch_unwind(exec_result).await;
 
         let duration_ms = start.elapsed().as_millis() as u64;
-        let finished_at = chrono::Utc::now().to_rfc3339();
+        let finished_at = crate::user_config::now_local_rfc3339();
 
         // Determine outcome — handles Ok, Err, Timeout, Cancel, and Panic
         let (status, result_text, error_text, model_used) = match result {

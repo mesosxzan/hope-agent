@@ -608,7 +608,7 @@ impl SessionDB {
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
         let members_json = serde_json::to_string(&tpl.members)?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let created_at = if tpl.created_at.is_empty() {
             now.clone()
         } else {

@@ -1,5 +1,4 @@
 use anyhow::Result;
-use chrono::Utc;
 use uuid::Uuid;
 
 use crate::canvas_db::{CanvasDB, CanvasProject, CanvasVersion};
@@ -21,7 +20,7 @@ pub fn create_project(
     agent_id: Option<&str>,
 ) -> Result<CanvasProject> {
     let project_id = Uuid::new_v4().to_string();
-    let now = Utc::now().to_rfc3339();
+    let now = crate::user_config::now_local_rfc3339();
     let title = title.unwrap_or("Untitled Canvas");
 
     // Write files to disk
@@ -76,7 +75,7 @@ pub fn update_project(
         .get_project(project_id)?
         .ok_or_else(|| anyhow::anyhow!("Canvas project '{}' not found", project_id))?;
 
-    let now = Utc::now().to_rfc3339();
+    let now = crate::user_config::now_local_rfc3339();
     let new_version_number = project.version_count + 1;
 
     // Write updated files
@@ -161,7 +160,7 @@ pub fn restore_version(
     )?;
 
     // Create a new version for the restore action
-    let now = Utc::now().to_rfc3339();
+    let now = crate::user_config::now_local_rfc3339();
     let new_version_number = project.version_count + 1;
     let restore_version = CanvasVersion {
         id: 0,

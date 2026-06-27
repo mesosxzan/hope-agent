@@ -80,7 +80,7 @@ impl LogDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         conn.execute(
             "INSERT INTO logs (timestamp, level, category, source, message, details, session_id, agent_id)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",

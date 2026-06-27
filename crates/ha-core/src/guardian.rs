@@ -279,7 +279,7 @@ fn run_recovery(journal_path: Option<&std::path::PathBuf>) {
             eprintln!("[Guardian] Backup created: {}", backup_path);
             if let Some(path) = journal_path {
                 let mut journal = crate::crash_journal::CrashJournal::load(path);
-                journal.set_last_backup(chrono::Utc::now().to_rfc3339());
+                journal.set_last_backup(crate::user_config::now_local_rfc3339());
                 let _ = journal.save(path);
             }
         }

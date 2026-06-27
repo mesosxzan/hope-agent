@@ -242,7 +242,7 @@ mod tests {
         model_id: Option<&str>,
     ) {
         let conn = db.conn.lock().expect("lock");
-        let now = Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         conn.execute(
             "INSERT INTO sessions (id, title, agent_id, provider_id, provider_name, model_id, created_at, updated_at, is_cron, parent_session_id, incognito, title_source)
              VALUES (?1, NULL, 'ha-main', NULL, ?2, ?3, ?4, ?4, 0, NULL, 0, 'manual')",
@@ -261,7 +261,7 @@ mod tests {
         is_error: bool,
     ) {
         let conn = db.conn.lock().expect("lock");
-        let now = Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         conn.execute(
             "INSERT INTO messages (session_id, role, content, timestamp, tokens_in, tokens_out, ttft_ms, is_error)
              VALUES (?1, ?2, '', ?3, ?4, ?5, ?6, ?7)",
@@ -384,7 +384,7 @@ mod tests {
         // is_cron = 1 — excluded
         {
             let conn = db.conn.lock().expect("lock");
-            let now = Utc::now().to_rfc3339();
+            let now = crate::user_config::now_local_rfc3339();
             conn.execute(
                 "INSERT INTO sessions (id, title, agent_id, provider_id, provider_name, model_id, created_at, updated_at, is_cron, parent_session_id, incognito, title_source)
                  VALUES ('s-cron', NULL, 'ha-main', NULL, 'Ollama (local)', 'qwen3:8b', ?1, ?1, 1, NULL, 0, 'manual')",
@@ -402,7 +402,7 @@ mod tests {
         // parent_session_id set — subagent, excluded
         {
             let conn = db.conn.lock().expect("lock");
-            let now = Utc::now().to_rfc3339();
+            let now = crate::user_config::now_local_rfc3339();
             conn.execute(
                 "INSERT INTO sessions (id, title, agent_id, provider_id, provider_name, model_id, created_at, updated_at, is_cron, parent_session_id, incognito, title_source)
                  VALUES ('s-sub', NULL, 'ha-main', NULL, 'Ollama (local)', 'qwen3:8b', ?1, ?1, 0, 's-ok', 0, 'manual')",
@@ -420,7 +420,7 @@ mod tests {
         // incognito = 1 — excluded
         {
             let conn = db.conn.lock().expect("lock");
-            let now = Utc::now().to_rfc3339();
+            let now = crate::user_config::now_local_rfc3339();
             conn.execute(
                 "INSERT INTO sessions (id, title, agent_id, provider_id, provider_name, model_id, created_at, updated_at, is_cron, parent_session_id, incognito, title_source)
                  VALUES ('s-incog', NULL, 'ha-main', NULL, 'Ollama (local)', 'qwen3:8b', ?1, ?1, 0, NULL, 1, 'manual')",

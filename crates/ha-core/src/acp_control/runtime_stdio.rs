@@ -264,7 +264,7 @@ impl AcpRuntime for StdioAcpRuntime {
             backend_id: self.id.clone(),
             external_session_id: external_sid,
             pid,
-            created_at: chrono::Utc::now().to_rfc3339(),
+            created_at: crate::user_config::now_local_rfc3339(),
         })
     }
 

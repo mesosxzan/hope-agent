@@ -22,7 +22,7 @@ pub fn send_message(
         to_member_id: to.and_then(|t| if t == "*" { None } else { Some(t.to_string()) }),
         content: content.to_string(),
         message_type,
-        timestamp: chrono::Utc::now().to_rfc3339(),
+        timestamp: crate::user_config::now_local_rfc3339(),
     };
 
     // Persist

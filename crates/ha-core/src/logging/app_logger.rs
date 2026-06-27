@@ -150,7 +150,7 @@ impl AppLogger {
             }
         }
 
-        let timestamp = chrono::Utc::now().to_rfc3339();
+        let timestamp = crate::user_config::now_local_rfc3339();
 
         // Dev mode: also print to stderr for console visibility
         #[cfg(debug_assertions)]

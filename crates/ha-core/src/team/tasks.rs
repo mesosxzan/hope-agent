@@ -14,7 +14,7 @@ pub fn create_task(
     priority: Option<u32>,
     blocked_by: Vec<i64>,
 ) -> Result<TeamTask> {
-    let now = chrono::Utc::now().to_rfc3339();
+    let now = crate::user_config::now_local_rfc3339();
     let task = TeamTask {
         id: 0, // will be set by DB
         team_id: team_id.to_string(),

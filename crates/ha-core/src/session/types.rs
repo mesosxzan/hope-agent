@@ -336,7 +336,7 @@ impl NewMessage {
         Self {
             role: MessageRole::User,
             content: content.to_string(),
-            timestamp: chrono::Utc::now().to_rfc3339(),
+            timestamp: crate::user_config::now_local_rfc3339(),
             attachments_meta: None,
             model: None,
             tokens_in: None,
@@ -364,7 +364,7 @@ impl NewMessage {
         Self {
             role: MessageRole::Assistant,
             content: content.to_string(),
-            timestamp: chrono::Utc::now().to_rfc3339(),
+            timestamp: crate::user_config::now_local_rfc3339(),
             attachments_meta: None,
             model: None,
             tokens_in: None,
@@ -404,7 +404,7 @@ impl NewMessage {
         Self {
             role: MessageRole::Tool,
             content: String::new(),
-            timestamp: chrono::Utc::now().to_rfc3339(),
+            timestamp: crate::user_config::now_local_rfc3339(),
             attachments_meta: None,
             model: None,
             tokens_in: None,
@@ -432,7 +432,7 @@ impl NewMessage {
         Self {
             role: MessageRole::TextBlock,
             content: content.to_string(),
-            timestamp: chrono::Utc::now().to_rfc3339(),
+            timestamp: crate::user_config::now_local_rfc3339(),
             attachments_meta: None,
             model: None,
             tokens_in: None,
@@ -465,7 +465,7 @@ impl NewMessage {
         Self {
             role: MessageRole::ThinkingBlock,
             content: content.to_string(),
-            timestamp: chrono::Utc::now().to_rfc3339(),
+            timestamp: crate::user_config::now_local_rfc3339(),
             attachments_meta: None,
             model: None,
             tokens_in: None,
@@ -493,7 +493,7 @@ impl NewMessage {
         Self {
             role: MessageRole::Event,
             content: content.to_string(),
-            timestamp: chrono::Utc::now().to_rfc3339(),
+            timestamp: crate::user_config::now_local_rfc3339(),
             attachments_meta: None,
             model: None,
             tokens_in: None,

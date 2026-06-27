@@ -65,7 +65,7 @@ pub fn mark_completed() -> Result<()> {
     let _g = crate::backup::scope_save_reason("onboarding", "complete");
     let mut cfg = load_config()?;
     cfg.onboarding.completed_version = CURRENT_ONBOARDING_VERSION;
-    cfg.onboarding.completed_at = Some(chrono::Utc::now().to_rfc3339());
+    cfg.onboarding.completed_at = Some(crate::user_config::now_local_rfc3339());
     cfg.onboarding.draft = None;
     cfg.onboarding.draft_step = 0;
     cfg.onboarding.ever_completed = true;

@@ -424,7 +424,7 @@ impl CronDB {
         }
         if changed {
             let targets_json = serde_json::to_string(&targets)?;
-            let now = Utc::now().to_rfc3339();
+            let now = crate::user_config::now_local_rfc3339();
             conn.execute(
                 "UPDATE cron_jobs SET delivery_targets_json=?1, updated_at=?2 WHERE id=?3",
                 params![targets_json, now, job_id],
@@ -486,7 +486,7 @@ impl CronDB {
 
     /// Clear a job's Project association without changing its schedule.
     pub fn clear_job_project(&self, id: &str) -> Result<()> {
-        let now = Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let conn = self
             .conn
             .lock()
@@ -655,7 +655,7 @@ impl CronDB {
 
     /// Toggle job status between active/paused.
     pub fn toggle_job(&self, id: &str, enabled: bool) -> Result<()> {
-        let now = Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let new_status = if enabled { "active" } else { "paused" };
 
         let conn = self
@@ -845,7 +845,7 @@ impl CronDB {
     /// It ran (then was cancelled) and won't fire again, so `completed` is the
     /// right terminal. Recurring jobs are never passed here (they keep firing).
     pub fn terminalize_one_shot_completed(&self, id: &str) -> Result<()> {
-        let now = Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let conn = self
             .conn
             .lock()
@@ -1283,7 +1283,7 @@ impl CronDB {
     /// each scheduler tick; persisted so a later startup can tell how long the
     /// scheduler was offline (see [`last_scheduler_heartbeat`](Self::last_scheduler_heartbeat)).
     pub fn record_scheduler_heartbeat(&self) -> Result<()> {
-        let now = Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let conn = self
             .conn
             .lock()
@@ -1360,7 +1360,7 @@ impl CronDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("CronDB lock poisoned: {e}"))?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let rows = conn.execute(
             "UPDATE cron_jobs SET running_at=?1 WHERE id=?2 AND running_at IS NULL",
             params![now, job.id],
@@ -1804,7 +1804,7 @@ fn backfill_cron_schedule_timezone(conn: &Connection) -> Result<()> {
     // legacy rows have now been scanned). Later zone-less jobs are deliberate.
     conn.execute(
         "INSERT OR REPLACE INTO cron_meta (key, value) VALUES (?1, ?2)",
-        params![SENTINEL, Utc::now().to_rfc3339()],
+        params![SENTINEL, crate::user_config::now_local_rfc3339()],
     )?;
 
     Ok(())

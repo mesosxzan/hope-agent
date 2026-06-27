@@ -260,7 +260,7 @@ where
     .await?;
 
     progress(RecapProgress::Persisting);
-    let now = chrono::Utc::now().to_rfc3339();
+    let now = crate::user_config::now_local_rfc3339();
     let title = report_title(&filters, total_sessions, &ctx.locale);
     let report = RecapReport {
         meta: ReportMeta {

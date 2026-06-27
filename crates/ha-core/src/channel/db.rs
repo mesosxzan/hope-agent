@@ -269,7 +269,7 @@ impl ChannelDB {
 
         if let Some(existing) = existing {
             // Update timestamp + sender info on the existing attach row.
-            let now = chrono::Utc::now().to_rfc3339();
+            let now = crate::user_config::now_local_rfc3339();
             conn.execute(
                 "UPDATE channel_conversations \
                  SET updated_at = ?1, \
@@ -327,7 +327,7 @@ impl ChannelDB {
 
         // Insert channel_conversations mapping. Inbound from IM ⇒
         // source = "inbound".
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         conn.execute(
             "INSERT INTO channel_conversations \
                 (channel_id, account_id, chat_id, thread_id, session_id, sender_id, sender_name, \
@@ -561,7 +561,7 @@ impl ChannelDB {
         thread_id: Option<&str>,
         new_session_id: &str,
     ) -> Result<bool> {
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let conn = self
             .session_db
             .conn
@@ -632,7 +632,7 @@ impl ChannelDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let chat_type_s = chat_type_str(chat_type);
 
         // 1. Physically detach any chat currently bound to the target
@@ -937,7 +937,7 @@ mod recent_active_tests {
     fn multiple_chats_on_one_account_each_returned_once() {
         let db = open_db("startup-fanout");
         let agent = crate::agent_loader::DEFAULT_AGENT_ID;
-        let stamp = Utc::now().to_rfc3339();
+        let stamp = crate::user_config::now_local_rfc3339();
 
         // One telegram bot active in 1 DM + 3 group chats.
         for i in 0..4 {

@@ -58,7 +58,7 @@ impl AcpSessionManager {
             .ok_or_else(|| anyhow::anyhow!("ACP backend '{}' not found", backend_id))?;
 
         let run_id = uuid::Uuid::new_v4().to_string();
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let cancel = Arc::new(AtomicBool::new(false));
 
         let run = AcpRun {
@@ -321,7 +321,7 @@ impl AcpSessionManager {
             if let Some(run) = runs.get_mut(run_id) {
                 if !run.status.is_terminal() {
                     run.status = AcpRunStatus::Killed;
-                    run.finished_at = Some(chrono::Utc::now().to_rfc3339());
+                    run.finished_at = Some(crate::user_config::now_local_rfc3339());
                 }
             }
         }
@@ -400,7 +400,7 @@ impl AcpSessionManager {
         input_tokens: Option<u64>,
         output_tokens: Option<u64>,
     ) {
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let duration_ms = start.elapsed().as_millis() as u64;
 
         {
