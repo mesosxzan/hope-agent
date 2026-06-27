@@ -2062,6 +2062,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: Some(SessionMode::Smart),
                 sandbox_mode_override: Some(SandboxMode::Isolated),
+                reuse_session: None,
             })
             .expect("add job");
         assert_eq!(job.permission_mode_override, Some(SessionMode::Smart));
