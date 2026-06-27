@@ -1,5 +1,4 @@
 use anyhow::Result;
-use chrono::Local;
 
 use super::helpers::effective_model;
 use super::types::*;
@@ -133,7 +132,13 @@ pub(super) fn build_success_result(
     let images = gen_result.images;
     let accompanying_text = gen_result.text;
 
-    let timestamp = Local::now().format("%Y%m%d_%H%M%S");
+    let timestamp = {
+        let tz_name = crate::user_config::effective_timezone();
+        match tz_name.parse::<chrono_tz::Tz>() {
+            Ok(tz) => chrono::Utc::now().with_timezone(&tz).format("%Y%m%d_%H%M%S").to_string(),
+            Err(_) => chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string(),
+        }
+    };
     let mut media_items: Vec<MediaItem> = Vec::with_capacity(images.len());
 
     for (i, img) in images.iter().enumerate() {

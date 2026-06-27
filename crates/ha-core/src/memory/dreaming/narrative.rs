@@ -8,7 +8,6 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use chrono::Local;
 
 use crate::agent::AssistantAgent;
 use crate::memory::MemoryEntry;
@@ -160,7 +159,11 @@ fn split_envelope(raw: &str) -> (String, String) {
 /// Includes a `<!-- ha-dream-promotion: ... -->` comment per promotion
 /// so tooling can later grep-index which memories were pinned when.
 pub fn render_diary_markdown(output: &NarrativeOutput) -> String {
-    let date = Local::now().format("%Y-%m-%d %H:%M:%S %Z").to_string();
+    let tz_name = crate::user_config::effective_timezone();
+    let date = match tz_name.parse::<chrono_tz::Tz>() {
+        Ok(tz) => chrono::Utc::now().with_timezone(&tz).format("%Y-%m-%d %H:%M:%S %Z").to_string(),
+        Err(_) => chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC").to_string(),
+    };
     let mut md = String::new();
     md.push_str(&format!("# Dream Diary — {}\n\n", date));
 
@@ -209,7 +212,13 @@ pub fn write_diary(md: &str) -> Result<std::path::PathBuf> {
     std::fs::create_dir_all(&dir).context("creating dreams_dir")?;
     // Use date + time so multiple cycles in one day don't clobber each
     // other. Local time mirrors what the user sees in the UI.
-    let stamp = Local::now().format("%Y-%m-%d_%H%M%S").to_string();
+    // Use user's configured timezone for the filename so it matches what the
+    // user sees in the diary header, not the server's local zone.
+    let tz_name = crate::user_config::effective_timezone();
+    let stamp = match tz_name.parse::<chrono_tz::Tz>() {
+        Ok(tz) => chrono::Utc::now().with_timezone(&tz).format("%Y-%m-%d_%H%M%S").to_string(),
+        Err(_) => chrono::Utc::now().format("%Y-%m-%d_%H%M%S").to_string(),
+    };
     let path = dir.join(format!("{}.md", stamp));
     std::fs::write(&path, md).context("writing diary markdown")?;
     Ok(path)

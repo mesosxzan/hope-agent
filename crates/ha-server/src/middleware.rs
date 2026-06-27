@@ -1,4 +1,5 @@
 use axum::{
+    body::Body,
     extract::{Request, State},
     http::StatusCode,
     middleware::Next,
@@ -171,4 +172,63 @@ mod tests {
         // Trailing `%` with no digits passes through.
         assert_eq!(percent_decode_form_value("abc%"), b"abc%");
     }
+}
+
+// ── Timezone Conversion Middleware ──────────────────────────────────
+
+/// Middleware that converts UTC timestamps in JSON responses to the user's
+/// effective timezone. Only processes responses with `Content-Type: application/json`.
+///
+/// In Docker/server mode the host timezone is UTC, so raw UTC timestamps
+/// appear 8 hours off for users in e.g. Asia/Shanghai. This layer walks the
+/// JSON response tree and converts any RFC3339 UTC string to the user's
+/// configured timezone, so the frontend displays correct local times.
+pub async fn convert_timezone(request: Request, next: Next) -> Response {
+    let response = next.run(request).await;
+
+    // Only process JSON responses.
+    let is_json = response
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .map(|ct| ct.contains("application/json"))
+        .unwrap_or(false);
+
+    if !is_json {
+        return response;
+    }
+
+    // Resolve the user's effective timezone.
+    let tz = ha_core::user_config::effective_timezone();
+    if tz == "UTC" {
+        return response; // No conversion needed.
+    }
+
+    // Collect response parts.
+    let (parts, body) = response.into_parts();
+    let bytes = match axum::body::to_bytes(body, 10 * 1024 * 1024).await {
+        Ok(b) => b,
+        Err(_) => return (parts.status, parts.headers, Body::empty()).into_response(),
+    };
+
+    // Parse JSON, convert timestamps, re-serialize.
+    let mut value: serde_json::Value = match serde_json::from_slice(&bytes) {
+        Ok(v) => v,
+        Err(_) => {
+            // Not valid JSON — return as-is.
+            return (parts.status, parts.headers, Body::from(bytes)).into_response();
+        }
+    };
+
+    ha_core::tz_convert::convert_timestamps_to_local(&mut value, &tz);
+
+    let converted = match serde_json::to_vec(&value) {
+        Ok(v) => v,
+        Err(_) => {
+            // Serialization failed — return original.
+            return (parts.status, parts.headers, Body::from(bytes)).into_response();
+        }
+    };
+
+    (parts.status, parts.headers, Body::from(converted)).into_response()
 }

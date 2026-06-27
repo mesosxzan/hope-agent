@@ -1911,6 +1911,7 @@ fn build_router_with_cors(
     attach_web_fallback(base)
         .layer(build_cors_layer(cors_origins))
         .layer(axum::middleware::from_fn(middleware::access_log))
+        .layer(axum::middleware::from_fn(middleware::convert_timezone))
         .with_state(ctx)
 }
 

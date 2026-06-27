@@ -50,14 +50,7 @@ pub(super) fn find_git_root(start: &str) -> Option<String> {
 /// local timezone — wrong in server/Docker mode where the container is UTC
 /// but the user may be in e.g. Asia/Shanghai (−8 h).
 pub(super) fn current_date() -> String {
-    let tz_name = crate::config::cached_config()
-        .user
-        .timezone
-        .as_deref()
-        .filter(|s| !s.trim().is_empty())
-        .map(|s| s.to_string())
-        .or_else(|| iana_time_zone::get_timezone().ok())
-        .unwrap_or_else(|| "UTC".to_string());
+    let tz_name = crate::user_config::effective_timezone();
 
     let now = chrono::Utc::now();
     match tz_name.parse::<chrono_tz::Tz>() {

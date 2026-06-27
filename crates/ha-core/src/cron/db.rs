@@ -1708,16 +1708,7 @@ fn backfill_cron_schedule_timezone(conn: &Connection) -> Result<()> {
         return Ok(());
     }
 
-    let Some(host_tz) = iana_time_zone::get_timezone()
-        .ok()
-        .filter(|tz| super::schedule::parse_timezone(tz).is_some())
-    else {
-        // Host zone undetectable right now — there's nothing meaningful to
-        // migrate, so DON'T set the sentinel: retry on a later boot when the zone
-        // may be detectable (the narrow window before that is the only time a
-        // legacy row stays UTC-interpreted, matching the pre-fix behavior).
-        return Ok(());
-    };
+    let host_tz = crate::user_config::effective_timezone();
 
     let mut stmt = conn.prepare(
         "SELECT id, schedule_json, status, consecutive_failures

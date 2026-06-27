@@ -433,7 +433,13 @@ async fn action_snapshot(args: &Value) -> Result<String> {
                     let b64 = &data_url[comma_pos + 1..];
 
                     // Save to file
-                    let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
+                    let timestamp = {
+                        let tz_name = crate::user_config::effective_timezone();
+                        match tz_name.parse::<chrono_tz::Tz>() {
+                            Ok(tz) => chrono::Utc::now().with_timezone(&tz).format("%Y%m%d_%H%M%S").to_string(),
+                            Err(_) => chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string(),
+                        }
+                    };
                     let save_dir = paths::canvas_project_dir(project_id)?;
                     let snapshot_path = save_dir.join(format!("snapshot_{}.png", timestamp));
                     if let Ok(bytes) =
