@@ -285,7 +285,7 @@ pub(crate) async fn tool_sessions_search(
                     "Refusing global session search from an incognito session. Search the current session explicitly instead.".to_string(),
                 );
             }
-            db.search_messages(
+            db.search_message_content(
                 query,
                 None,
                 None,
@@ -323,7 +323,7 @@ pub(crate) async fn tool_sessions_search(
                 ));
             }
 
-            db.search_messages(query, None, Some(&session_id), None, limit)?
+            db.search_message_content(query, None, Some(&session_id), None, limit)?
         }
         other => {
             return Ok(format!(

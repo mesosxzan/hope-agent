@@ -460,6 +460,7 @@ export interface SessionSearchResult {
   projectId: string | null
   channelType: string | null
   channelChatType: string | null
+  matchKind: "message" | "title"
 }
 
 export type SessionSearchType = "regular" | "cron" | "subagent" | "channel"

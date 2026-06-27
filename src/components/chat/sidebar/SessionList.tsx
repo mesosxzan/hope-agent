@@ -259,7 +259,7 @@ export default function SessionList({
                 const projectId = result.projectId ?? sessionMeta?.projectId ?? null
                 return (
                   <SearchResultItem
-                    key={`${result.sessionId}-${result.messageId}`}
+                    key={`${result.sessionId}-${result.matchKind}-${result.messageId}`}
                     result={result}
                     isActive={result.sessionId === currentSessionId}
                     agent={getAgentInfo(result.agentId)}
@@ -267,12 +267,16 @@ export default function SessionList({
                     sessionMeta={sessionMeta}
                     project={projectId ? projectsById.get(projectId) : undefined}
                     projectId={projectId}
-                    onSwitch={() =>
+                    onSwitch={() => {
+                      if (result.matchKind === "title") {
+                        onSwitchSession(result.sessionId)
+                        return
+                      }
                       onSwitchSession(result.sessionId, {
                         targetMessageId: result.messageId,
                         highlightTerms,
                       })
-                    }
+                    }}
                     formatRelativeTime={formatRelativeTime}
                     displayMode={displayMode}
                   />

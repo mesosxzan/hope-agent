@@ -5,6 +5,12 @@ All notable changes to Hope Agent will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **侧边栏搜索召回更完整且更快**：全局会话搜索现在能命中会话标题，并用 FTS5 trigram 索引补足正文子串匹配（如单词片段 / 常见中英文片段），不再依赖 `%LIKE%` 扫描整张消息表；标题命中会直接打开会话，避免跳转到不存在的消息气泡。
+
 ## [0.13.0] - 2026-06-27
 
 ### Added

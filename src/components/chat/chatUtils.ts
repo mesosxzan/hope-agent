@@ -724,15 +724,17 @@ export async function resolveParentAgentId(
 }
 
 /**
- * Sort FTS5 search results into the order users expect from arrow-key
- * navigation: oldest first by ISO timestamp, with `messageId` breaking
- * ties for messages that share a timestamp string. FTS5's native rank
- * order is opaque to humans skimming history.
+ * Sort search results into the order users expect from arrow-key navigation:
+ * title matches first, then message matches oldest-first by ISO timestamp, with
+ * `messageId` breaking ties. FTS5's native rank order is opaque to humans
+ * skimming history.
  */
 export function sortSessionSearchResults(
   results: SessionSearchResult[],
 ): SessionSearchResult[] {
   return results.slice().sort((a, b) => {
+    const kindCmp = (a.matchKind === "title" ? 0 : 1) - (b.matchKind === "title" ? 0 : 1)
+    if (kindCmp !== 0) return kindCmp
     const cmp = a.timestamp.localeCompare(b.timestamp)
     return cmp !== 0 ? cmp : a.messageId - b.messageId
   })

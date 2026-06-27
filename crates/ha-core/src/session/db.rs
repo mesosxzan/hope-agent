@@ -1,6 +1,6 @@
 use anyhow::Result;
 use rusqlite::{params, Connection, OpenFlags, OptionalExtension};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::atomic::AtomicUsize;
 use std::sync::Mutex;
@@ -188,6 +188,13 @@ impl SessionDB {
                 tokenize='unicode61'
             );
 
+            CREATE VIRTUAL TABLE IF NOT EXISTS messages_trigram_fts USING fts5(
+                content,
+                content='messages',
+                content_rowid='id',
+                tokenize='trigram'
+            );
+
             -- Triggers for automatic FTS sync (only user/assistant messages)
             CREATE TRIGGER IF NOT EXISTS messages_fts_ai AFTER INSERT ON messages
             WHEN new.role IN ('user', 'assistant') AND length(new.content) > 0
@@ -199,6 +206,38 @@ impl SessionDB {
             WHEN old.role IN ('user', 'assistant') AND length(old.content) > 0
             BEGIN
                 INSERT INTO messages_fts(messages_fts, rowid, content) VALUES('delete', old.id, old.content);
+            END;
+
+            CREATE TRIGGER IF NOT EXISTS messages_fts_au AFTER UPDATE OF content, role ON messages
+            BEGIN
+                INSERT INTO messages_fts(messages_fts, rowid, content)
+                    SELECT 'delete', old.id, old.content
+                    WHERE old.role IN ('user', 'assistant') AND length(old.content) > 0;
+                INSERT INTO messages_fts(rowid, content)
+                    SELECT new.id, new.content
+                    WHERE new.role IN ('user', 'assistant') AND length(new.content) > 0;
+            END;
+
+            CREATE TRIGGER IF NOT EXISTS messages_trigram_fts_ai AFTER INSERT ON messages
+            WHEN new.role IN ('user', 'assistant') AND length(new.content) > 0
+            BEGIN
+                INSERT INTO messages_trigram_fts(rowid, content) VALUES (new.id, new.content);
+            END;
+
+            CREATE TRIGGER IF NOT EXISTS messages_trigram_fts_ad AFTER DELETE ON messages
+            WHEN old.role IN ('user', 'assistant') AND length(old.content) > 0
+            BEGIN
+                INSERT INTO messages_trigram_fts(messages_trigram_fts, rowid, content) VALUES('delete', old.id, old.content);
+            END;
+
+            CREATE TRIGGER IF NOT EXISTS messages_trigram_fts_au AFTER UPDATE OF content, role ON messages
+            BEGIN
+                INSERT INTO messages_trigram_fts(messages_trigram_fts, rowid, content)
+                    SELECT 'delete', old.id, old.content
+                    WHERE old.role IN ('user', 'assistant') AND length(old.content) > 0;
+                INSERT INTO messages_trigram_fts(rowid, content)
+                    SELECT new.id, new.content
+                    WHERE new.role IN ('user', 'assistant') AND length(new.content) > 0;
             END;"
         )?;
 
@@ -328,6 +367,44 @@ impl SessionDB {
              WHEN old.role IN ('user', 'assistant') AND length(old.content) > 0
              BEGIN
                  INSERT INTO messages_fts(messages_fts, rowid, content) VALUES('delete', old.id, old.content);
+             END;
+             DROP TRIGGER IF EXISTS messages_fts_au;
+             CREATE TRIGGER messages_fts_au AFTER UPDATE OF content, role ON messages
+             BEGIN
+                 INSERT INTO messages_fts(messages_fts, rowid, content)
+                     SELECT 'delete', old.id, old.content
+                     WHERE old.role IN ('user', 'assistant') AND length(old.content) > 0;
+                 INSERT INTO messages_fts(rowid, content)
+                     SELECT new.id, new.content
+                     WHERE new.role IN ('user', 'assistant') AND length(new.content) > 0;
+             END;
+             CREATE VIRTUAL TABLE IF NOT EXISTS messages_trigram_fts USING fts5(
+                 content,
+                 content='messages',
+                 content_rowid='id',
+                 tokenize='trigram'
+             );
+             DROP TRIGGER IF EXISTS messages_trigram_fts_ai;
+             CREATE TRIGGER messages_trigram_fts_ai AFTER INSERT ON messages
+             WHEN new.role IN ('user', 'assistant') AND length(new.content) > 0
+             BEGIN
+                 INSERT INTO messages_trigram_fts(rowid, content) VALUES (new.id, new.content);
+             END;
+             DROP TRIGGER IF EXISTS messages_trigram_fts_ad;
+             CREATE TRIGGER messages_trigram_fts_ad AFTER DELETE ON messages
+             WHEN old.role IN ('user', 'assistant') AND length(old.content) > 0
+             BEGIN
+                 INSERT INTO messages_trigram_fts(messages_trigram_fts, rowid, content) VALUES('delete', old.id, old.content);
+             END;
+             DROP TRIGGER IF EXISTS messages_trigram_fts_au;
+             CREATE TRIGGER messages_trigram_fts_au AFTER UPDATE OF content, role ON messages
+             BEGIN
+                 INSERT INTO messages_trigram_fts(messages_trigram_fts, rowid, content)
+                     SELECT 'delete', old.id, old.content
+                     WHERE old.role IN ('user', 'assistant') AND length(old.content) > 0;
+                 INSERT INTO messages_trigram_fts(rowid, content)
+                     SELECT new.id, new.content
+                     WHERE new.role IN ('user', 'assistant') AND length(new.content) > 0;
              END;"
         )?;
 
@@ -338,13 +415,16 @@ impl SessionDB {
         //
         // `PRAGMA user_version` is unused elsewhere here (all other migrations
         // are probe-based `SELECT col ... is_ok()`), so we claim it as a bitflag
-        // sentinel: bit 0 = "FTS rebuild already run". Future schema versioning
-        // can use the remaining bits. The corruption-recovery rebuild in
+        // sentinel: bit 0 = "FTS rebuild already run"; bit 1 = "trigram FTS
+        // rebuild already run". Future schema versioning can use the remaining
+        // bits. The corruption-recovery rebuild in
         // `delete_session` (the only other rebuild caller) is unaffected — it
         // fires on a caught error, not on open.
         const SCHEMA_FLAG_FTS_REBUILT: i64 = 0x1;
+        const SCHEMA_FLAG_TRIGRAM_FTS_REBUILT: i64 = 0x2;
         let schema_flags: i64 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
-        if schema_flags & SCHEMA_FLAG_FTS_REBUILT == 0 {
+        let mut next_schema_flags = schema_flags;
+        if next_schema_flags & SCHEMA_FLAG_FTS_REBUILT == 0 {
             // Stamp the sentinel ONLY when the rebuild actually succeeded — if a
             // first post-upgrade open hits the very corruption this is meant to
             // heal and the rebuild errors, we must retry on the next open rather
@@ -354,11 +434,21 @@ impl SessionDB {
                 .execute_batch("INSERT INTO messages_fts(messages_fts) VALUES('rebuild');")
                 .is_ok()
             {
-                conn.execute_batch(&format!(
-                    "PRAGMA user_version = {};",
-                    schema_flags | SCHEMA_FLAG_FTS_REBUILT
-                ))?;
+                next_schema_flags |= SCHEMA_FLAG_FTS_REBUILT;
             }
+        }
+        if next_schema_flags & SCHEMA_FLAG_TRIGRAM_FTS_REBUILT == 0 {
+            if conn
+                .execute_batch(
+                    "INSERT INTO messages_trigram_fts(messages_trigram_fts) VALUES('rebuild');",
+                )
+                .is_ok()
+            {
+                next_schema_flags |= SCHEMA_FLAG_TRIGRAM_FTS_REBUILT;
+            }
+        }
+        if next_schema_flags != schema_flags {
+            conn.execute_batch(&format!("PRAGMA user_version = {};", next_schema_flags))?;
         }
 
         // Migration: add plan_mode column to sessions if missing
@@ -3004,8 +3094,10 @@ impl SessionDB {
                         "delete_session failed ({}), rebuilding FTS and retrying",
                         e
                     );
-                    let _ = conn
-                        .execute_batch("INSERT INTO messages_fts(messages_fts) VALUES('rebuild');");
+                    let _ = conn.execute_batch(
+                        "INSERT INTO messages_fts(messages_fts) VALUES('rebuild');
+                         INSERT INTO messages_trigram_fts(messages_trigram_fts) VALUES('rebuild');",
+                    );
                     conn.execute("DELETE FROM sessions WHERE id = ?1", params![session_id])?;
                 }
             }
@@ -3352,9 +3444,9 @@ impl SessionDB {
 
     // ── History Search ──────────────────────────────────────────
 
-    /// True when a rusqlite error signals `messages_fts` shadow-table
+    /// True when a rusqlite error signals an FTS shadow-table
     /// corruption ("database disk image is malformed" / `SQLITE_CORRUPT`) — the
-    /// trigger to rebuild the FTS index.
+    /// trigger to rebuild the FTS indexes.
     fn is_fts_corruption(e: &rusqlite::Error) -> bool {
         match e {
             rusqlite::Error::SqliteFailure(f, msg) => {
@@ -3367,7 +3459,7 @@ impl SessionDB {
         }
     }
 
-    /// Rebuild `messages_fts` via the writer connection. The open-time rebuild
+    /// Rebuild message FTS indexes via the writer connection. The open-time rebuild
     /// now runs only once (gated by the `user_version` sentinel), so this is the
     /// on-demand recovery path for corruption that develops afterward — invoked
     /// from the read path when a query hits `SQLITE_CORRUPT`. Cheaper than the
@@ -3378,7 +3470,10 @@ impl SessionDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
-        conn.execute_batch("INSERT INTO messages_fts(messages_fts) VALUES('rebuild');")?;
+        conn.execute_batch(
+            "INSERT INTO messages_fts(messages_fts) VALUES('rebuild');
+             INSERT INTO messages_trigram_fts(messages_trigram_fts) VALUES('rebuild');",
+        )?;
         Ok(())
     }
 
@@ -3400,27 +3495,58 @@ impl SessionDB {
         types: Option<&[SessionTypeFilter]>,
         limit: usize,
     ) -> Result<Vec<SessionSearchResult>> {
-        let fts_query = sanitize_fts_query(query);
-        if fts_query.is_empty() {
+        self.search_messages_inner(query, agent_id, session_id, types, limit, true)
+    }
+
+    /// Search persisted chat message content only.
+    ///
+    /// This shares the same FTS/trigram implementation as `search_messages`,
+    /// but intentionally omits title matches for consumers that anchor every
+    /// hit to a real message row (for example `sessions_search` context windows).
+    pub fn search_message_content(
+        &self,
+        query: &str,
+        agent_id: Option<&str>,
+        session_id: Option<&str>,
+        types: Option<&[SessionTypeFilter]>,
+        limit: usize,
+    ) -> Result<Vec<SessionSearchResult>> {
+        self.search_messages_inner(query, agent_id, session_id, types, limit, false)
+    }
+
+    fn search_messages_inner(
+        &self,
+        query: &str,
+        agent_id: Option<&str>,
+        session_id: Option<&str>,
+        types: Option<&[SessionTypeFilter]>,
+        limit: usize,
+        include_title_matches: bool,
+    ) -> Result<Vec<SessionSearchResult>> {
+        if limit == 0 {
             return Ok(Vec::new());
         }
 
-        // Build dynamic WHERE / params. ?1 is the FTS query; subsequent params
-        // are added below in order.
+        let fts_query = sanitize_fts_query(query);
+        let trigram_query = sanitize_trigram_query(query);
+        let like_pattern = build_search_like_pattern(query);
+        if fts_query.is_empty() && trigram_query.is_empty() && like_pattern.is_none() {
+            return Ok(Vec::new());
+        }
+
+        // Build dynamic WHERE / params. Each concrete query binds its match
+        // parameter first, then appends these shared filters.
         let mut where_clauses: Vec<String> = Vec::new();
-        let mut params_vec: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
-        params_vec.push(Box::new(fts_query));
+        let mut filter_params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
 
         if let Some(aid) = agent_id {
-            let idx = params_vec.len() + 1;
-            where_clauses.push(format!("s.agent_id = ?{}", idx));
-            params_vec.push(Box::new(aid.to_string()));
+            where_clauses.push("s.agent_id = ?".to_string());
+            filter_params.push(Box::new(aid.to_string()));
         }
 
         if let Some(sid) = session_id {
-            let idx = params_vec.len() + 1;
-            where_clauses.push(format!("m.session_id = ?{}", idx));
-            params_vec.push(Box::new(sid.to_string()));
+            where_clauses.push("m.session_id = ?".to_string());
+            filter_params.push(Box::new(sid.to_string()));
         } else {
             // Global FTS path: hide incognito sessions + knowledge-space
             // conversations (the latter have their own KB-panel history search).
@@ -3454,16 +3580,21 @@ impl SessionDB {
             }
         }
 
-        let where_sql = if where_clauses.is_empty() {
+        let and_where_sql = if where_clauses.is_empty() {
             String::new()
         } else {
             format!(" AND {}", where_clauses.join(" AND "))
+        };
+        let plain_where_sql = if where_clauses.is_empty() {
+            String::new()
+        } else {
+            format!(" WHERE {}", where_clauses.join(" AND "))
         };
 
         // STX/ETX (U+0002/U+0003) — never valid in user text — so the frontend
         // can split without HTML escape/unescape that could reintroduce an
         // attribute-level XSS from user-authored `<mark onclick=…>`.
-        let sql = format!(
+        let fts_sql = format!(
             "SELECT m.id, m.session_id, m.role,
                     snippet(messages_fts, 0, '\x02', '\x03', '…', 16) AS snippet,
                     m.timestamp,
@@ -3474,20 +3605,41 @@ impl SessionDB {
              JOIN messages m ON m.id = fts.rowid
              JOIN sessions s ON s.id = m.session_id
              LEFT JOIN channel_conversations cc ON cc.session_id = s.id
-             WHERE messages_fts MATCH ?1{}
+             WHERE messages_fts MATCH ?
+               AND m.role IN ('user', 'assistant'){}
              ORDER BY fts.rank
              LIMIT {}",
-            where_sql, limit
+            and_where_sql, limit
+        );
+
+        let trigram_sql = format!(
+            "SELECT m.id, m.session_id, m.role,
+                    snippet(messages_trigram_fts, 0, '\x02', '\x03', '…', 16) AS snippet,
+                    m.timestamp,
+                    s.title, s.agent_id, s.is_cron, s.parent_session_id, s.project_id,
+                    cc.channel_id, cc.chat_type,
+                    tri.rank
+             FROM messages_trigram_fts tri
+             JOIN messages m ON m.id = tri.rowid
+             JOIN sessions s ON s.id = m.session_id
+             LEFT JOIN channel_conversations cc ON cc.session_id = s.id
+             WHERE messages_trigram_fts MATCH ?
+               AND m.role IN ('user', 'assistant'){}
+             ORDER BY tri.rank
+             LIMIT {}",
+            and_where_sql, limit
         );
 
         // Run the FTS query on a read-pool connection. FTS shadow-table
         // corruption surfaces while *stepping* the virtual table, so it is
         // propagated (not swallowed like benign per-row errors) to drive the
         // rebuild-and-retry below.
-        let run = |conn: &Connection| -> rusqlite::Result<Vec<SessionSearchResult>> {
-            let mut stmt = conn.prepare(&sql)?;
-            let param_refs: Vec<&dyn rusqlite::types::ToSql> =
-                params_vec.iter().map(|p| p.as_ref()).collect();
+        let run_fts = |conn: &Connection| -> rusqlite::Result<Vec<SessionSearchResult>> {
+            let mut stmt = conn.prepare(&fts_sql)?;
+            let mut param_refs: Vec<&dyn rusqlite::types::ToSql> =
+                Vec::with_capacity(filter_params.len() + 1);
+            param_refs.push(&fts_query);
+            param_refs.extend(filter_params.iter().map(|p| p.as_ref()));
             let rows = stmt.query_map(param_refs.as_slice(), |row| {
                 Ok(SessionSearchResult {
                     message_id: row.get(0)?,
@@ -3503,6 +3655,7 @@ impl SessionDB {
                     channel_type: row.get(10)?,
                     channel_chat_type: row.get(11)?,
                     relevance_rank: row.get::<_, f64>(12).unwrap_or(0.0),
+                    match_kind: SEARCH_MATCH_KIND_MESSAGE.to_string(),
                 })
             })?;
             let mut results = Vec::new();
@@ -3519,28 +3672,175 @@ impl SessionDB {
             Ok(results)
         };
 
-        // FTS search is a hot read (Cmd+F + /sessions) — route to the read pool.
-        let conn = self.read_conn()?;
-        match run(&conn) {
-            Ok(results) => Ok(results),
-            Err(e) if Self::is_fts_corruption(&e) => {
-                // The one-time open gate means the every-open rebuild no longer
-                // self-heals corruption that develops later, and the read pool
-                // is READ_ONLY. Recover on demand: rebuild via the writer, then
-                // retry once on a fresh read connection.
-                drop(conn);
-                app_warn!(
-                    "session",
-                    "db",
-                    "search_messages hit FTS corruption ({}); rebuilding index and retrying",
-                    e
-                );
-                self.rebuild_fts()?;
-                let conn = self.read_conn()?;
-                run(&conn).map_err(|e| anyhow::anyhow!("FTS search failed after rebuild: {}", e))
+        let run_trigram = |conn: &Connection| -> rusqlite::Result<Vec<SessionSearchResult>> {
+            let mut stmt = conn.prepare(&trigram_sql)?;
+            let mut param_refs: Vec<&dyn rusqlite::types::ToSql> =
+                Vec::with_capacity(filter_params.len() + 1);
+            param_refs.push(&trigram_query);
+            param_refs.extend(filter_params.iter().map(|p| p.as_ref()));
+            let rows = stmt.query_map(param_refs.as_slice(), |row| {
+                Ok(SessionSearchResult {
+                    message_id: row.get(0)?,
+                    session_id: row.get(1)?,
+                    message_role: row.get(2)?,
+                    content_snippet: row.get(3)?,
+                    timestamp: row.get(4)?,
+                    session_title: row.get(5)?,
+                    agent_id: row.get(6)?,
+                    is_cron: row.get::<_, i64>(7).unwrap_or(0) != 0,
+                    parent_session_id: row.get(8)?,
+                    project_id: row.get(9)?,
+                    channel_type: row.get(10)?,
+                    channel_chat_type: row.get(11)?,
+                    relevance_rank: row.get::<_, f64>(12).unwrap_or(1_000_000.0) + 1_000_000.0,
+                    match_kind: SEARCH_MATCH_KIND_MESSAGE.to_string(),
+                })
+            })?;
+            let mut results = Vec::new();
+            for r in rows {
+                match r {
+                    Ok(item) => results.push(item),
+                    Err(e) if Self::is_fts_corruption(&e) => return Err(e),
+                    Err(_) => {}
+                }
             }
-            Err(e) => Err(anyhow::anyhow!("FTS search failed: {}", e)),
+            Ok(results)
+        };
+
+        let mut results = Vec::new();
+        let mut seen_message_ids: HashSet<i64> = HashSet::new();
+
+        // Global sidebar search should find sessions by title too. Keep
+        // in-session Cmd/Ctrl+F message-only so navigation always lands on a
+        // visible bubble.
+        if include_title_matches && session_id.is_none() {
+            if let Some(pattern) = like_pattern.as_deref() {
+                let title_sql = format!(
+                    "SELECT COALESCE(lm.id, 0), s.id, 'title',
+                            COALESCE(s.title, '') AS snippet_source,
+                            COALESCE(lm.timestamp, s.updated_at) AS hit_timestamp,
+                            s.title, s.agent_id, s.is_cron, s.parent_session_id, s.project_id,
+                            cc.channel_id, cc.chat_type
+                     FROM sessions s
+                     LEFT JOIN channel_conversations cc ON cc.session_id = s.id
+                     LEFT JOIN messages lm ON lm.id = (
+                         SELECT MAX(m2.id) FROM messages m2 WHERE m2.session_id = s.id
+                     )
+                     {}
+                     {} COALESCE(s.title, '') LIKE ? ESCAPE '\\'
+                     ORDER BY s.updated_at DESC
+                     LIMIT {}",
+                    plain_where_sql,
+                    if plain_where_sql.is_empty() {
+                        "WHERE"
+                    } else {
+                        "AND"
+                    },
+                    limit
+                );
+                let conn = self.read_conn()?;
+                let mut stmt = conn.prepare(&title_sql)?;
+                let mut param_refs: Vec<&dyn rusqlite::types::ToSql> =
+                    Vec::with_capacity(filter_params.len() + 1);
+                param_refs.extend(filter_params.iter().map(|p| p.as_ref()));
+                param_refs.push(&pattern);
+                let rows = stmt.query_map(param_refs.as_slice(), |row| {
+                    let title: String = row.get(3)?;
+                    Ok(SessionSearchResult {
+                        message_id: row.get(0)?,
+                        session_id: row.get(1)?,
+                        message_role: row.get(2)?,
+                        content_snippet: highlighted_search_snippet(&title, query, 80),
+                        timestamp: row.get(4)?,
+                        session_title: row.get(5)?,
+                        agent_id: row.get(6)?,
+                        is_cron: row.get::<_, i64>(7).unwrap_or(0) != 0,
+                        parent_session_id: row.get(8)?,
+                        project_id: row.get(9)?,
+                        channel_type: row.get(10)?,
+                        channel_chat_type: row.get(11)?,
+                        relevance_rank: -1_000_000.0,
+                        match_kind: SEARCH_MATCH_KIND_TITLE.to_string(),
+                    })
+                })?;
+                for row in rows {
+                    if results.len() >= limit {
+                        break;
+                    }
+                    if let Ok(hit) = row {
+                        results.push(hit);
+                    }
+                }
+            }
         }
+
+        if !fts_query.is_empty() && results.len() < limit {
+            // FTS search is a hot read (Cmd+F + /sessions) — route to the read pool.
+            let conn = self.read_conn()?;
+            let fts_results = match run_fts(&conn) {
+                Ok(results) => results,
+                Err(e) if Self::is_fts_corruption(&e) => {
+                    // The one-time open gate means the every-open rebuild no longer
+                    // self-heals corruption that develops later, and the read pool
+                    // is READ_ONLY. Recover on demand: rebuild via the writer, then
+                    // retry once on a fresh read connection.
+                    drop(conn);
+                    app_warn!(
+                        "session",
+                        "db",
+                        "search_messages hit FTS corruption ({}); rebuilding index and retrying",
+                        e
+                    );
+                    self.rebuild_fts()?;
+                    let conn = self.read_conn()?;
+                    run_fts(&conn)
+                        .map_err(|e| anyhow::anyhow!("FTS search failed after rebuild: {}", e))?
+                }
+                Err(e) => return Err(anyhow::anyhow!("FTS search failed: {}", e)),
+            };
+            for hit in fts_results {
+                seen_message_ids.insert(hit.message_id);
+                if results.len() < limit {
+                    results.push(hit);
+                }
+            }
+        }
+
+        // FTS is token-based and misses common substring cases (partial English
+        // words, many CJK substrings). Use the trigram side index for those
+        // substring hits instead of falling back to a full `messages LIKE '%q%'`
+        // scan on every global search.
+        if !trigram_query.is_empty() && results.len() < limit {
+            let conn = self.read_conn()?;
+            let trigram_results = match run_trigram(&conn) {
+                Ok(results) => results,
+                Err(e) if Self::is_fts_corruption(&e) => {
+                    drop(conn);
+                    app_warn!(
+                        "session",
+                        "db",
+                        "search_messages hit trigram FTS corruption ({}); rebuilding index and retrying",
+                        e
+                    );
+                    self.rebuild_fts()?;
+                    let conn = self.read_conn()?;
+                    run_trigram(&conn).map_err(|e| {
+                        anyhow::anyhow!("trigram FTS search failed after rebuild: {}", e)
+                    })?
+                }
+                Err(e) => return Err(anyhow::anyhow!("trigram FTS search failed: {}", e)),
+            };
+            for hit in trigram_results {
+                if results.len() >= limit {
+                    break;
+                }
+                if seen_message_ids.insert(hit.message_id) {
+                    results.push(hit);
+                }
+            }
+        }
+
+        Ok(results)
     }
 
     /// FTS5 search that returns up to `limit` *distinct* sessions (best-rank
@@ -3557,38 +3857,126 @@ impl SessionDB {
         query: &str,
         limit: usize,
     ) -> Result<Vec<(String, String)>> {
+        if limit == 0 {
+            return Ok(Vec::new());
+        }
+
         let conn = self
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
 
         let fts_query = sanitize_fts_query(query);
-        if fts_query.is_empty() {
+        let trigram_query = sanitize_trigram_query(query);
+        let like_pattern = build_search_like_pattern(query);
+        if fts_query.is_empty() && trigram_query.is_empty() && like_pattern.is_none() {
             return Ok(Vec::new());
+        }
+
+        let mut results: Vec<(String, String)> = Vec::new();
+        let mut seen_session_ids: HashSet<String> = HashSet::new();
+
+        if let Some(pattern) = like_pattern.as_deref() {
+            let title_sql = format!(
+                "SELECT s.id, COALESCE(s.title, '') AS title
+                 FROM sessions s
+                 WHERE s.incognito = 0
+                   AND s.kind != 'knowledge'
+                   AND COALESCE(s.title, '') LIKE ?1 ESCAPE '\\'
+                 ORDER BY s.updated_at DESC
+                 LIMIT {}",
+                limit
+            );
+            let mut stmt = conn.prepare(&title_sql)?;
+            let rows = stmt.query_map(params![pattern], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })?;
+            for row in rows {
+                if results.len() >= limit {
+                    break;
+                }
+                if let Ok((session_id, title)) = row {
+                    if seen_session_ids.insert(session_id.clone()) {
+                        results.push((session_id, highlighted_search_snippet(&title, query, 80)));
+                    }
+                }
+            }
         }
 
         // Window function partitions by session and keeps the top-ranked
         // hit per session before applying the LIMIT, so 100 hits in one
         // session don't displace single-hit sessions further down.
-        let sql = format!(
-            "SELECT session_id, snippet FROM (
-                 SELECT m.session_id AS session_id,
-                        snippet(messages_fts, 0, '\x02', '\x03', '…', 16) AS snippet,
-                        fts.rank AS rank,
-                        ROW_NUMBER() OVER (PARTITION BY m.session_id ORDER BY fts.rank) AS rn
-                 FROM messages_fts fts
-                 JOIN messages m ON m.id = fts.rowid
-                 JOIN sessions s ON s.id = m.session_id
-                 WHERE messages_fts MATCH ?1 AND s.incognito = 0
-             ) WHERE rn = 1
-             ORDER BY rank
-             LIMIT {}",
-            limit
-        );
+        if !fts_query.is_empty() && results.len() < limit {
+            let sql = format!(
+                "SELECT session_id, snippet FROM (
+                     SELECT m.session_id AS session_id,
+                            snippet(messages_fts, 0, '\x02', '\x03', '…', 16) AS snippet,
+                            fts.rank AS rank,
+                            ROW_NUMBER() OVER (PARTITION BY m.session_id ORDER BY fts.rank) AS rn
+                     FROM messages_fts fts
+                     JOIN messages m ON m.id = fts.rowid
+                     JOIN sessions s ON s.id = m.session_id
+                     WHERE messages_fts MATCH ?1
+                       AND m.role IN ('user', 'assistant')
+                       AND s.incognito = 0
+                       AND s.kind != 'knowledge'
+                 ) WHERE rn = 1
+                 ORDER BY rank
+                 LIMIT {}",
+                limit
+            );
 
-        let mut stmt = conn.prepare(&sql)?;
-        let rows = stmt.query_map(params![fts_query], |row| Ok((row.get(0)?, row.get(1)?)))?;
-        let results: Vec<(String, String)> = rows.filter_map(|r| r.ok()).collect();
+            let mut stmt = conn.prepare(&sql)?;
+            let rows = stmt.query_map(params![fts_query], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })?;
+            for row in rows {
+                if results.len() >= limit {
+                    break;
+                }
+                if let Ok((session_id, snippet)) = row {
+                    if seen_session_ids.insert(session_id.clone()) {
+                        results.push((session_id, snippet));
+                    }
+                }
+            }
+        }
+
+        if !trigram_query.is_empty() && results.len() < limit {
+            let trigram_sql = format!(
+                "SELECT session_id, snippet FROM (
+                     SELECT m.session_id AS session_id,
+                            snippet(messages_trigram_fts, 0, '\x02', '\x03', '…', 16) AS snippet,
+                            tri.rank AS rank,
+                            ROW_NUMBER() OVER (PARTITION BY m.session_id ORDER BY tri.rank) AS rn
+                     FROM messages_trigram_fts tri
+                     JOIN messages m ON m.id = tri.rowid
+                     JOIN sessions s ON s.id = m.session_id
+                     WHERE messages_trigram_fts MATCH ?1
+                       AND m.role IN ('user', 'assistant')
+                       AND s.incognito = 0
+                       AND s.kind != 'knowledge'
+                 ) WHERE rn = 1
+                 ORDER BY rank
+                 LIMIT {}",
+                limit
+            );
+            let mut stmt = conn.prepare(&trigram_sql)?;
+            let rows = stmt.query_map(params![trigram_query], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })?;
+            for row in rows {
+                if results.len() >= limit {
+                    break;
+                }
+                if let Ok((session_id, snippet)) = row {
+                    if seen_session_ids.insert(session_id.clone()) {
+                        results.push((session_id, snippet));
+                    }
+                }
+            }
+        }
+
         Ok(results)
     }
 
@@ -3821,7 +4209,7 @@ impl SessionDB {
 
 #[cfg(test)]
 mod tests {
-    use super::{SessionDB, SessionTypeFilter};
+    use super::{SessionDB, SessionTypeFilter, SEARCH_MATCH_KIND_MESSAGE, SEARCH_MATCH_KIND_TITLE};
     use crate::session::{NewMessage, SessionKind};
     use rusqlite::Connection;
 
@@ -4035,6 +4423,130 @@ mod tests {
 
         assert_eq!(session_ids.len(), 1, "got hits from {:?}", session_ids);
         assert!(session_ids.contains(regular.id.as_str()));
+
+        let _ = std::fs::remove_file(&db_path);
+    }
+
+    #[test]
+    fn search_messages_global_matches_session_titles() {
+        let db_path = temp_db_path("session-search-title");
+        let db = SessionDB::open(&db_path).expect("open session db");
+        ensure_channel_conversations_table(&db);
+
+        let regular = db.create_session("ha-main").expect("regular session");
+        db.update_session_title(&regular.id, "Roadmap Draft")
+            .expect("set title");
+        db.append_message(&regular.id, &NewMessage::user("body without the query"))
+            .expect("append message");
+
+        let incognito = db
+            .create_session_full("ha-main", None, None, true)
+            .expect("incognito session");
+        db.update_session_title(&incognito.id, "Roadmap Private")
+            .expect("set incognito title");
+        db.append_message(&incognito.id, &NewMessage::user("body without the query"))
+            .expect("append incognito message");
+
+        let knowledge = db.create_session("ha-main").expect("knowledge session");
+        db.set_session_kind(&knowledge.id, SessionKind::Knowledge)
+            .expect("mark knowledge");
+        db.update_session_title(&knowledge.id, "Roadmap Knowledge")
+            .expect("set knowledge title");
+        db.append_message(&knowledge.id, &NewMessage::user("body without the query"))
+            .expect("append knowledge message");
+
+        let results = db
+            .search_messages(
+                "Roadmap",
+                None,
+                None,
+                Some(&[SessionTypeFilter::Regular]),
+                20,
+            )
+            .expect("search");
+
+        assert_eq!(results.len(), 1, "got hits from {:?}", results);
+        let hit = &results[0];
+        assert_eq!(hit.session_id, regular.id);
+        assert_eq!(hit.match_kind, SEARCH_MATCH_KIND_TITLE);
+        assert!(hit.content_snippet.contains('\u{0002}'));
+
+        let scoped = db
+            .search_messages("Roadmap", None, Some(&regular.id), None, 20)
+            .expect("scoped search");
+        assert!(
+            scoped.is_empty(),
+            "in-session search should stay message-only: {:?}",
+            scoped
+        );
+
+        let _ = std::fs::remove_file(&db_path);
+    }
+
+    #[test]
+    fn search_message_content_excludes_title_hits_without_starving_messages() {
+        let db_path = temp_db_path("session-search-message-only");
+        let db = SessionDB::open(&db_path).expect("open session db");
+        ensure_channel_conversations_table(&db);
+
+        for idx in 0..3 {
+            let title_only = db.create_session("ha-main").expect("title-only session");
+            db.update_session_title(&title_only.id, &format!("Roadmap Title {}", idx))
+                .expect("set title");
+            db.append_message(&title_only.id, &NewMessage::user("body without the query"))
+                .expect("append title-only message");
+        }
+
+        let message_match = db.create_session("ha-main").expect("message session");
+        db.update_session_title(&message_match.id, "Unrelated title")
+            .expect("set title");
+        db.append_message(
+            &message_match.id,
+            &NewMessage::user("Roadmap in the message body"),
+        )
+        .expect("append matching message");
+
+        let results = db
+            .search_message_content(
+                "Roadmap",
+                None,
+                None,
+                Some(&[SessionTypeFilter::Regular]),
+                1,
+            )
+            .expect("search");
+
+        assert_eq!(results.len(), 1, "got hits from {:?}", results);
+        let hit = &results[0];
+        assert_eq!(hit.session_id, message_match.id);
+        assert_eq!(hit.match_kind, SEARCH_MATCH_KIND_MESSAGE);
+        assert_ne!(hit.message_id, 0);
+
+        let _ = std::fs::remove_file(&db_path);
+    }
+
+    #[test]
+    fn search_messages_uses_trigram_body_substring() {
+        let db_path = temp_db_path("session-search-substring");
+        let db = SessionDB::open(&db_path).expect("open session db");
+        ensure_channel_conversations_table(&db);
+
+        let session = db.create_session("ha-main").expect("session");
+        db.append_message(
+            &session.id,
+            &NewMessage::user("tokenized-prefix-xxalphabeta-suffix"),
+        )
+        .expect("append message");
+
+        let results = db
+            .search_messages("alpha", None, None, Some(&[SessionTypeFilter::Regular]), 20)
+            .expect("search");
+
+        assert_eq!(results.len(), 1, "got hits from {:?}", results);
+        let hit = &results[0];
+        assert_eq!(hit.session_id, session.id);
+        assert_eq!(hit.match_kind, SEARCH_MATCH_KIND_MESSAGE);
+        assert!(hit.content_snippet.contains('\u{0002}'));
 
         let _ = std::fs::remove_file(&db_path);
     }
@@ -4684,6 +5196,107 @@ mod tests {
     }
 }
 
+const SEARCH_MATCH_KIND_MESSAGE: &str = "message";
+const SEARCH_MATCH_KIND_TITLE: &str = "title";
+
+fn build_search_like_pattern(query: &str) -> Option<String> {
+    let trimmed = query.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let mut pattern = String::with_capacity(trimmed.len() + 2);
+    pattern.push('%');
+    for ch in trimmed.chars() {
+        match ch {
+            '%' | '_' | '\\' => {
+                pattern.push('\\');
+                pattern.push(ch);
+            }
+            _ => pattern.push(ch),
+        }
+    }
+    pattern.push('%');
+    Some(pattern)
+}
+
+fn find_search_range(text: &str, query: &str) -> Option<(usize, usize)> {
+    let trimmed = query.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    find_one_range(text, trimmed).or_else(|| {
+        trimmed
+            .split_whitespace()
+            .filter(|token| !token.is_empty())
+            .filter_map(|token| find_one_range(text, token))
+            .next()
+    })
+}
+
+fn find_one_range(text: &str, needle: &str) -> Option<(usize, usize)> {
+    if needle.is_empty() {
+        return None;
+    }
+    if let Some(start) = text.find(needle) {
+        return Some((start, start + needle.len()));
+    }
+    if text.is_ascii() && needle.is_ascii() {
+        let lower_text = text.to_ascii_lowercase();
+        let lower_needle = needle.to_ascii_lowercase();
+        if let Some(start) = lower_text.find(&lower_needle) {
+            return Some((start, start + needle.len()));
+        }
+    }
+    None
+}
+
+fn byte_index_before_chars(text: &str, end: usize, count: usize) -> usize {
+    if count == 0 || end == 0 {
+        return end;
+    }
+    text[..end]
+        .char_indices()
+        .rev()
+        .nth(count.saturating_sub(1))
+        .map(|(idx, _)| idx)
+        .unwrap_or(0)
+}
+
+fn byte_index_after_chars(text: &str, start: usize, count: usize) -> usize {
+    if count == 0 || start >= text.len() {
+        return start;
+    }
+    text[start..]
+        .char_indices()
+        .nth(count)
+        .map(|(idx, _)| start + idx)
+        .unwrap_or(text.len())
+}
+
+fn highlighted_search_snippet(text: &str, query: &str, context_chars: usize) -> String {
+    let Some((hit_start, hit_end)) = find_search_range(text, query) else {
+        return crate::truncate_utf8(text.trim(), 240).to_string();
+    };
+
+    let start = byte_index_before_chars(text, hit_start, context_chars);
+    let end = byte_index_after_chars(text, hit_end, context_chars);
+    let mut snippet = String::new();
+    if start > 0 {
+        snippet.push('…');
+    }
+    snippet.push_str(&text[start..hit_start]);
+    snippet.push('\u{0002}');
+    snippet.push_str(&text[hit_start..hit_end]);
+    snippet.push('\u{0003}');
+    snippet.push_str(&text[hit_end..end]);
+    if end < text.len() {
+        snippet.push('…');
+    }
+    snippet
+}
+
 /// Sanitize query for FTS5 MATCH: wrap each token in double quotes for exact matching.
 pub(crate) fn sanitize_fts_query(query: &str) -> String {
     let tokens: Vec<String> = query
@@ -4694,8 +5307,24 @@ pub(crate) fn sanitize_fts_query(query: &str) -> String {
     tokens.join(" ")
 }
 
+/// Sanitize query for the FTS5 trigram index.
+///
+/// SQLite's built-in trigram tokenizer can only usefully match terms with at
+/// least three Unicode scalar values. Shorter terms still go through the title
+/// LIKE path and the regular token FTS path, but we do not fall back to scanning
+/// every message body for them.
+fn sanitize_trigram_query(query: &str) -> String {
+    let tokens: Vec<String> = query
+        .split_whitespace()
+        .map(|t| t.replace('"', ""))
+        .filter(|t| t.chars().count() >= 3)
+        .map(|t| format!("\"{}\"", t))
+        .collect();
+    tokens.join(" ")
+}
+
 /// Strip the FTS5 snippet sentinels (STX/ETX = U+0002/U+0003) emitted by
-/// `snippet(messages_fts, 0, …)` calls. Frontends that render `<mark>`
+/// `snippet(..., 0, …)` calls. Frontends that render `<mark>`
 /// split on these bytes; surfaces without a `<mark>` rendering pipeline
 /// (slash pickers, plain-text IM replies) want the bare text instead.
 /// Also collapses newlines to spaces and UTF-8-safe truncates to
@@ -4766,4 +5395,7 @@ pub struct SessionSearchResult {
     pub channel_type: Option<String>,
     /// IM channel chat kind (e.g. "dm", "group") when applicable.
     pub channel_chat_type: Option<String>,
+    /// What matched the search query: `message` for persisted chat content,
+    /// `title` for the session title row.
+    pub match_kind: String,
 }
