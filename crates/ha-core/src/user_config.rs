@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::Datelike;
+use chrono::{Datelike, NaiveDate, TimeZone};
 use serde::{Deserialize, Serialize};
 
 use crate::paths;
@@ -161,7 +161,7 @@ pub fn build_user_context(config: &UserConfig) -> Option<String> {
             lines.push(format!("- Birthday: {}", birthday));
             // Calculate age from birthday
             if let Ok(bd) = chrono::NaiveDate::parse_from_str(birthday, "%Y-%m-%d") {
-                let today = chrono::Local::now().date_naive();
+                let today = user_local_today(&config.timezone);
                 let mut age = today.year() - bd.year();
                 if today.ordinal() < bd.ordinal() {
                     age -= 1;
@@ -221,5 +221,27 @@ fn language_display_name(code: &str) -> &str {
         "vi" => "Tiếng Việt",
         "ms" => "Bahasa Melayu",
         other => other,
+    }
+}
+
+/// Return today's date in the user's configured (or auto-detected) timezone.
+/// Falls back to UTC when neither is available.
+///
+/// This replaces `chrono::Local::now().date_naive()` in contexts where the
+/// server's local timezone (e.g. a Docker container running UTC) is NOT the
+/// user's timezone.  The user's IANA zone comes from `UserConfig.timezone`;
+/// if absent, `iana-time-zone` detects the host zone at runtime.
+pub fn user_local_today(tz_override: &Option<String>) -> NaiveDate {
+    let tz_name = tz_override
+        .as_deref()
+        .filter(|s| !s.trim().is_empty())
+        .map(|s| s.to_string())
+        .or_else(|| iana_time_zone::get_timezone().ok())
+        .unwrap_or_else(|| "UTC".to_string());
+
+    let now = chrono::Utc::now();
+    match tz_name.parse::<chrono_tz::Tz>() {
+        Ok(tz) => now.with_timezone(&tz).date_naive(),
+        Err(_) => now.date_naive(),
     }
 }

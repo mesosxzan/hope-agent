@@ -43,17 +43,33 @@ pub(super) fn find_git_root(start: &str) -> Option<String> {
 /// Excludes time to maximize prompt cache hit rate — the system prompt
 /// stays identical throughout the day. Agents can use `exec date` for
 /// the precise time when needed.
+///
+/// Uses the user's configured timezone (`UserConfig.timezone`) when
+/// available, otherwise auto-detects via `iana-time-zone`. Falls back to
+/// UTC. This avoids the `date` shell command which returns the **server's**
+/// local timezone — wrong in server/Docker mode where the container is UTC
+/// but the user may be in e.g. Asia/Shanghai (−8 h).
 pub(super) fn current_date() -> String {
-    // Same as `uname`: a `date.exe` from Git-for-Windows / MSYS2 can resolve
-    // on Windows, so suppress its console window too.
-    let mut cmd = std::process::Command::new("date");
-    cmd.arg("+%Y-%m-%d %Z");
-    crate::platform::hide_console(&mut cmd);
-    cmd.output()
-        .ok()
-        .and_then(|o| String::from_utf8(o.stdout).ok())
-        .map(|s| s.trim().to_string())
-        .unwrap_or_else(|| "unknown".to_string())
+    let tz_name = crate::config::cached_config()
+        .user
+        .timezone
+        .as_deref()
+        .filter(|s| !s.trim().is_empty())
+        .map(|s| s.to_string())
+        .or_else(|| iana_time_zone::get_timezone().ok())
+        .unwrap_or_else(|| "UTC".to_string());
+
+    let now = chrono::Utc::now();
+    match tz_name.parse::<chrono_tz::Tz>() {
+        Ok(tz) => {
+            let local = now.with_timezone(&tz);
+            format!("{} {}", local.format("%Y-%m-%d"), tz_name)
+        }
+        Err(_) => {
+            let utc = now.format("%Y-%m-%d");
+            format!("{} UTC", utc)
+        }
+    }
 }
 
 // ── Truncation ───────────────────────────────────────────────────
