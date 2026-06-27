@@ -161,8 +161,13 @@ fn split_envelope(raw: &str) -> (String, String) {
 pub fn render_diary_markdown(output: &NarrativeOutput) -> String {
     let tz_name = crate::user_config::effective_timezone();
     let date = match tz_name.parse::<chrono_tz::Tz>() {
-        Ok(tz) => chrono::Utc::now().with_timezone(&tz).format("%Y-%m-%d %H:%M:%S %Z").to_string(),
-        Err(_) => chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC").to_string(),
+        Ok(tz) => chrono::Utc::now()
+            .with_timezone(&tz)
+            .format("%Y-%m-%d %H:%M:%S %Z")
+            .to_string(),
+        Err(_) => chrono::Utc::now()
+            .format("%Y-%m-%d %H:%M:%S UTC")
+            .to_string(),
     };
     let mut md = String::new();
     md.push_str(&format!("# Dream Diary — {}\n\n", date));
@@ -216,7 +221,10 @@ pub fn write_diary(md: &str) -> Result<std::path::PathBuf> {
     // user sees in the diary header, not the server's local zone.
     let tz_name = crate::user_config::effective_timezone();
     let stamp = match tz_name.parse::<chrono_tz::Tz>() {
-        Ok(tz) => chrono::Utc::now().with_timezone(&tz).format("%Y-%m-%d_%H%M%S").to_string(),
+        Ok(tz) => chrono::Utc::now()
+            .with_timezone(&tz)
+            .format("%Y-%m-%d_%H%M%S")
+            .to_string(),
         Err(_) => chrono::Utc::now().format("%Y-%m-%d_%H%M%S").to_string(),
     };
     let path = dir.join(format!("{}.md", stamp));

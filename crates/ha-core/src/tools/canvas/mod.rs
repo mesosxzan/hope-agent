@@ -436,7 +436,10 @@ async fn action_snapshot(args: &Value) -> Result<String> {
                     let timestamp = {
                         let tz_name = crate::user_config::effective_timezone();
                         match tz_name.parse::<chrono_tz::Tz>() {
-                            Ok(tz) => chrono::Utc::now().with_timezone(&tz).format("%Y%m%d_%H%M%S").to_string(),
+                            Ok(tz) => chrono::Utc::now()
+                                .with_timezone(&tz)
+                                .format("%Y%m%d_%H%M%S")
+                                .to_string(),
                             Err(_) => chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string(),
                         }
                     };

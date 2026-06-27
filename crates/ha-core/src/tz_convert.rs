@@ -142,11 +142,7 @@ mod tests {
 
     #[test]
     fn converts_array_timestamps() {
-        let mut v = serde_json::json!([
-            "2026-06-27T01:30:00+00:00",
-            "not a timestamp",
-            42
-        ]);
+        let mut v = serde_json::json!(["2026-06-27T01:30:00+00:00", "not a timestamp", 42]);
         convert_timestamps_to_local(&mut v, "Asia/Shanghai");
         assert_eq!(v[0], "2026-06-27T09:30:00+08:00");
         assert_eq!(v[1], "not a timestamp");

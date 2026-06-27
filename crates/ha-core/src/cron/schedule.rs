@@ -381,7 +381,10 @@ mod tests {
             },
             &after,
         );
-        assert!(result.is_some(), "should find next occurrence with default timezone");
+        assert!(
+            result.is_some(),
+            "should find next occurrence with default timezone"
+        );
     }
 
     #[test]

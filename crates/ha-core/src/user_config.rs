@@ -292,10 +292,7 @@ pub fn now_local_rfc3339_opts(precision: chrono::SecondsFormat) -> String {
 /// server's local timezone (e.g. a Docker container running UTC) is NOT the
 /// user's timezone.
 pub fn user_local_today(tz_override: &Option<String>) -> NaiveDate {
-    let tz_name = if let Some(tz) = tz_override
-        .as_deref()
-        .filter(|s| !s.trim().is_empty())
-    {
+    let tz_name = if let Some(tz) = tz_override.as_deref().filter(|s| !s.trim().is_empty()) {
         tz.to_string()
     } else {
         effective_timezone()
