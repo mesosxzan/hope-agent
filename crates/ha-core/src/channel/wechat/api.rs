@@ -199,7 +199,20 @@ impl WeChatApi {
             body["context_token"] = json!(token);
         }
         let raw = self.post_json("ilink/bot/getconfig", body, 10_000).await?;
-        serde_json::from_str(&raw).context("Failed to decode WeChat getConfig response")
+        let config: GetConfigResponse =
+            serde_json::from_str(&raw).context("Failed to decode WeChat getConfig response")?;
+
+        // Check business-level error code. The iLink API returns HTTP 200
+        // even on failure; `ret != 0` indicates a parameter or session error.
+        if config.ret.unwrap_or(0) != 0 {
+            return Err(anyhow::anyhow!(
+                "WeChat getconfig failed: ret={} errmsg={}",
+                config.ret.unwrap_or(0),
+                config.errmsg.as_deref().unwrap_or("unknown")
+            ));
+        }
+
+        Ok(config)
     }
 
     pub async fn send_typing(
@@ -537,14 +550,18 @@ pub struct GetUploadUrlResponse {
     pub upload_full_url: Option<String>,
 }
 
+/// Response body for `ilink/bot/getconfig`.
+///
+/// Per the official OpenClaw SDK (`@tencent-weixin/openclaw-weixin`
+/// `GetConfigResp`), the API only returns `typing_ticket` — **not**
+/// `context_token`.  The `context_token` used by `sendmessage` must come
+/// from inbound messages received via `getupdates`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GetConfigResponse {
     #[serde(default)]
     pub ret: Option<i32>,
     #[serde(default)]
     pub errmsg: Option<String>,
-    #[serde(default)]
-    pub context_token: Option<String>,
     #[serde(default)]
     pub typing_ticket: Option<String>,
 }
