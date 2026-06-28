@@ -492,8 +492,7 @@ mod tests {
     const TEST_SOCKS5_PROXY: &str = "socks5h://192.168.1.97:11281";
 
     fn build_test_client_with_proxy() -> reqwest::Client {
-        let proxy = reqwest::Proxy::all(TEST_SOCKS5_PROXY)
-            .expect("Failed to create SOCKS5 proxy");
+        let proxy = reqwest::Proxy::all(TEST_SOCKS5_PROXY).expect("Failed to create SOCKS5 proxy");
         reqwest::Client::builder()
             .user_agent(DEFAULT_WEB_FETCH_USER_AGENT)
             .timeout(std::time::Duration::from_secs(30))
@@ -526,7 +525,10 @@ mod tests {
                     println!("    {}. {} -> {}", i + 1, r.title, r.url);
                 }
 
-                assert!(!results.is_empty(), "Should parse at least 1 result from DDG HTML search");
+                assert!(
+                    !results.is_empty(),
+                    "Should parse at least 1 result from DDG HTML search"
+                );
             }
             Err(e) => {
                 println!("GET request FAILED: {}", e);
@@ -585,8 +587,14 @@ mod tests {
         assert_eq!(results_new.len(), 3);
         assert_eq!(results_new[0].url, "https://rust-lang.org/");
         assert_eq!(results_new[0].title, "Rust Programming Language");
-        assert_eq!(results_new[1].url, "https://en.wikipedia.org/wiki/Rust_(programming_language)");
-        assert_eq!(results_new[2].url, "https://www.w3schools.com/rust/index.php");
+        assert_eq!(
+            results_new[1].url,
+            "https://en.wikipedia.org/wiki/Rust_(programming_language)"
+        );
+        assert_eq!(
+            results_new[2].url,
+            "https://www.w3schools.com/rust/index.php"
+        );
 
         // Mixed format in same page
         let html_mixed = r#"
@@ -595,7 +603,11 @@ mod tests {
         "#;
 
         let results_mixed = parse_ddg_results(html_mixed, 10);
-        assert_eq!(results_mixed.len(), 2, "Should parse both old and new format");
+        assert_eq!(
+            results_mixed.len(),
+            2,
+            "Should parse both old and new format"
+        );
         assert_eq!(results_mixed[0].url, "https://example.com/1");
         assert_eq!(results_mixed[1].url, "https://example.com/2");
     }
