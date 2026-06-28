@@ -2,18 +2,22 @@
 #
 # Hope Agent — multi-arch container image for `hope-agent server`.
 #
-# Stage 1 (web)     — node:20-bookworm-slim builds the Vite frontend to `/work/dist/`.
+# Stage 1 (web)     — builds the Vite frontend to `/work/dist/`.
 #                     Pinned to $BUILDPLATFORM so we run pnpm exactly once even
 #                     for multi-arch builds (frontend output is arch-agnostic).
-#                     Node stage doesn't have the glibc constraint below.
-# Stage 2 (rust)    — rust:1.95.0-trixie builds the `hope-agent` binary.
+# Stage 2 (rust)    — builds the `hope-agent` binary.
 #                     The web `dist/` is copied in BEFORE `cargo build` so
 #                     `crates/ha-server/build.rs` sees the real assets and
 #                     `rust-embed` bakes them into the binary.
-# Stage 3 (runtime) — debian:trixie-slim — ca-certs + tzdata + wget + a few
+# Stage 3 (runtime) — minimal runtime with ca-certs + tzdata + wget + a few
 #                     desktop-tool shared libs (see runtime stage comment).
 #                     Runs as non-root user `hope` (uid 1000) with /data
 #                     persisted as the configurable HA_DATA_DIR.
+#
+# Both Stage 1 and Stage 2 inherit from the pre-built base image
+# (`ghcr.io/shiwenwen/hope-agent-base`) which bundles Rust, Node, Python,
+# and all system build dependencies. This avoids re-installing toolchains
+# on every `docker build`.
 #
 # Glibc note: trixie (Debian 13, glibc 2.41) on both build and runtime is
 # required because `ort-sys` (pulled in by fastembed for embeddings) ships
@@ -23,23 +27,13 @@
 # binary baseline. Keep both stages on the same distro — mixing trixie
 # build / bookworm runtime would dynamically fail to load at startup.
 
+# Base image: see docker/Dockerfile.base for the full toolchain list.
+ARG BASE_IMAGE=ghcr.io/shiwenwen/hope-agent-base:1.0
+
 # -------------------------------------------------------------------
 # Stage 1: build the Vite frontend (arch-independent)
 # -------------------------------------------------------------------
-FROM --platform=$BUILDPLATFORM node:20-bookworm-slim AS web
-
-# Pin pnpm to the version declared in package.json#packageManager so
-# lockfile resolution is reproducible. `corepack prepare --activate`
-# downloads the pinned tarball; `pnpm-lock.yaml` was generated with the
-# same version.
-# Install pnpm via npm with npmmirror registry.  The node:20 slim image
-# bundles npm which can use a mirror — unlike corepack which has its own
-# registry config and proxy crash bugs.  npmmirror may lag behind the
-# official registry but pnpm 10.33.1 has been available there since
-# 2025-06.  The `pnpm --version` guard ensures the right version landed.
-RUN npm config set registry https://registry.npmmirror.com/ && \
-    npm install -g pnpm@10.33.1 && \
-    pnpm --version
+FROM --platform=$BUILDPLATFORM ${BASE_IMAGE} AS web
 
 WORKDIR /work
 
@@ -68,7 +62,7 @@ RUN pnpm build && \
 # -------------------------------------------------------------------
 # Stage 2: build the Rust `hope-agent` binary
 # -------------------------------------------------------------------
-FROM rust:1.95.0-trixie AS rust
+FROM ${BASE_IMAGE} AS rust
 
 # The base image already ships Rust 1.95.0 — the exact version pinned by
 # rust-toolchain.toml.  We deliberately do NOT copy rust-toolchain.toml
@@ -79,33 +73,7 @@ FROM rust:1.95.0-trixie AS rust
 # Without the file, rustup uses the pre-installed 1.95.0 toolchain
 # directly — same compiler, no network round-trip.
 
-# protobuf-compiler is required by `prost-build` at compile time.
-# pkg-config is needed by several -sys crates even though OpenSSL is
-# vendored.
-# libclang-dev is required by bindgen (pulled in by `libspa-sys`-style
-# crates that may still appear transitively; harmless when unused).
-#
-# Desktop-only image tools (`xcap` for screen capture, `arboard` for
-# clipboard) are gated behind ha-core's `desktop-tools` Cargo feature,
-# which we do NOT enable here — keeping wayland / pipewire / gtk-3 out
-# of both the build deps and the runtime libs.
-RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 update && \
-    apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 install -y --no-install-recommends \
-        pkg-config \
-        protobuf-compiler \
-        libclang-dev \
-        mold \
-    && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /work
-
-# Use rsproxy.cn (ByteDance) sparse index for crates.io.  The sparse
-# protocol is much faster than the legacy git clone and rsproxy is
-# currently the most reliable crates.io mirror inside the Great Firewall.
-# The Docker cache mount persists the registry across rebuilds.
-RUN mkdir -p /usr/local/cargo && \
-    printf '[source.crates-io]\nreplace-with = "rsproxy"\n\n[source.rsproxy]\nregistry = "sparse+https://rsproxy.cn/index/"\n\n[net]\nretry = 5\n' \
-    > /usr/local/cargo/config.toml
 
 # Copy the workspace metadata first so dependency compilation is cached
 # independently of source-only edits.

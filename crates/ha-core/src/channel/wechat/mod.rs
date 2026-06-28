@@ -130,6 +130,30 @@ impl WeChatSharedState {
             .cloned()
     }
 
+    /// Clear a stale/expired context_token from cache and persist.
+    /// Called when a send fails with ret=-2 (invalid/expired token)
+    /// so subsequent retries don't reuse the stale token.
+    pub async fn clear_context_token(&self, account_id: &str, user_id: &str) {
+        let snapshot = {
+            let mut store = self.context_tokens.lock().await;
+            if let Some(entry) = store.get_mut(account_id) {
+                entry.remove(user_id);
+                entry.clone()
+            } else {
+                return;
+            }
+        };
+        if let Err(e) = self.persist_context_tokens(account_id, &snapshot) {
+            app_warn!(
+                "channel",
+                "wechat",
+                "Failed to persist context_tokens after clearing {}: {}",
+                user_id,
+                e
+            );
+        }
+    }
+
     fn persist_context_tokens(
         &self,
         account_id: &str,
@@ -498,7 +522,21 @@ impl ChannelPlugin for WeChatPlugin {
                             "fetched context_token via getconfig for {}",
                             chat_id
                         );
-                        context_token = Some(token);
+                        context_token = Some(token.clone());
+                        // Cache for future sends (cron delivery, proactive pushes)
+                        if let Err(e) = self
+                            .shared
+                            .set_context_token(account_id, chat_id, &token)
+                            .await
+                        {
+                            app_warn!(
+                                "channel",
+                                "wechat",
+                                "failed to cache fetched context_token for {}: {}",
+                                chat_id,
+                                e
+                            );
+                        }
                     } else {
                         app_warn!(
                             "channel",
@@ -539,16 +577,64 @@ impl ChannelPlugin for WeChatPlugin {
         let text = payload.text.as_deref().map(str::trim).unwrap_or("");
         if !text.is_empty() {
             let result = api.send_text(chat_id, text, context_token.as_deref()).await;
+
+            // If send failed with ret=-2, the context_token may have expired.
+            // Clear the stale cached token, fetch a fresh one via getconfig,
+            // and retry once. Without this, all 3 cron delivery retries use
+            // the same expired token and all fail.
             if let Err(ref e) = result {
-                app_warn!(
-                    "channel",
-                    "wechat",
-                    "send_text failed for {}: context_token={}, error={}",
-                    chat_id,
-                    context_token.as_deref().unwrap_or("<none>"),
-                    e
-                );
-                if e.to_string().contains("errcode=-14") || e.to_string().contains("errcode= -14") {
+                let err_str = e.to_string();
+                if err_str.contains("ret=-2") {
+                    app_warn!(
+                        "channel",
+                        "wechat",
+                        "send_text got ret=-2 for {}, clearing stale context_token and retrying with fresh getconfig",
+                        chat_id
+                    );
+                    // Clear stale token from cache
+                    self.shared.clear_context_token(account_id, chat_id).await;
+                    // Fetch fresh token
+                    let fresh_token = match api.get_config(chat_id, None).await {
+                        Ok(config) => config.context_token,
+                        Err(ge) => {
+                            app_warn!(
+                                "channel",
+                                "wechat",
+                                "getconfig retry also failed for {}: {}",
+                                chat_id,
+                                ge
+                            );
+                            None
+                        }
+                    };
+                    if let Some(ref token) = fresh_token {
+                        // Cache the fresh token for future use
+                        if let Err(persist_err) = self
+                            .shared
+                            .set_context_token(account_id, chat_id, token)
+                            .await
+                        {
+                            app_warn!(
+                                "channel",
+                                "wechat",
+                                "failed to persist refreshed context_token for {}: {}",
+                                chat_id,
+                                persist_err
+                            );
+                        }
+                    }
+                    // Retry with fresh token (or None if getconfig failed)
+                    let retry = api.send_text(chat_id, text, fresh_token.as_deref()).await;
+                    if let Err(ref re) = retry {
+                        if re.to_string().contains("errcode=-14") {
+                            self.shared.pause_account(account_id).await;
+                        }
+                    }
+                    let message_id = retry?;
+                    return Ok(DeliveryResult::ok(message_id));
+                }
+
+                if err_str.contains("errcode=-14") || err_str.contains("errcode= -14") {
                     self.shared.pause_account(account_id).await;
                 }
             }

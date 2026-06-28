@@ -1,0 +1,109 @@
+# syntax=docker/dockerfile:1.7
+#
+# Hope Agent — base image for container builds.
+#
+# Pre-installs all toolchains and system libraries that the hope-agent
+# multi-stage build needs, so that `docker build` only has to copy source
+# and compile.  Publish this image once (or whenever toolchains change)
+# and reference it as the base in the project Dockerfile.
+#
+# What's included:
+#   - Rust 1.95.0 toolchain (stable, clippy, rustfmt)
+#   - Node.js 20 LTS + pnpm 10.33.1
+#   - Python 3 (for potential future MCP / scripting needs)
+#   - Build essentials: pkg-config, protobuf-compiler, libclang-dev, mold,
+#     cmake, make, git, curl, jq
+#   - Cargo crates.io mirror config (rsproxy.cn sparse index)
+#   - npm/pnpm mirror config (npmmirror.com)
+#
+# Build & push (one-time or on toolchain upgrade):
+#   docker buildx build \
+#     --platform linux/amd64,linux/arm64 \
+#     -t ghcr.io/shiwenwen/hope-agent-base:1.0 \
+#     -t ghcr.io/shiwenwen/hope-agent-base:latest \
+#     --push \
+#     -f docker/Dockerfile.base .
+#
+# The project Dockerfile then uses:
+#   FROM ghcr.io/shiwenwen/hope-agent-base:1.0 AS web   (node stage)
+#   FROM ghcr.io/shiwenwen/hope-agent-base:1.0 AS rust   (rust stage)
+
+# -------------------------------------------------------------------
+# Combined base: Rust + Node + Python + build tools
+# -------------------------------------------------------------------
+FROM rust:1.95.0-trixie AS base
+
+# ---- System packages ----
+# Build-time: pkg-config, protobuf-compiler, libclang-dev, mold, cmake, git
+# Runtime-ready: ca-certificates, tzdata, curl, wget, jq, tini, chromium + libs
+# Python 3 for MCP / scripting extensibility
+RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 update && \
+    apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 install -y --no-install-recommends \
+        # --- Rust build deps ---
+        pkg-config \
+        protobuf-compiler \
+        libclang-dev \
+        mold \
+        # --- General build tools ---
+        cmake \
+        make \
+        git \
+        # --- Scripting languages ---
+        python3 \
+        python3-pip \
+        python3-venv \
+        # --- Network / utility ---
+        ca-certificates \
+        tzdata \
+        curl \
+        wget \
+        jq \
+        # --- Process management ---
+        tini \
+        # --- Browser automation (headless Chromium) ---
+        chromium \
+        fonts-liberation \
+        libnss3 \
+        libgbm1 \
+        libxss1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# ---- Node.js 20 LTS ----
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 install -y --no-install-recommends nodejs && \
+    rm -rf /var/lib/apt/lists/* && \
+    node --version && \
+    npm --version
+
+# ---- pnpm (pinned to package.json#packageManager version) ----
+RUN npm config set registry https://registry.npmmirror.com/ && \
+    npm install -g pnpm@10.33.1 && \
+    pnpm --version
+
+# ---- Cargo crates.io mirror (rsproxy.cn sparse index) ----
+# The sparse protocol is faster than the legacy git clone.
+RUN mkdir -p /usr/local/cargo && \
+    printf '[source.crates-io]\nreplace-with = "rsproxy"\n\n[source.rsproxy]\nregistry = "sparse+https://rsproxy.cn/index/"\n\n[net]\nretry = 5\n' \
+    > /usr/local/cargo/config.toml
+
+# ---- pip mirror (TUNA) ----
+RUN pip3 config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple && \
+    pip3 config set global.trusted-host pypi.tuna.tsinghua.edu.cn
+
+# ---- Verify toolchain versions ----
+RUN set -eu; \
+    echo "=== Toolchain versions ==="; \
+    echo "Rust:    $(rustc --version)"; \
+    echo "Cargo:   $(cargo --version)"; \
+    echo "Node:    $(node --version)"; \
+    echo "npm:     $(npm --version)"; \
+    echo "pnpm:    $(pnpm --version)"; \
+    echo "Python:  $(python3 --version)"; \
+    echo "pip:     $(pip3 --version)"; \
+    echo "Git:     $(git --version)"; \
+    echo "cmake:   $(cmake --version | head -1)"; \
+    echo "mold:    $(mold --version | head -1)"; \
+    echo "Chromium: $(chromium --version 2>/dev/null || echo 'not available')"; \
+    echo "=========================="
+
+WORKDIR /work
