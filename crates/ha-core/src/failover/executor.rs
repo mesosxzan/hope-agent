@@ -32,7 +32,7 @@ use std::time::Duration;
 use crate::provider::{ApiType, AuthProfile, ProviderConfig};
 
 use super::{
-    classify_error, next_profile, retry_delay_ms, select_profile, FailoverReason,
+    classify_error_full, next_profile, retry_delay_ms, select_profile, FailoverReason,
     PROFILE_COOLDOWNS, PROFILE_STICKY,
 };
 
@@ -227,7 +227,8 @@ where
                 }
 
                 let err_str = e.to_string();
-                let reason = classify_error(&err_str);
+                let classified = classify_error_full(&err_str);
+                let reason = classified.reason;
 
                 if reason.needs_compaction() {
                     return Err(ExecutorError::NeedsCompaction {
@@ -268,9 +269,19 @@ where
                 // Retry-on-same-profile path (only for retryable errors that
                 // either aren't profile-rotatable or whose rotation we already
                 // skipped because policy.allow_profile_rotation is false).
-                if reason.is_retryable() && retry_count < policy.max_retries {
-                    let delay =
-                        retry_delay_ms(retry_count, policy.retry_base_ms, policy.retry_max_ms);
+                // Unknown errors get at most 1 retry (catches transient proxy
+                // hiccups without adding excessive latency on permanent failures).
+                let effective_max = reason.max_retries(policy.max_retries);
+                if reason.is_retryable() && retry_count < effective_max {
+                    // Use server-advised retry-after when available, clamped
+                    // to [retry_base_ms, retry_max_ms] to avoid both overly
+                    // aggressive retries and excessive waits.
+                    let delay = if let Some(secs) = classified.retry_after_secs {
+                        let server_ms = secs.saturating_mul(1000);
+                        server_ms.clamp(policy.retry_base_ms, policy.retry_max_ms)
+                    } else {
+                        retry_delay_ms(retry_count, policy.retry_base_ms, policy.retry_max_ms)
+                    };
                     if sleep_or_cancel(Duration::from_millis(delay), policy.cancel.as_ref()).await {
                         return Err(ExecutorError::Cancelled);
                     }
@@ -630,22 +641,25 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn unknown_error_exhausts_immediately() {
+    async fn unknown_error_retries_once_then_exhausts() {
         let (cfg, _ids) = make_provider(2);
         let session = format!("sess-{}", uuid::Uuid::new_v4());
         let attempt = AtomicU32::new(0);
 
-        let result: Result<String, _> = execute_with_failover(
-            &cfg,
-            &session,
-            FailoverPolicy::chat_engine_default(),
-            None,
-            |_profile| {
+        let policy = FailoverPolicy {
+            max_retries: 2, // policy allows 2, but Unknown caps at 1
+            allow_profile_rotation: false,
+            retry_base_ms: 5,
+            retry_max_ms: 10,
+            cancel: None,
+        };
+
+        let result: Result<String, _> =
+            execute_with_failover(&cfg, &session, policy, None, |_profile| {
                 attempt.fetch_add(1, Ordering::SeqCst);
                 async move { Err(anyhow::anyhow!("some random gibberish")) }
-            },
-        )
-        .await;
+            })
+            .await;
 
         assert!(matches!(
             result,
@@ -654,7 +668,39 @@ mod tests {
                 ..
             })
         ));
-        assert_eq!(attempt.load(Ordering::SeqCst), 1);
+        // 1 initial + 1 retry (Unknown capped at 1) = 2 attempts.
+        assert_eq!(attempt.load(Ordering::SeqCst), 2);
+    }
+
+    #[tokio::test]
+    async fn unknown_error_recovers_on_retry() {
+        let (cfg, _ids) = make_provider(2);
+        let session = format!("sess-{}", uuid::Uuid::new_v4());
+        let attempt = AtomicU32::new(0);
+
+        let policy = FailoverPolicy {
+            max_retries: 2,
+            allow_profile_rotation: false,
+            retry_base_ms: 5,
+            retry_max_ms: 10,
+            cancel: None,
+        };
+
+        let result: Result<String, _> =
+            execute_with_failover(&cfg, &session, policy, None, |_profile| {
+                let n = attempt.fetch_add(1, Ordering::SeqCst);
+                async move {
+                    if n == 0 {
+                        Err(anyhow::anyhow!("some random gibberish"))
+                    } else {
+                        Ok("recovered".to_string())
+                    }
+                }
+            })
+            .await;
+
+        assert!(matches!(result, Ok(s) if s == "recovered"));
+        assert_eq!(attempt.load(Ordering::SeqCst), 2);
     }
 
     #[tokio::test]

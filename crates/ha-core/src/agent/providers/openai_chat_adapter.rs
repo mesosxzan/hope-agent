@@ -481,6 +481,13 @@ impl<'a> StreamingChatAdapter for OpenAIChatStreamingAdapter<'a> {
             return Ok(super::cancel::cancelled_round_outcome());
         };
 
+        // Extract Retry-After before consuming the response body.
+        let retry_after_secs = resp
+            .headers()
+            .get("retry-after")
+            .and_then(|v| v.to_str().ok())
+            .and_then(crate::failover::LlmError::parse_retry_after);
+
         if !resp.status().is_success() {
             let status = resp.status().as_u16();
             let error_text = match super::cancel::read_text_with_cancel(resp, cancel).await {
@@ -532,11 +539,12 @@ impl<'a> StreamingChatAdapter for OpenAIChatStreamingAdapter<'a> {
                         Err(_) => String::new(),
                     };
                     log_openai_chat_error(retry_status, &retry_error, req.round);
-                    return Err(anyhow::anyhow!(
-                        "OpenAI Chat API error ({}): {}",
-                        retry_status,
-                        retry_error
-                    ));
+                    let mut err =
+                        crate::failover::LlmError::from_http_status(retry_status, &retry_error);
+                    if let Some(secs) = retry_after_secs {
+                        err = err.with_retry_after(secs);
+                    }
+                    return Err(err.to_anyhow());
                 }
             } else if model_supports_vision && is_unsupported_image_url_error(status, &error_text) {
                 log_vision_auto_disabled(self.provider_config, self.model, status, &error_text);
@@ -579,18 +587,19 @@ impl<'a> StreamingChatAdapter for OpenAIChatStreamingAdapter<'a> {
                         Err(_) => String::new(),
                     };
                     log_openai_chat_error(retry_status, &retry_error, req.round);
-                    return Err(anyhow::anyhow!(
-                        "OpenAI Chat API error ({}): {}",
-                        retry_status,
-                        retry_error
-                    ));
+                    let mut err =
+                        crate::failover::LlmError::from_http_status(retry_status, &retry_error);
+                    if let Some(secs) = retry_after_secs {
+                        err = err.with_retry_after(secs);
+                    }
+                    return Err(err.to_anyhow());
                 }
             } else {
-                return Err(anyhow::anyhow!(
-                    "OpenAI Chat API error ({}): {}",
-                    status,
-                    error_text
-                ));
+                let mut err = crate::failover::LlmError::from_http_status(status, &error_text);
+                if let Some(secs) = retry_after_secs {
+                    err = err.with_retry_after(secs);
+                }
+                return Err(err.to_anyhow());
             }
         }
 
@@ -730,6 +739,7 @@ async fn parse_chat_completions_sse(
     // tolerate the error when partial output has already been collected,
     // or surface a retryable error when no content was received at all.
     let mut stream_error: Option<anyhow::Error> = None;
+    let mut saw_stream_error = false;
 
     let mut stream = resp.bytes_stream();
     let mut buffer = String::new();
@@ -771,6 +781,7 @@ async fn parse_chat_completions_sse(
                         );
                     }
                     stream_error = Some(err);
+                    saw_stream_error = true;
                     break;
                 }
                 // No partial output — propagate the error so the failover
@@ -945,8 +956,24 @@ async fn parse_chat_completions_sse(
     if cancel.load(std::sync::atomic::Ordering::SeqCst) {
         pending_calls.clear();
         tool_calls.clear();
+    } else if saw_stream_error {
+        // Stream was interrupted — drop incomplete (pending) tool calls to
+        // avoid executing calls with truncated arguments. Completed tool calls
+        // in `tool_calls` are preserved (they had their arguments finished).
+        let dropped = pending_calls.len();
+        if dropped > 0 {
+            let names: Vec<&str> = pending_calls.values().map(|tc| tc.name.as_str()).collect();
+            app_warn!(
+                "agent",
+                "parse_chat_completions_sse",
+                "Dropping {} incomplete tool call(s) due to stream error: {:?}",
+                dropped,
+                names
+            );
+        }
+        pending_calls.clear();
     } else {
-        // Move pending calls to final list, ordered by index.
+        // Normal completion — move pending calls to final list, ordered by index.
         let mut sorted_keys: Vec<usize> = pending_calls.keys().cloned().collect();
         sorted_keys.sort();
         for key in sorted_keys {

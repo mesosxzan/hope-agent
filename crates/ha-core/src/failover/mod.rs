@@ -40,15 +40,289 @@ pub enum FailoverReason {
     ModelNotFound,
     /// Context window exceeded — NOT fallback-able (smaller model would be worse)
     ContextOverflow,
-    /// Unrecognized error — skip to next model
+    /// Unrecognized error — retry once, then skip to next model
     Unknown,
+}
+
+// ── Structured LLM Error ────────────────────────────────────────
+
+/// Structured error metadata from LLM API responses.
+///
+/// Adapters can construct this to carry HTTP status code and error
+/// metadata through the pipeline deterministically, instead of relying
+/// on substring matching in [`classify_error`]. When an anyhow error
+/// message contains the `LLM_ERR:` prefix (produced by
+/// [`LlmError::to_anyhow`]), [`classify_error`] uses the structured
+/// data directly; otherwise it falls back to substring matching.
+///
+/// This is opt-in — adapters that don't construct `LlmError` still
+/// work via the substring fallback.
+#[derive(Debug, Clone, Serialize)]
+pub struct LlmError {
+    /// HTTP status code from the API response (if available).
+    pub status: Option<u16>,
+    /// Provider-specific error code (e.g. "rate_limit_error", "context_length_exceeded").
+    pub code: Option<String>,
+    /// Human-readable error message.
+    pub message: String,
+    /// Retry-After header value in seconds (if the server specified one).
+    pub retry_after_secs: Option<u64>,
+}
+
+impl LlmError {
+    /// Construct a new structured LLM error.
+    pub fn new(message: impl Into<String>) -> Self {
+        Self {
+            status: None,
+            code: None,
+            message: message.into(),
+            retry_after_secs: None,
+        }
+    }
+
+    /// Construct from an HTTP response status code and error body.
+    pub fn from_http_status(status: u16, body: impl Into<String>) -> Self {
+        Self {
+            status: Some(status),
+            code: None,
+            message: body.into(),
+            retry_after_secs: None,
+        }
+    }
+
+    /// Set the provider error code.
+    pub fn with_code(mut self, code: impl Into<String>) -> Self {
+        self.code = Some(code.into());
+        self
+    }
+
+    /// Set the Retry-After value from the server response.
+    pub fn with_retry_after(mut self, secs: u64) -> Self {
+        self.retry_after_secs = Some(secs);
+        self
+    }
+
+    /// Parse the `Retry-After` header value.
+    ///
+    /// Supports both integer seconds (e.g. `"30"`) and HTTP-date format
+    /// (returns `None` for the latter since it requires clock comparison).
+    pub fn parse_retry_after(value: &str) -> Option<u64> {
+        let trimmed = value.trim();
+        // Try integer seconds first (most common format)
+        if let Ok(secs) = trimmed.parse::<u64>() {
+            return Some(secs);
+        }
+        // HTTP-date format (e.g. "Fri, 28 Jun 2026 12:00:00 GMT") — skip
+        None
+    }
+
+    /// Convert to an anyhow error with a structured prefix that
+    /// [`classify_error`] can detect and parse deterministically.
+    ///
+    /// Format: `LLM_ERR:{status}:{code}:{retry_after}:{message}`
+    /// All fields are separated by `:`; missing fields use `-`.
+    pub fn to_anyhow(self) -> anyhow::Error {
+        let status = self
+            .status
+            .map_or_else(|| "-".to_string(), |s| s.to_string());
+        let code = self.code.as_deref().unwrap_or("-");
+        let retry_after = self
+            .retry_after_secs
+            .map_or_else(|| "-".to_string(), |s| s.to_string());
+        anyhow::anyhow!(
+            "LLM_ERR:{}:{}:{}:{}",
+            status,
+            code,
+            retry_after,
+            self.message
+        )
+    }
+}
+
+/// Sentinel prefix for structured LLM errors.
+const LLM_ERR_PREFIX: &str = "LLM_ERR:";
+
+/// Result of error classification, including server-advised retry delay.
+#[derive(Debug, Clone)]
+pub struct ClassifiedError {
+    /// The classified failover reason.
+    pub reason: FailoverReason,
+    /// Server-advised retry delay in seconds (from `Retry-After` header).
+    /// `None` when the server did not specify a delay.
+    pub retry_after_secs: Option<u64>,
+}
+
+/// Classify an error, preferring structured `LlmError` data when available.
+///
+/// If the error message starts with [`LLM_ERR_PREFIX`], the structured
+/// fields are used for deterministic classification. Otherwise, the
+/// legacy substring-matching fallback is applied.
+pub fn classify_error(error_msg: &str) -> FailoverReason {
+    classify_error_full(error_msg).reason
+}
+
+/// Classify an error with full metadata (including server-advised retry delay).
+///
+/// Use this when the caller needs the `Retry-After` value for adaptive backoff.
+pub fn classify_error_full(error_msg: &str) -> ClassifiedError {
+    // ── Structured path: parse LlmError prefix ────────────────────
+    if let Some(rest) = error_msg.strip_prefix(LLM_ERR_PREFIX) {
+        return classify_structured_error_full(rest);
+    }
+
+    // ── Legacy fallback: substring matching ───────────────────────
+    ClassifiedError {
+        reason: classify_error_by_substring(error_msg),
+        retry_after_secs: None,
+    }
+}
+
+/// Classify from the structured `LLM_ERR` fields, extracting retry_after.
+fn classify_structured_error_full(fields: &str) -> ClassifiedError {
+    // Format: {status}:{code}:{retry_after}:{message}
+    let parts: Vec<&str> = fields.splitn(4, ':').collect();
+    if parts.len() < 4 {
+        // Malformed structured error — fall back to substring matching
+        return ClassifiedError {
+            reason: classify_error_by_substring(fields),
+            retry_after_secs: None,
+        };
+    }
+
+    let status = parts[0];
+    let code = parts[1];
+    let retry_after_str = parts[2];
+    let message = parts[3];
+
+    // Extract retry_after if present
+    let retry_after_secs = if retry_after_str != "-" {
+        retry_after_str.parse::<u64>().ok()
+    } else {
+        None
+    };
+
+    // ── Status-based classification (deterministic) ──────────────
+    if status != "-" {
+        if let Ok(status_code) = status.parse::<u16>() {
+            match status_code {
+                429 => {
+                    return ClassifiedError {
+                        reason: FailoverReason::RateLimit,
+                        retry_after_secs,
+                    }
+                }
+                502 | 503 | 521 | 522 | 524 => {
+                    return ClassifiedError {
+                        reason: FailoverReason::Overloaded,
+                        retry_after_secs,
+                    }
+                }
+                401 | 403 => {
+                    return ClassifiedError {
+                        reason: FailoverReason::Auth,
+                        retry_after_secs,
+                    }
+                }
+                402 => {
+                    return ClassifiedError {
+                        reason: FailoverReason::Billing,
+                        retry_after_secs,
+                    }
+                }
+                404 => {
+                    return ClassifiedError {
+                        reason: FailoverReason::ModelNotFound,
+                        retry_after_secs,
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    // ── Code-based classification ────────────────────────────────
+    if code != "-" {
+        let lower_code = code.to_lowercase();
+        if lower_code.contains("context_length_exceeded")
+            || lower_code.contains("context_overflow")
+            || lower_code.contains("prompt_too_long")
+        {
+            return ClassifiedError {
+                reason: FailoverReason::ContextOverflow,
+                retry_after_secs,
+            };
+        }
+        if lower_code.contains("rate_limit")
+            || lower_code.contains("resource_exhausted")
+            || lower_code.contains("throttle")
+        {
+            return ClassifiedError {
+                reason: FailoverReason::RateLimit,
+                retry_after_secs,
+            };
+        }
+        if lower_code.contains("overloaded") || lower_code.contains("server_error") {
+            return ClassifiedError {
+                reason: FailoverReason::Overloaded,
+                retry_after_secs,
+            };
+        }
+        if lower_code.contains("auth")
+            || lower_code.contains("invalid_api_key")
+            || lower_code.contains("forbidden")
+        {
+            return ClassifiedError {
+                reason: FailoverReason::Auth,
+                retry_after_secs,
+            };
+        }
+        if lower_code.contains("billing")
+            || lower_code.contains("quota")
+            || lower_code.contains("insufficient")
+        {
+            return ClassifiedError {
+                reason: FailoverReason::Billing,
+                retry_after_secs,
+            };
+        }
+        if lower_code.contains("model_not_found") || lower_code.contains("does_not_exist") {
+            return ClassifiedError {
+                reason: FailoverReason::ModelNotFound,
+                retry_after_secs,
+            };
+        }
+    }
+
+    // ── Message-based fallback (same as legacy, but on message only) ──
+    ClassifiedError {
+        reason: classify_error_by_substring(message),
+        retry_after_secs,
+    }
 }
 
 impl FailoverReason {
     /// Whether this error class should be retried on the **same** model
     /// (with backoff) before moving to the next model in the chain.
+    ///
+    /// `Unknown` errors get one retry — many are transient (proxy gateway
+    /// hiccups, DNS blips, non-standard connection resets) and a single
+    /// retry catches the majority without adding excessive latency on
+    /// truly permanent failures.
     pub fn is_retryable(&self) -> bool {
-        matches!(self, Self::RateLimit | Self::Overloaded | Self::Timeout)
+        matches!(
+            self,
+            Self::RateLimit | Self::Overloaded | Self::Timeout | Self::Unknown
+        )
+    }
+
+    /// Maximum retry attempts for this error class.
+    /// `Unknown` errors get only 1 attempt (vs 2 for RateLimit/Overloaded/Timeout)
+    /// to limit latency on permanent failures while still catching transients.
+    pub fn max_retries(&self, policy_max: u32) -> u32 {
+        match self {
+            Self::Unknown => policy_max.min(1),
+            _ => policy_max,
+        }
     }
 
     /// Whether this error should immediately surface to the user
@@ -90,11 +364,9 @@ impl FailoverReason {
 // Regex-style patterns for error classification.
 // We use simple substring matching for performance.
 
-/// Classify an API error message into a `FailoverReason`.
-///
-/// Checks HTTP-style status codes and well-known error patterns from
-/// Anthropic, OpenAI, Google, and other LLM APIs.
-pub fn classify_error(error_msg: &str) -> FailoverReason {
+/// Legacy substring-based error classification.
+/// Used as fallback when structured `LlmError` data is not available.
+fn classify_error_by_substring(error_msg: &str) -> FailoverReason {
     let lower = error_msg.to_lowercase();
 
     // ── Context overflow (terminal — never fallback) ──────────────
@@ -556,13 +828,198 @@ mod tests {
         assert_eq!(classify_error("some random error"), FailoverReason::Unknown);
     }
 
+    // ── Structured LlmError classification tests ──────────────────
+
+    #[test]
+    fn test_llm_error_to_anyhow_roundtrip() {
+        // Full structured error
+        let err = LlmError::from_http_status(429, "Too Many Requests")
+            .with_code("rate_limit_error")
+            .with_retry_after(30);
+        let msg = err.to_anyhow().to_string();
+        assert!(msg.starts_with("LLM_ERR:429:rate_limit_error:30:Too Many Requests"));
+        assert_eq!(classify_error(&msg), FailoverReason::RateLimit);
+
+        // Minimal structured error (status only)
+        let err = LlmError::from_http_status(503, "Service Unavailable");
+        let msg = err.to_anyhow().to_string();
+        assert!(msg.starts_with("LLM_ERR:503:-:-:Service Unavailable"));
+        assert_eq!(classify_error(&msg), FailoverReason::Overloaded);
+
+        // No status, only code
+        let err = LlmError::new("prompt too long").with_code("context_length_exceeded");
+        let msg = err.to_anyhow().to_string();
+        assert!(msg.starts_with("LLM_ERR:-:context_length_exceeded:-:prompt too long"));
+        assert_eq!(classify_error(&msg), FailoverReason::ContextOverflow);
+    }
+
+    #[test]
+    fn test_structured_status_classification() {
+        let cases = [
+            (429, FailoverReason::RateLimit),
+            (502, FailoverReason::Overloaded),
+            (503, FailoverReason::Overloaded),
+            (521, FailoverReason::Overloaded),
+            (522, FailoverReason::Overloaded),
+            (524, FailoverReason::Overloaded),
+            (401, FailoverReason::Auth),
+            (403, FailoverReason::Auth),
+            (402, FailoverReason::Billing),
+            (404, FailoverReason::ModelNotFound),
+            (500, FailoverReason::Unknown), // 500 not in status map → Unknown
+        ];
+        for (status, expected) in cases {
+            let err = LlmError::from_http_status(status, "error");
+            let msg = err.to_anyhow().to_string();
+            assert_eq!(
+                classify_error(&msg),
+                expected,
+                "status {} should classify as {:?}",
+                status,
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn test_structured_code_classification() {
+        let cases = [
+            ("context_length_exceeded", FailoverReason::ContextOverflow),
+            ("context_overflow", FailoverReason::ContextOverflow),
+            ("prompt_too_long", FailoverReason::ContextOverflow),
+            ("rate_limit_error", FailoverReason::RateLimit),
+            ("resource_exhausted", FailoverReason::RateLimit),
+            ("throttle", FailoverReason::RateLimit),
+            ("overloaded", FailoverReason::Overloaded),
+            ("server_error", FailoverReason::Overloaded),
+            ("invalid_api_key", FailoverReason::Auth),
+            ("forbidden", FailoverReason::Auth),
+            ("billing_not_active", FailoverReason::Billing),
+            ("insufficient_quota", FailoverReason::Billing),
+            ("model_not_found", FailoverReason::ModelNotFound),
+            ("does_not_exist", FailoverReason::ModelNotFound),
+        ];
+        for (code, expected) in cases {
+            let err = LlmError::new("error").with_code(code);
+            let msg = err.to_anyhow().to_string();
+            assert_eq!(
+                classify_error(&msg),
+                expected,
+                "code {} should classify as {:?}",
+                code,
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn test_structured_message_fallback() {
+        // No status, no code — falls back to substring matching on the message
+        let err = LlmError::new("Rate limit exceeded, please slow down");
+        let msg = err.to_anyhow().to_string();
+        assert_eq!(classify_error(&msg), FailoverReason::RateLimit);
+
+        let err = LlmError::new("something completely unexpected happened");
+        let msg = err.to_anyhow().to_string();
+        assert_eq!(classify_error(&msg), FailoverReason::Unknown);
+    }
+
+    #[test]
+    fn test_structured_priority_status_over_code() {
+        // Status takes priority over code
+        let err = LlmError::from_http_status(429, "error").with_code("context_length_exceeded");
+        let msg = err.to_anyhow().to_string();
+        assert_eq!(classify_error(&msg), FailoverReason::RateLimit);
+    }
+
+    #[test]
+    fn test_structured_malformed_fallback() {
+        // Malformed LLM_ERR prefix (too few colons) falls back to substring matching
+        assert_eq!(
+            classify_error("LLM_ERR:429:incomplete"),
+            FailoverReason::RateLimit // substring "429" matched
+        );
+    }
+
+    #[test]
+    fn test_legacy_errors_still_work() {
+        // Non-structured errors go through substring matching
+        assert_eq!(
+            classify_error("429 Too Many Requests"),
+            FailoverReason::RateLimit
+        );
+        assert_eq!(
+            classify_error("503 Service Unavailable"),
+            FailoverReason::Overloaded
+        );
+        assert_eq!(
+            classify_error("context_length_exceeded"),
+            FailoverReason::ContextOverflow
+        );
+        assert_eq!(classify_error("some random error"), FailoverReason::Unknown);
+    }
+
+    // ── classify_error_full + retry_after tests ───────────────────
+
+    #[test]
+    fn test_classify_error_full_structured() {
+        let err = LlmError::from_http_status(429, "Too Many Requests").with_retry_after(30);
+        let classified = classify_error_full(&err.to_anyhow().to_string());
+        assert_eq!(classified.reason, FailoverReason::RateLimit);
+        assert_eq!(classified.retry_after_secs, Some(30));
+    }
+
+    #[test]
+    fn test_classify_error_full_no_retry_after() {
+        let err = LlmError::from_http_status(503, "Service Unavailable");
+        let classified = classify_error_full(&err.to_anyhow().to_string());
+        assert_eq!(classified.reason, FailoverReason::Overloaded);
+        assert_eq!(classified.retry_after_secs, None);
+    }
+
+    #[test]
+    fn test_classify_error_full_legacy() {
+        let classified = classify_error_full("429 Too Many Requests");
+        assert_eq!(classified.reason, FailoverReason::RateLimit);
+        assert_eq!(classified.retry_after_secs, None);
+    }
+
+    #[test]
+    fn test_parse_retry_after() {
+        assert_eq!(LlmError::parse_retry_after("30"), Some(30));
+        assert_eq!(LlmError::parse_retry_after("  60  "), Some(60));
+        assert_eq!(LlmError::parse_retry_after("0"), Some(0));
+        // HTTP-date format — not supported, returns None
+        assert_eq!(
+            LlmError::parse_retry_after("Fri, 28 Jun 2026 12:00:00 GMT"),
+            None
+        );
+        assert_eq!(LlmError::parse_retry_after(""), None);
+        assert_eq!(LlmError::parse_retry_after("invalid"), None);
+    }
+
     #[test]
     fn test_retryable() {
         assert!(FailoverReason::RateLimit.is_retryable());
         assert!(FailoverReason::Overloaded.is_retryable());
         assert!(FailoverReason::Timeout.is_retryable());
+        assert!(FailoverReason::Unknown.is_retryable());
         assert!(!FailoverReason::Auth.is_retryable());
         assert!(!FailoverReason::ContextOverflow.is_retryable());
+    }
+
+    #[test]
+    fn test_max_retries() {
+        // Unknown errors capped at 1 retry regardless of policy
+        assert_eq!(FailoverReason::Unknown.max_retries(2), 1);
+        assert_eq!(FailoverReason::Unknown.max_retries(0), 0);
+        // Other retryable errors use the full policy budget
+        assert_eq!(FailoverReason::RateLimit.max_retries(2), 2);
+        assert_eq!(FailoverReason::Overloaded.max_retries(3), 3);
+        assert_eq!(FailoverReason::Timeout.max_retries(5), 5);
+        // Non-retryable errors — max_retries is irrelevant (is_retryable=false)
+        // but the method still returns the policy value
+        assert_eq!(FailoverReason::Auth.max_retries(2), 2);
     }
 
     #[test]

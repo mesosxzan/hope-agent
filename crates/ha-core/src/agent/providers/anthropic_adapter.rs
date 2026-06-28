@@ -190,6 +190,13 @@ impl<'a> StreamingChatAdapter for AnthropicStreamingAdapter<'a> {
             Err(e) => return Err(anyhow::anyhow!("Anthropic API request failed: {}", e)),
         };
 
+        // ── Extract Retry-After header for structured error propagation.
+        let retry_after_secs = resp
+            .headers()
+            .get("retry-after")
+            .and_then(|v| v.to_str().ok())
+            .and_then(crate::failover::LlmError::parse_retry_after);
+
         // ── Log response status with rate-limit headers for debugging.
         if let Some(logger) = crate::get_logger() {
             let status = resp.status().as_u16();
@@ -261,11 +268,11 @@ impl<'a> StreamingChatAdapter for AnthropicStreamingAdapter<'a> {
                     None,
                 );
             }
-            return Err(anyhow::anyhow!(
-                "Anthropic API error ({}): {}",
-                status,
-                error_text
-            ));
+            let mut err = crate::failover::LlmError::from_http_status(status, &error_text);
+            if let Some(secs) = retry_after_secs {
+                err = err.with_retry_after(secs);
+            }
+            return Err(err.to_anyhow());
         }
 
         // ── Parse SSE stream.
@@ -648,6 +655,18 @@ async fn parse_anthropic_sse(
         stop_reason = Some("cancelled".to_string());
         let _ = current_tool.take();
         tool_calls.clear();
+    } else if stream_error.is_some() {
+        // Stream was interrupted — drop any in-progress (incomplete) tool call
+        // rather than silently losing it or returning truncated arguments.
+        if let Some((id, tc)) = current_tool.take() {
+            app_warn!(
+                "agent",
+                "parse_anthropic_sse",
+                "Dropping incomplete tool call '{}' (id={}) due to stream error",
+                tc.name,
+                id
+            );
+        }
     }
 
     if let Some(logger) = crate::get_logger() {
