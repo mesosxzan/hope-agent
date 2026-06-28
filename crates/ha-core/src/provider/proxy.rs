@@ -88,6 +88,12 @@ pub fn apply_proxy_from_config(
     builder
 }
 
+/// Check if a URL points to a loopback address (localhost / 127.0.0.1 / ::1).
+/// Used by web search to bypass proxy for local SearXNG instances.
+pub fn is_loopback_url(target_url: &str) -> bool {
+    should_bypass_proxy(target_url)
+}
+
 fn should_bypass_proxy(target_url: &str) -> bool {
     let Ok(url) = url::Url::parse(target_url) else {
         return false;

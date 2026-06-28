@@ -113,6 +113,26 @@ pub struct WebSearchConfig {
     /// Default freshness filter (day/week/month/year)
     #[serde(default)]
     pub default_freshness: Option<String>,
+    /// Web-search-specific proxy configuration (overrides global proxy when set)
+    #[serde(default)]
+    pub proxy: WebSearchProxyConfig,
+}
+
+/// Web-search-specific proxy configuration.
+/// Allows web search to use a different proxy than the global one,
+/// or to explicitly inherit the global proxy.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WebSearchProxyConfig {
+    /// Whether web-search-specific proxy is enabled
+    #[serde(default)]
+    pub enabled: bool,
+    /// If true, inherit the global proxy instead of using `url`
+    #[serde(default)]
+    pub use_global_proxy: bool,
+    /// Custom proxy URL for web search (e.g. "http://127.0.0.1:7890")
+    #[serde(default)]
+    pub url: Option<String>,
 }
 
 fn default_providers() -> Vec<WebSearchProviderEntry> {
@@ -220,6 +240,7 @@ impl Default for WebSearchConfig {
             default_country: None,
             default_language: None,
             default_freshness: None,
+            proxy: WebSearchProxyConfig::default(),
         }
     }
 }
@@ -227,6 +248,39 @@ impl Default for WebSearchConfig {
 /// Check if any web search provider is enabled in the config.
 pub fn has_enabled_provider(config: &WebSearchConfig) -> bool {
     config.providers.iter().any(|p| p.enabled)
+}
+
+/// Resolve the effective proxy configuration for web search.
+/// Priority chain (matching talkcody):
+/// 1. If web-search proxy is enabled with `use_global_proxy` → use global proxy
+/// 2. If web-search proxy is enabled with its own `url` → use that URL directly
+/// 3. If web-search proxy is disabled → use global proxy (default behavior)
+/// Returns a `ProxyConfig` suitable for `apply_proxy_from_config`.
+pub fn effective_web_search_proxy() -> crate::provider::ProxyConfig {
+    use crate::provider::{ProxyConfig, ProxyMode};
+
+    let ws_config = &crate::config::cached_config().web_search.proxy;
+    let global_config = &crate::config::cached_config().proxy;
+
+    if ws_config.enabled {
+        if ws_config.use_global_proxy {
+            // Explicitly inherit global proxy
+            return global_config.clone();
+        }
+        // Use web-search-specific proxy URL
+        if let Some(ref url) = ws_config.url {
+            if !url.is_empty() {
+                return ProxyConfig {
+                    mode: ProxyMode::Custom,
+                    url: Some(url.clone()),
+                };
+            }
+        }
+        // Enabled but no URL configured — fall through to global
+    }
+
+    // Default: use global proxy
+    global_config.clone()
 }
 
 /// Collect all enabled providers in order. Falls back to DuckDuckGo if none enabled.
@@ -322,7 +376,7 @@ pub(crate) async fn tool_web_search(args: &Value) -> Result<String> {
 
         let attempt = match provider_id {
             WebSearchProvider::DuckDuckGo => {
-                duckduckgo::search_duckduckgo(query, count, timeout).await
+                duckduckgo::search_duckduckgo(query, count, timeout, &params).await
             }
             WebSearchProvider::Searxng => {
                 let url = entry.base_url.as_deref().unwrap_or("http://127.0.0.1:8080");

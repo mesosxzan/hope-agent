@@ -5,6 +5,7 @@ import i18n from "@/i18n/i18n"
 import { SUPPORTED_LANGUAGES } from "@/i18n/i18n"
 import { logger } from "@/lib/logger"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { DeferredNumberInput } from "@/components/ui/deferred-number-input"
 import {
   Select,
@@ -22,7 +23,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable"
-import { Check, ChevronDown, ChevronRight, Loader2 } from "lucide-react"
+import { Check, ChevronDown, ChevronRight, Loader2, Globe, Settings2, WifiOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { WebSearchConfig } from "./types"
 import { PROVIDER_META, hasRequiredCredentials } from "./constants"
@@ -379,6 +380,86 @@ export default function WebSearchPanel({
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                {/* Web Search Proxy */}
+                <div className="space-y-2 pt-1">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    {t("settings.webSearchProxy")}
+                  </label>
+                  <p className="text-[10px] text-muted-foreground/60">
+                    {t("settings.webSearchProxyDesc")}
+                  </p>
+                  <div className="space-y-1.5">
+                    {[
+                      { value: "global", icon: <Globe className="h-4 w-4" />, label: t("settings.webSearchProxyGlobal"), desc: t("settings.webSearchProxyGlobalDesc") },
+                      { value: "none", icon: <WifiOff className="h-4 w-4" />, label: t("settings.webSearchProxyNone"), desc: t("settings.webSearchProxyNoneDesc") },
+                      { value: "custom", icon: <Settings2 className="h-4 w-4" />, label: t("settings.webSearchProxyCustom"), desc: t("settings.webSearchProxyCustomDesc") },
+                    ].map((opt) => {
+                      const isActive =
+                        (!config.proxy.enabled && opt.value === "global") ||
+                        (config.proxy.enabled && !config.proxy.useGlobalProxy && !config.proxy.url && opt.value === "global") ||
+                        (config.proxy.enabled && config.proxy.useGlobalProxy && opt.value === "global") ||
+                        (config.proxy.enabled && !config.proxy.useGlobalProxy && config.proxy.url && opt.value === "custom")
+                      return (
+                        <div
+                          key={opt.value}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors",
+                            isActive
+                              ? "bg-primary/10 border border-primary/30"
+                              : "hover:bg-secondary/40 border border-transparent",
+                          )}
+                          onClick={() => {
+                            setConfig((prev) => {
+                              if (!prev) return prev
+                              if (opt.value === "global") {
+                                return { ...prev, proxy: { enabled: false, useGlobalProxy: false, url: null } }
+                              } else if (opt.value === "none") {
+                                return { ...prev, proxy: { enabled: true, useGlobalProxy: false, url: null } }
+                              } else {
+                                return { ...prev, proxy: { enabled: true, useGlobalProxy: false, url: prev.proxy.url ?? "" } }
+                              }
+                            })
+                          }}
+                        >
+                          <div className={cn("shrink-0", isActive ? "text-primary" : "text-muted-foreground")}>
+                            {opt.icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium">{opt.label}</div>
+                            <div className="text-xs text-muted-foreground">{opt.desc}</div>
+                          </div>
+                          <div className={cn(
+                            "h-4 w-4 rounded-full border-2 shrink-0 transition-colors",
+                            isActive ? "border-primary bg-primary" : "border-muted-foreground/30",
+                          )}>
+                            {isActive && (
+                              <div className="h-full w-full flex items-center justify-center">
+                                <div className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Custom proxy URL input */}
+                  {config.proxy.enabled && !config.proxy.useGlobalProxy && config.proxy.url !== null && (
+                    <div className="space-y-1.5">
+                      <span className="text-xs text-muted-foreground">{t("settings.webSearchProxyUrl")}</span>
+                      <Input
+                        value={config.proxy.url ?? ""}
+                        placeholder={t("settings.webSearchProxyUrlPlaceholder")}
+                        onChange={(e) =>
+                          setConfig((prev) =>
+                            prev ? { ...prev, proxy: { ...prev.proxy, url: e.target.value || null } } : prev,
+                          )
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -4891,7 +4891,17 @@
     "webSearchRecommended": "推薦",
     "webSearchSaved": "已保存",
     "webSearchTimeout": "超時（秒）",
-    "webSearchTimeoutDesc": "搜索請求 HTTP 超時時間（5-120 秒）"
+    "webSearchTimeoutDesc": "搜索請求 HTTP 超時時間（5-120 秒）",
+    "webSearchProxy": "搜尋代理",
+    "webSearchProxyDesc": "為網頁搜尋請求配置專用代理，在 DuckDuckGo 被封鎖的地區特別有用。",
+    "webSearchProxyGlobal": "使用全域代理",
+    "webSearchProxyGlobalDesc": "繼承全域代理設定",
+    "webSearchProxyNone": "不使用代理",
+    "webSearchProxyNoneDesc": "直連，網頁搜尋忽略全域代理",
+    "webSearchProxyCustom": "自訂代理",
+    "webSearchProxyCustomDesc": "僅為網頁搜尋使用獨立代理",
+    "webSearchProxyUrl": "代理位址",
+    "webSearchProxyUrlPlaceholder": "http://127.0.0.1:7890"
   },
   "shortcuts": {
     "actionOpenSettings": "打開設置",

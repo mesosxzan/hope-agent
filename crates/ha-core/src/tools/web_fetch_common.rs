@@ -13,18 +13,14 @@ pub const DEFAULT_BROWSER_USER_AGENT: &str =
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_7_2) AppleWebKit/537.36 \
      (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
-/// Headers a real Chrome on macOS sends on a top-level navigation. The
-/// `Accept-Encoding` deliberately omits `br` — `reqwest` only decodes
-/// brotli with the `brotli` feature enabled, which is not on our default
-/// build. Falsely advertising `br` would cause raw brotli bytes to land in
-/// the response body.
+/// Headers a real Chrome on macOS sends on a top-level navigation.
 pub const FETCH_BROWSER_HEADERS: &[(&str, &str)] = &[
     (
         "Accept",
         "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
     ),
     ("Accept-Language", "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7"),
-    ("Accept-Encoding", "gzip, deflate"),
+    ("Accept-Encoding", "gzip, deflate, br"),
     ("Cache-Control", "no-cache"),
     ("Pragma", "no-cache"),
     (

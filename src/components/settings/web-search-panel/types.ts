@@ -8,6 +8,12 @@ export interface ProviderEntry {
   baseUrl: string | null
 }
 
+export interface WebSearchProxyConfig {
+  enabled: boolean
+  useGlobalProxy: boolean
+  url: string | null
+}
+
 export interface WebSearchConfig {
   providers: ProviderEntry[]
   searxngDockerManaged: boolean | null
@@ -18,6 +24,7 @@ export interface WebSearchConfig {
   defaultCountry: string | null
   defaultLanguage: string | null
   defaultFreshness: string | null
+  proxy: WebSearchProxyConfig
 }
 
 export interface SearxngDockerStatus {

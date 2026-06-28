@@ -4891,7 +4891,17 @@
     "webSearchRecommended": "Önerilen",
     "webSearchSaved": "Kaydedildi",
     "webSearchTimeout": "Zaman aşımı (saniye)",
-    "webSearchTimeoutDesc": "Arama istekleri için HTTP zaman aşımı (5-120 sn)"
+    "webSearchTimeoutDesc": "Arama istekleri için HTTP zaman aşımı (5-120 sn)",
+    "webSearchProxy": "Search Proxy",
+    "webSearchProxyDesc": "Configure proxy for web search requests. Useful when DuckDuckGo is blocked in your region.",
+    "webSearchProxyGlobal": "Use Global Proxy",
+    "webSearchProxyGlobalDesc": "Inherit the global proxy settings",
+    "webSearchProxyNone": "No Proxy",
+    "webSearchProxyNoneDesc": "Direct connection, ignore global proxy for web search",
+    "webSearchProxyCustom": "Custom Proxy",
+    "webSearchProxyCustomDesc": "Use a dedicated proxy for web search only",
+    "webSearchProxyUrl": "Proxy URL",
+    "webSearchProxyUrlPlaceholder": "http://127.0.0.1:7890"
   },
   "shortcuts": {
     "actionOpenSettings": "Ayarları aç",

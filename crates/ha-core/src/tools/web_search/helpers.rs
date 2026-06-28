@@ -33,28 +33,42 @@ pub(super) async fn read_json_capped(
         .map_err(|e| anyhow::anyhow!("{} JSON parse failed: {}", provider, e))
 }
 
+/// Build a search HTTP client using the web-search-specific proxy config
+/// (with fallback to global proxy). All web search providers should use this
+/// instead of `crate::provider::apply_proxy` directly.
 pub(super) fn build_search_client(timeout_secs: u64) -> Result<reqwest::Client> {
-    crate::provider::apply_proxy(
+    let proxy_config = super::effective_web_search_proxy();
+    crate::provider::apply_proxy_from_config(
         reqwest::Client::builder()
             .user_agent(DEFAULT_WEB_FETCH_USER_AGENT)
             .timeout(std::time::Duration::from_secs(timeout_secs)),
+        &proxy_config,
     )
     .build()
     .map_err(|e| anyhow::anyhow!("Failed to create HTTP client: {}", e))
 }
 
+/// Build a search HTTP client for a specific target URL, bypassing proxy for
+/// loopback destinations (e.g. local SearXNG instances).
 pub(super) fn build_search_client_for_url(
     target_url: &str,
     timeout_secs: u64,
 ) -> Result<reqwest::Client> {
-    crate::provider::apply_proxy_for_url(
-        reqwest::Client::builder()
-            .user_agent(DEFAULT_WEB_FETCH_USER_AGENT)
-            .timeout(std::time::Duration::from_secs(timeout_secs)),
-        target_url,
-    )
-    .build()
-    .map_err(|e| anyhow::anyhow!("Failed to create HTTP client: {}", e))
+    // Loopback destinations always bypass proxy regardless of web-search config
+    if crate::provider::is_loopback_url(target_url) {
+        return crate::provider::apply_proxy_from_config(
+            reqwest::Client::builder()
+                .user_agent(DEFAULT_WEB_FETCH_USER_AGENT)
+                .timeout(std::time::Duration::from_secs(timeout_secs)),
+            &crate::provider::ProxyConfig {
+                mode: crate::provider::ProxyMode::None,
+                url: None,
+            },
+        )
+        .build()
+        .map_err(|e| anyhow::anyhow!("Failed to create HTTP client: {}", e));
+    }
+    build_search_client(timeout_secs)
 }
 
 pub(super) fn strip_html_tags(html: &str) -> String {
