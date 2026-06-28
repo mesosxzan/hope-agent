@@ -49,6 +49,7 @@ import ToolMediaPreview from "@/components/chat/message/ToolMediaPreview"
 import ExecToolResultCard from "@/components/chat/message/ExecToolResultCard"
 import AsyncJobCancelCard from "@/components/chat/message/AsyncJobCancelCard"
 import { KnowledgeResultCard } from "@/components/chat/message/KnowledgeResultCard"
+import InlineToolDiffPreview from "@/components/chat/message/InlineToolDiffPreview"
 
 /** Tools whose results render via {@link KnowledgeResultCard} (grouped by KB). */
 function isKnowledgeResultTool(name: string): boolean {
@@ -264,7 +265,6 @@ export default function ToolCallBlock({ tool, shimmer, onOpenDiff }: ToolCallBlo
   const isRunning = state === "running"
   const isFailed = state === "failed"
   const showActivity = isRunning || shimmer
-  const canExpand = tool.name === "exec" || !isRunning
   const startedAtMs = tool.startedAtMs || 0
   const elapsedMs = tool.durationMs ?? (isRunning && startedAtMs ? now - startedAtMs : undefined)
   const elapsedText = useMemo(() => {
@@ -339,6 +339,9 @@ export default function ToolCallBlock({ tool, shimmer, onOpenDiff }: ToolCallBlo
     }
     return null
   }, [tool.metadata])
+
+  const showInlineDiff = state === "completed" && !!fileChangeSummary
+  const canExpand = tool.name === "exec" || !isRunning
 
   const handleOpenDiff = useCallback(
     (e: React.MouseEvent) => {
@@ -556,11 +559,13 @@ export default function ToolCallBlock({ tool, shimmer, onOpenDiff }: ToolCallBlo
         </div>
       </AnimatedCollapse>
       <AnimatedCollapse
-        open={expanded && (tool.name === "exec" || !!tool.result)}
-        unmountOnExit={false}
+        open={expanded && (tool.name === "exec" || !!tool.result || showInlineDiff)}
+        unmountOnExit={showInlineDiff}
       >
         <div className="ml-5 mt-0.5 mb-1">
-          {tool.name === "exec" ? (
+          {showInlineDiff ? (
+            <InlineToolDiffPreview payload={fileChangeSummary.payload} />
+          ) : tool.name === "exec" ? (
             <ExecToolResultCard tool={tool} isRunning={isRunning} />
           ) : isKnowledgeResultTool(tool.name) && tool.result ? (
             <KnowledgeResultCard toolName={tool.name} result={tool.result} />

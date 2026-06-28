@@ -23,6 +23,7 @@ import ToolMediaPreview from "@/components/chat/message/ToolMediaPreview"
 import { MediaHoistContext } from "./mediaHoistContext"
 import ExecToolResultCard from "@/components/chat/message/ExecToolResultCard"
 import AsyncJobCancelCard from "@/components/chat/message/AsyncJobCancelCard"
+import InlineToolDiffPreview from "@/components/chat/message/InlineToolDiffPreview"
 import {
   getExecutionToolGroupLabelSegments,
   getExecutionToolGroupSegmentSeparator,
@@ -152,7 +153,6 @@ function GroupItem({
     () => (elapsedMs != null && elapsedMs >= 0 ? formatDuration(elapsedMs) : null),
     [elapsedMs],
   )
-  const canExpand = tool.name === "exec" || (!isRunning && !!tool.result)
 
   const fileChangeSummary = useMemo<{
     linesAdded: number
@@ -181,6 +181,8 @@ function GroupItem({
     }
     return null
   }, [tool.metadata])
+  const showInlineDiff = state === "completed" && !!fileChangeSummary
+  const canExpand = tool.name === "exec" || (!isRunning && (!!tool.result || showInlineDiff))
 
   useEffect(() => {
     if (!isRunning || !startedAtMs) return
@@ -282,11 +284,13 @@ function GroupItem({
       </AnimatedCollapse>
       {/* Full result */}
       <AnimatedCollapse
-        open={showResult && (tool.name === "exec" || !!tool.result)}
-        unmountOnExit={false}
+        open={showResult && (tool.name === "exec" || !!tool.result || showInlineDiff)}
+        unmountOnExit={showInlineDiff}
       >
         <div className="ml-4 mt-0.5 mb-1">
-          {tool.name === "exec" ? (
+          {showInlineDiff ? (
+            <InlineToolDiffPreview payload={fileChangeSummary.payload} />
+          ) : tool.name === "exec" ? (
             <ExecToolResultCard tool={tool} isRunning={isRunning} />
           ) : (
             <pre className="whitespace-pre-wrap text-muted-foreground/70 bg-secondary/40 rounded-md p-2 max-h-56 overflow-y-auto text-[11px] leading-relaxed border border-border/40">
