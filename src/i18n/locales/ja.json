@@ -5633,7 +5633,10 @@
   "backgroundJobs": {
     "panelTitle": "バックグラウンドタスク",
     "openPanel": "バックグラウンドタスク",
-    "openFull": "すべて表示 / キャンセル",
+    "openFull": "すべて表示",
+    "expandJob": "タスクを展開",
+    "collapseJob": "タスクを折りたたむ",
+    "jumpToBottom": "末尾へ移動",
     "empty": "バックグラウンドタスクはありません",
     "sectionSession": "このセッション",
     "sectionLocalModel": "ローカルモデル",

@@ -5633,7 +5633,10 @@
   "backgroundJobs": {
     "panelTitle": "Arka Plan Görevleri",
     "openPanel": "Arka plan görevleri",
-    "openFull": "Tümünü görüntüle / iptal et",
+    "openFull": "Tümünü görüntüle",
+    "expandJob": "Görevi genişlet",
+    "collapseJob": "Görevi daralt",
+    "jumpToBottom": "En alta git",
     "empty": "Arka plan görevi yok",
     "sectionSession": "Bu oturum",
     "sectionLocalModel": "Yerel modeller",

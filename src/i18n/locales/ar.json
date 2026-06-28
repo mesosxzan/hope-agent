@@ -5633,7 +5633,10 @@
   "backgroundJobs": {
     "panelTitle": "المهام الخلفية",
     "openPanel": "المهام الخلفية",
-    "openFull": "عرض الكل / إلغاء",
+    "openFull": "عرض الكل",
+    "expandJob": "توسيع المهمة",
+    "collapseJob": "طي المهمة",
+    "jumpToBottom": "انتقل إلى الأسفل",
     "empty": "لا توجد مهام خلفية",
     "sectionSession": "هذه الجلسة",
     "sectionLocalModel": "النماذج المحلية",

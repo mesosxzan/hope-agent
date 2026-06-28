@@ -5633,7 +5633,10 @@
   "backgroundJobs": {
     "panelTitle": "Tác vụ nền",
     "openPanel": "Tác vụ nền",
-    "openFull": "Xem tất cả / hủy",
+    "openFull": "Xem tất cả",
+    "expandJob": "Mở rộng tác vụ",
+    "collapseJob": "Thu gọn tác vụ",
+    "jumpToBottom": "Xuống cuối",
     "empty": "Không có tác vụ nền",
     "sectionSession": "Phiên này",
     "sectionLocalModel": "Mô hình cục bộ",

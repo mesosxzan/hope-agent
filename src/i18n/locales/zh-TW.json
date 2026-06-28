@@ -5633,7 +5633,10 @@
   "backgroundJobs": {
     "panelTitle": "背景任務",
     "openPanel": "背景任務",
-    "openFull": "查看全部 / 取消",
+    "openFull": "查看全部",
+    "expandJob": "展開任務",
+    "collapseJob": "收起任務",
+    "jumpToBottom": "跳到底部",
     "empty": "暫無背景任務",
     "sectionSession": "本工作階段",
     "sectionLocalModel": "本機模型",

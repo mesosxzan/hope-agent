@@ -5633,7 +5633,10 @@
   "backgroundJobs": {
     "panelTitle": "Background Tasks",
     "openPanel": "Background tasks",
-    "openFull": "View all / cancel",
+    "openFull": "View all",
+    "expandJob": "Expand task",
+    "collapseJob": "Collapse task",
+    "jumpToBottom": "Jump to bottom",
     "empty": "No background tasks",
     "sectionSession": "This session",
     "sectionLocalModel": "Local models",

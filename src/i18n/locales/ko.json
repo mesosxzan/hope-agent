@@ -5633,7 +5633,10 @@
   "backgroundJobs": {
     "panelTitle": "백그라운드 작업",
     "openPanel": "백그라운드 작업",
-    "openFull": "전체 보기 / 취소",
+    "openFull": "전체 보기",
+    "expandJob": "작업 펼치기",
+    "collapseJob": "작업 접기",
+    "jumpToBottom": "맨 아래로 이동",
     "empty": "백그라운드 작업이 없습니다",
     "sectionSession": "현재 세션",
     "sectionLocalModel": "로컬 모델",

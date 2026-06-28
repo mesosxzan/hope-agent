@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { Bot, Clock, Layers, Loader2, Terminal } from "lucide-react"
+import { Bot, Clock, Layers, Loader2, SquareTerminal } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import type {
@@ -45,7 +45,7 @@ export function BackgroundJobKindIcon({
 }) {
   if (kind === "group") return <Layers className={className} />
   if (kind === "subagent") return <Bot className={className} />
-  return <Terminal className={className} />
+  return <SquareTerminal className={className} />
 }
 
 export function BackgroundJobStatusChip({ status }: { status: BackgroundJobStatus }) {

@@ -5633,7 +5633,10 @@
   "backgroundJobs": {
     "panelTitle": "Фоновые задачи",
     "openPanel": "Фоновые задачи",
-    "openFull": "Показать все / отменить",
+    "openFull": "Показать все",
+    "expandJob": "Развернуть задачу",
+    "collapseJob": "Свернуть задачу",
+    "jumpToBottom": "Вниз",
     "empty": "Нет фоновых задач",
     "sectionSession": "Текущий сеанс",
     "sectionLocalModel": "Локальные модели",

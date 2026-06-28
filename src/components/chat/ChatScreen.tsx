@@ -90,6 +90,7 @@ import FilePreviewPanel from "./files/FilePreviewPanel"
 import { FileActionsContext, type FileActionsContextValue } from "./files/fileActionsContext"
 import WorkspacePanel from "./workspace/WorkspacePanel"
 import BackgroundJobsPanel from "./background-jobs/BackgroundJobsPanel"
+import { decideBackgroundJobsAutoOpen } from "./background-jobs/autoOpenPolicy"
 import { useBackgroundJobs } from "./background-jobs/useBackgroundJobs"
 import { resolveWorkspaceTaskExecutionState } from "./workspace/taskExecutionState"
 import { messagesHaveFileActivity } from "./workspace/useSessionFileChanges"
@@ -536,11 +537,16 @@ export default function ChatScreen({
   const [showWorkspacePanel, setShowWorkspacePanel] = useState(false)
   const workspacePanelDismissedRef = useRef(false)
 
-  // R4 背景任务：会话级在跑/最近作业 + 本地模型任务镜像。徽标常驻头部，面板
-  // 由徽标/工具条按钮打开（不自动弹，避免抢占右侧面板）。订阅在 ChatScreen
-  // 级常驻（见 `session` 定义后的 useBackgroundJobs），喂头部徽标计数 + 面板 +
-  // 工作台区块同一份数据。
+  // R4 背景任务：会话级在跑/最近作业 + 本地模型任务镜像。新后台任务出现时
+  // 自动打开一次；用户关闭后本会话不再抢回焦点。订阅在 ChatScreen 级常驻
+  //（见 `session` 定义后的 useBackgroundJobs），喂头部徽标计数 + 面板 + 工作台区块。
   const [showBackgroundJobsPanel, setShowBackgroundJobsPanel] = useState(false)
+  const backgroundJobsPanelDismissedRef = useRef(false)
+  const suppressNextBackgroundJobsActivationRef = useRef(false)
+  const previousBackgroundRunningCountRef = useRef(0)
+  const [backgroundJobExpansionOverrides, setBackgroundJobExpansionOverrides] = useState<
+    Record<string, boolean>
+  >({})
 
   // Browser live-mirror panel. Auto-opens on the **first** `browser:frame`
   // push of a session. After the user manually closes it, further frames in
@@ -2085,6 +2091,29 @@ export default function ChatScreen({
     showRightPanelByUser("workspace")
   }, [showRightPanelByUser])
 
+  const openBackgroundJobsPanel = useCallback(
+    (opts?: { activate?: boolean }) => {
+      backgroundJobsPanelDismissedRef.current = false
+      const activate = opts?.activate ?? true
+      suppressNextBackgroundJobsActivationRef.current = !activate
+      setShowBackgroundJobsPanel(true)
+      if (activate) showRightPanelByUser("background-jobs")
+    },
+    [showRightPanelByUser],
+  )
+
+  const closeBackgroundJobsPanel = useCallback(() => {
+    backgroundJobsPanelDismissedRef.current = true
+    suppressNextBackgroundJobsActivationRef.current = false
+    setShowBackgroundJobsPanel(false)
+  }, [])
+
+  const handleBackgroundJobExpandedChange = useCallback((jobId: string, expanded: boolean) => {
+    setBackgroundJobExpansionOverrides((prev) =>
+      prev[jobId] === expanded ? prev : { ...prev, [jobId]: expanded },
+    )
+  }, [])
+
   useEffect(() => {
     if (!hasOpenExclusiveRightPanel && rightPanelCollapsed) {
       autoCollapsedRightPanelRef.current = false
@@ -2186,10 +2215,17 @@ export default function ChatScreen({
   const previousDiffOpenNonceRef = useRef(diffPanel.openNonce)
   useLayoutEffect(() => {
     const previous = previousRightPanelVisibilityRef.current
-    const newlyOpened =
+    const rawNewlyOpened =
       EXCLUSIVE_RIGHT_PANEL_ORDER.find(
         (panel) => rightPanelVisibility[panel] && !previous[panel],
       ) ?? null
+    const newlyOpened =
+      rawNewlyOpened === "background-jobs" && suppressNextBackgroundJobsActivationRef.current
+        ? null
+        : rawNewlyOpened
+    if (rawNewlyOpened === "background-jobs") {
+      suppressNextBackgroundJobsActivationRef.current = false
+    }
     let forced: ExclusiveRightPanel | null = null
     if (filePreview.openNonce !== previousPreviewOpenNonceRef.current) {
       forced = "preview"
@@ -2226,9 +2262,14 @@ export default function ChatScreen({
     browserPanelDismissedRef.current = false
     macControlPanelDismissedRef.current = false
     workspacePanelDismissedRef.current = false
+    backgroundJobsPanelDismissedRef.current = false
+    suppressNextBackgroundJobsActivationRef.current = false
+    previousBackgroundRunningCountRef.current = 0
     setShowBrowserPanel(false)
     setShowMacControlPanel(false)
     setShowWorkspacePanel(false)
+    setShowBackgroundJobsPanel(false)
+    setBackgroundJobExpansionOverrides({})
     closeFilePreview()
   }, [session.currentSessionId, closeFilePreview])
 
@@ -2307,6 +2348,21 @@ export default function ChatScreen({
     if (!hasWorkspaceContent || workspacePanelDismissedRef.current) return
     setShowWorkspacePanel((prev) => (prev ? prev : true))
   }, [hasWorkspaceContent, session.currentSessionId])
+
+  useEffect(() => {
+    const previousRunningCount = previousBackgroundRunningCountRef.current
+    const runningCount = backgroundJobs.runningCount
+    previousBackgroundRunningCountRef.current = runningCount
+    const action = decideBackgroundJobsAutoOpen({
+      runningCount,
+      previousRunningCount,
+      dismissed: backgroundJobsPanelDismissedRef.current,
+      activePanel: renderedExclusiveRightPanel,
+    })
+
+    if (action === "activate") openBackgroundJobsPanel({ activate: true })
+    if (action === "open-in-background") openBackgroundJobsPanel({ activate: false })
+  }, [backgroundJobs.runningCount, openBackgroundJobsPanel, renderedExclusiveRightPanel])
 
   const workspaceTaskExecutionState = resolveWorkspaceTaskExecutionState(
     session.currentSessionId
@@ -2520,9 +2576,13 @@ export default function ChatScreen({
             }
           }}
           workspacePanelOpen={showWorkspacePanel}
-          onToggleBackgroundJobsPanel={() =>
-            setShowBackgroundJobsPanel((prev) => !prev)
-          }
+          onToggleBackgroundJobsPanel={() => {
+            if (showBackgroundJobsPanel) {
+              closeBackgroundJobsPanel()
+            } else {
+              openBackgroundJobsPanel()
+            }
+          }}
           backgroundJobsPanelOpen={showBackgroundJobsPanel}
           backgroundJobsRunningCount={backgroundJobs.runningCount}
           rightPanels={titleBarRightPanels}
@@ -2916,7 +2976,7 @@ export default function ChatScreen({
                   workspaceTaskExecutionState === "cancelling"
                 }
                 backgroundJobs={backgroundJobs.jobs}
-                onOpenBackgroundJobs={() => setShowBackgroundJobsPanel(true)}
+                onOpenBackgroundJobs={openBackgroundJobsPanel}
                 onViewSubagentSession={setSubagentPreviewSessionId}
                 onClose={() => {
                   workspacePanelDismissedRef.current = true
@@ -2940,7 +3000,9 @@ export default function ChatScreen({
             >
               <BackgroundJobsPanel
                 jobs={backgroundJobs.jobs}
-                onClose={() => setShowBackgroundJobsPanel(false)}
+                jobExpansionOverrides={backgroundJobExpansionOverrides}
+                onJobExpandedChange={handleBackgroundJobExpandedChange}
+                onClose={closeBackgroundJobsPanel}
                 onViewSubagentSession={setSubagentPreviewSessionId}
               />
             </RightPanelShell>

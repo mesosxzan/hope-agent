@@ -148,7 +148,7 @@ interface WorkspacePanelProps {
   turnActive?: boolean
   /** R4:本会话后台任务（由 ChatScreen 的 useBackgroundJobs 传入,与头部徽标 / 独立面板共用一份订阅）。 */
   backgroundJobs?: BackgroundJobSnapshot[]
-  /** R4:打开独立「后台任务」面板（取消 / 完整列表在那里管理）。 */
+  /** R4:打开独立「后台任务」面板（完整列表和单项管理在那里处理）。 */
   onOpenBackgroundJobs?: () => void
   /** 打开子 agent 实时会话弹层，不切换当前主会话。 */
   onViewSubagentSession?: (sessionId: string) => void
@@ -1058,8 +1058,8 @@ function KnowledgeSection({
 }
 
 /**
- * R4 简化区块:本会话后台任务的速览(标签 + 状态)。取消 / 完整列表在独立「后台
- * 任务」面板里管理 —— 这里只展示 + 一个「查看全部」入口,避免与独立面板重复造轮子。
+ * R4 简化区块:本会话后台任务的速览(标签 + 状态)。完整列表和单项管理在独立「后台
+ * 任务」面板里处理 —— 这里只展示 + 一个「查看全部」入口,避免与独立面板重复造轮子。
  */
 const WORKSPACE_JOBS_PREVIEW = 6
 
@@ -1158,7 +1158,7 @@ function BackgroundJobsSection({
               onClick={onOpenPanel}
               className="w-full rounded-md px-2 py-1 text-center text-[11px] text-muted-foreground transition-colors hover:bg-secondary/45 hover:text-foreground"
             >
-              {t("backgroundJobs.openFull", "查看全部 / 取消")}
+              {t("backgroundJobs.openFull", "查看全部")}
             </button>
           )}
         </div>

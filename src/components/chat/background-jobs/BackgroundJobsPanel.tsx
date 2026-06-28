@@ -1,10 +1,30 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react"
 import { useTranslation } from "react-i18next"
-import { ArrowUpRight, Cpu, Layers, Terminal, X, XCircle, type LucideIcon } from "lucide-react"
+import {
+  ArrowDown,
+  ArrowUpRight,
+  ChevronRight,
+  Cpu,
+  Layers,
+  SquareTerminal,
+  X,
+  XCircle,
+  type LucideIcon,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { AnimatedCollapse } from "@/components/ui/animated-presence"
 import { IconTip } from "@/components/ui/tooltip"
 import { getTransport } from "@/lib/transport-provider"
+import { cn } from "@/lib/utils"
 import {
   type BackgroundJobSnapshot,
   type BackgroundJobStatus,
@@ -20,6 +40,7 @@ import {
 import { useLocalModelJobsMirror } from "./useLocalModelJobsMirror"
 import { BackgroundJobKindIcon, BackgroundJobStatusChip } from "./jobDisplay"
 import { resolveBackgroundSubagentSessionId } from "./subagentSession"
+import { isScrolledNearBottom, normalizeTerminalText, parseAnsiSegments } from "./terminalOutput"
 
 function SectionHeader({
   icon: Icon,
@@ -40,10 +61,10 @@ function SectionHeader({
 }
 
 function EmptyHint({ children }: { children: ReactNode }) {
-  return (
-    <div className="px-2 py-4 text-center text-xs text-muted-foreground/70">{children}</div>
-  )
+  return <div className="px-2 py-4 text-center text-xs text-muted-foreground/70">{children}</div>
 }
+
+const noopJobExpandedChange = () => {}
 
 function mergeJobSnapshot(
   job: BackgroundJobSnapshot,
@@ -82,15 +103,23 @@ function mergeJobSnapshot(
   }
 }
 
+function defaultJobExpanded(job: BackgroundJobSnapshot): boolean {
+  return job.status !== "completed"
+}
+
 function BackgroundJobRow({
   job,
   detail,
+  expanded,
+  onExpandedChange,
   onCancel,
   onViewSubagentSession,
   viewing,
 }: {
   job: BackgroundJobSnapshot
   detail?: BackgroundJobSnapshot
+  expanded: boolean
+  onExpandedChange: (jobId: string, expanded: boolean) => void
   onCancel: (jobId: string) => void
   onViewSubagentSession?: (job: BackgroundJobSnapshot) => void
   viewing?: boolean
@@ -113,10 +142,29 @@ function BackgroundJobRow({
     : merged.error
       ? t("backgroundJobs.errorOutput", "错误")
       : t("backgroundJobs.resultPreview", "结果预览")
+  const toggleLabel = expanded
+    ? t("backgroundJobs.collapseJob", "收起任务")
+    : t("backgroundJobs.expandJob", "展开任务")
 
   return (
     <div className="flex flex-col gap-1 rounded-md border border-border/50 bg-secondary/30 px-2.5 py-1.5">
       <div className="flex items-center gap-2">
+        <IconTip label={toggleLabel}>
+          <button
+            type="button"
+            onClick={() => onExpandedChange(merged.jobId, !expanded)}
+            className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:bg-secondary hover:text-foreground"
+            aria-label={toggleLabel}
+            aria-expanded={expanded}
+          >
+            <ChevronRight
+              className={cn(
+                "h-3.5 w-3.5 transition-transform duration-200",
+                expanded && "rotate-90",
+              )}
+            />
+          </button>
+        </IconTip>
         <BackgroundJobKindIcon
           kind={merged.kind}
           className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
@@ -153,30 +201,95 @@ function BackgroundJobRow({
           </IconTip>
         )}
       </div>
-      {showGroupProgress && (
-        <div className="flex items-center gap-2">
-          <div className="h-1 flex-1 overflow-hidden rounded-full bg-secondary">
+      <AnimatedCollapse open={expanded}>
+        <div className="space-y-1">
+          {showGroupProgress && (
+            <div className="flex items-center gap-2">
+              <div className="h-1 flex-1 overflow-hidden rounded-full bg-secondary">
+                <div
+                  className="h-full rounded-full bg-blue-500 transition-all duration-300"
+                  style={{ width: `${groupPct}%` }}
+                />
+              </div>
+              <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+                {groupDone}/{groupTotal}
+              </span>
+            </div>
+          )}
+          {outputText && <JobOutputBlock label={outputLabel} text={outputText} />}
+          {merged.resultPath && (
             <div
-              className="h-full rounded-full bg-blue-500 transition-all duration-300"
-              style={{ width: `${groupPct}%` }}
-            />
-          </div>
-          <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
-            {groupDone}/{groupTotal}
-          </span>
+              className="truncate text-[10px] text-muted-foreground/75"
+              title={merged.resultPath}
+            >
+              {t("backgroundJobs.outputFile", "完整结果")}: {merged.resultPath}
+            </div>
+          )}
         </div>
-      )}
-      {outputText && (
-        <div className="mt-1 border-t border-border/40 pt-1">
-          <div className="pb-1 text-[10px] text-muted-foreground">{outputLabel}</div>
-          <pre className="max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-[10px] leading-relaxed text-foreground/85">{outputText}</pre>
-        </div>
-      )}
-      {merged.resultPath && (
-        <div className="truncate text-[10px] text-muted-foreground/75" title={merged.resultPath}>
-          {t("backgroundJobs.outputFile", "完整结果")}: {merged.resultPath}
-        </div>
-      )}
+      </AnimatedCollapse>
+    </div>
+  )
+}
+
+function JobOutputBlock({ label, text }: { label: string; text: string }) {
+  const { t } = useTranslation()
+  const outputRef = useRef<HTMLPreElement | null>(null)
+  const stickToBottomRef = useRef(true)
+  const [showJumpToBottom, setShowJumpToBottom] = useState(false)
+  const normalizedText = useMemo(() => normalizeTerminalText(text), [text])
+  const segments = useMemo(() => parseAnsiSegments(normalizedText), [normalizedText])
+
+  const scrollToBottom = useCallback(() => {
+    const node = outputRef.current
+    if (!node) return
+    node.scrollTop = node.scrollHeight
+    stickToBottomRef.current = true
+    setShowJumpToBottom(false)
+  }, [])
+
+  const updateStickiness = useCallback(() => {
+    const node = outputRef.current
+    if (!node) return
+    const nearBottom = isScrolledNearBottom(node)
+    stickToBottomRef.current = nearBottom
+    setShowJumpToBottom(!nearBottom)
+  }, [])
+
+  useLayoutEffect(() => {
+    const node = outputRef.current
+    if (node && stickToBottomRef.current) {
+      node.scrollTop = node.scrollHeight
+    }
+  }, [normalizedText])
+
+  return (
+    <div className="mt-1 border-t border-border/40 pt-1">
+      <div className="pb-1 text-[10px] text-muted-foreground">{label}</div>
+      <div className="relative rounded-md border border-border/40 bg-background/80">
+        <pre
+          ref={outputRef}
+          onScroll={updateStickiness}
+          className="max-h-36 overflow-auto whitespace-pre-wrap break-words px-2 py-1.5 font-mono text-[10px] leading-relaxed text-foreground/85"
+        >
+          {segments.map((segment, index) => (
+            <span key={index} className={segment.className}>
+              {segment.text}
+            </span>
+          ))}
+        </pre>
+        {showJumpToBottom && (
+          <IconTip label={t("backgroundJobs.jumpToBottom", "跳到底部")}>
+            <button
+              type="button"
+              onClick={scrollToBottom}
+              className="absolute bottom-1.5 right-1.5 inline-flex h-6 w-6 items-center justify-center rounded-md border border-border/60 bg-background/95 text-muted-foreground shadow-sm transition-colors hover:bg-secondary hover:text-foreground"
+              aria-label={t("backgroundJobs.jumpToBottom", "跳到底部")}
+            >
+              <ArrowDown className="h-3.5 w-3.5" />
+            </button>
+          </IconTip>
+        )}
+      </div>
     </div>
   )
 }
@@ -222,10 +335,14 @@ function LocalModelJobRow({ job }: { job: LocalModelJobSnapshot }) {
  */
 export default function BackgroundJobsPanel({
   jobs,
+  jobExpansionOverrides,
+  onJobExpandedChange,
   onClose,
   onViewSubagentSession,
 }: {
   jobs: BackgroundJobSnapshot[]
+  jobExpansionOverrides?: Record<string, boolean>
+  onJobExpandedChange?: (jobId: string, expanded: boolean) => void
   onClose: () => void
   onViewSubagentSession?: (sessionId: string) => void
 }) {
@@ -292,7 +409,7 @@ export default function BackgroundJobsPanel({
     () =>
       jobs.map((j) =>
         pendingCancel.has(j.jobId) && isBackgroundJobCancellable(j)
-          ? ({ ...j, status: "cancelling" as BackgroundJobStatus })
+          ? { ...j, status: "cancelling" as BackgroundJobStatus }
           : j,
       ),
     [jobs, pendingCancel],
@@ -320,7 +437,9 @@ export default function BackgroundJobsPanel({
         .then((rows) => {
           if (!alive) return
           const byId = new Map(
-            rows.filter((row): row is BackgroundJobSnapshot => !!row).map((row) => [row.jobId, row]),
+            rows
+              .filter((row): row is BackgroundJobSnapshot => !!row)
+              .map((row) => [row.jobId, row]),
           )
           setDetails((prev) => {
             const next: Record<string, BackgroundJobSnapshot> = {}
@@ -365,22 +484,29 @@ export default function BackgroundJobsPanel({
       <div className="flex-1 space-y-3 overflow-auto p-2">
         <div>
           <SectionHeader
-            icon={Terminal}
+            icon={SquareTerminal}
             title={t("backgroundJobs.sectionSession", "本会话")}
             count={visibleJobs.length}
           />
           {visibleJobs.length > 0 ? (
             <div className="space-y-1">
-              {visibleJobs.map((job) => (
-                <BackgroundJobRow
-                  key={job.jobId}
-                  job={job}
-                  detail={details[job.jobId]}
-                  onCancel={handleCancel}
-                  onViewSubagentSession={handleViewSubagentSession}
-                  viewing={!!job.subagentRunId && pendingViewRunIds.has(job.subagentRunId)}
-                />
-              ))}
+              {visibleJobs.map((job) => {
+                const detail = details[job.jobId]
+                const merged = mergeJobSnapshot(job, detail)
+
+                return (
+                  <BackgroundJobRow
+                    key={job.jobId}
+                    job={job}
+                    detail={detail}
+                    expanded={jobExpansionOverrides?.[job.jobId] ?? defaultJobExpanded(merged)}
+                    onExpandedChange={onJobExpandedChange ?? noopJobExpandedChange}
+                    onCancel={handleCancel}
+                    onViewSubagentSession={handleViewSubagentSession}
+                    viewing={!!job.subagentRunId && pendingViewRunIds.has(job.subagentRunId)}
+                  />
+                )
+              })}
             </div>
           ) : (
             <EmptyHint>{t("backgroundJobs.empty", "暂无后台任务")}</EmptyHint>

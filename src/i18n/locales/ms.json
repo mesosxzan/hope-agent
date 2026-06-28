@@ -5633,7 +5633,10 @@
   "backgroundJobs": {
     "panelTitle": "Tugas Latar Belakang",
     "openPanel": "Tugas latar belakang",
-    "openFull": "Lihat semua / batal",
+    "openFull": "Lihat semua",
+    "expandJob": "Kembangkan tugas",
+    "collapseJob": "Kuncupkan tugas",
+    "jumpToBottom": "Pergi ke bawah",
     "empty": "Tiada tugas latar belakang",
     "sectionSession": "Sesi ini",
     "sectionLocalModel": "Model tempatan",

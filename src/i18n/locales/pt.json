@@ -5633,7 +5633,10 @@
   "backgroundJobs": {
     "panelTitle": "Tarefas em segundo plano",
     "openPanel": "Tarefas em segundo plano",
-    "openFull": "Ver tudo / cancelar",
+    "openFull": "Ver tudo",
+    "expandJob": "Expandir tarefa",
+    "collapseJob": "Recolher tarefa",
+    "jumpToBottom": "Ir para o fim",
     "empty": "Nenhuma tarefa em segundo plano",
     "sectionSession": "Esta sessão",
     "sectionLocalModel": "Modelos locais",

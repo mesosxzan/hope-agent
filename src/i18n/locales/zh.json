@@ -5633,7 +5633,10 @@
   "backgroundJobs": {
     "panelTitle": "后台任务",
     "openPanel": "后台任务",
-    "openFull": "查看全部 / 取消",
+    "openFull": "查看全部",
+    "expandJob": "展开任务",
+    "collapseJob": "收起任务",
+    "jumpToBottom": "跳到底部",
     "empty": "暂无后台任务",
     "sectionSession": "本会话",
     "sectionLocalModel": "本地模型",
