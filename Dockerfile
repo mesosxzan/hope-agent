@@ -28,7 +28,8 @@
 # build / bookworm runtime would dynamically fail to load at startup.
 
 # Base image: see docker/Dockerfile.base for the full toolchain list.
-ARG BASE_IMAGE=ghcr.io/shiwenwen/hope-agent-base:1.0
+#ARG BASE_IMAGE=ghcr.io/shiwenwen/hope-agent-base:1.0
+ARG BASE_IMAGE=registry.cn-hangzhou.aliyuncs.com/xzan_docker_hub/hope-agent-base:1.0
 
 # -------------------------------------------------------------------
 # Stage 1: build the Vite frontend (arch-independent)
