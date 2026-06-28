@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import { getTransport } from "@/lib/transport-provider"
 import { useTranslation } from "react-i18next"
@@ -105,6 +105,43 @@ export default function CronJobDetail({
     const first = logs.find((l) => l.sessionId)
     if (first?.sessionId) setSelectedSessionId(first.sessionId)
   }, [logs, selectedSessionId])
+
+  // Listen for cron run lifecycle events to refresh the job detail + run log.
+  // - `cron:run_started` → a run just started (refresh to show the running log
+  //   and auto-select its session for live streaming)
+  // - `cron:run_completed` → a run finished (success / error / empty / disabled)
+  const refreshData = useCallback(() => {
+    void fetchData()
+    onRefresh()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobId])
+
+  useEffect(() => {
+    const unlisteners: Array<() => void> = []
+
+    // A cron run started — refresh job detail + run log so the running entry
+    // appears and the session auto-selects for live streaming.
+    unlisteners.push(
+      getTransport().listen("cron:run_started", (raw) => {
+        const payload = raw as { job_id?: string } | null
+        if (payload?.job_id !== jobId) return
+        refreshData()
+      }),
+    )
+
+    // A cron run completed — refresh job detail + run log.
+    unlisteners.push(
+      getTransport().listen("cron:run_completed", (raw) => {
+        const payload = raw as { job_id?: string } | null
+        if (payload?.job_id !== jobId) return
+        refreshData()
+      }),
+    )
+
+    return () => {
+      unlisteners.forEach((fn) => fn())
+    }
+  }, [jobId, refreshData])
 
   async function handleToggle() {
     if (!job) return

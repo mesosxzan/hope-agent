@@ -90,13 +90,14 @@ export default function CronConversationsPanel() {
     }
   }, [fetchPage])
 
-  // Keep the timeline live while open: when a cron run completes, refresh the
-  // first page so the new run shows up at the top (mirrors CronCalendarView,
-  // which also listens to cron:run_completed). Resetting to page 0 is fine —
-  // new runs sort newest-first; the selected conversation on the right is keyed
-  // by sessionId and is unaffected.
+  // Keep the timeline live while open: when a cron run starts or completes,
+  // refresh the first page so the new run shows up at the top (mirrors
+  // CronCalendarView, which also listens to cron:run_completed). Resetting to
+  // page 0 is fine — new runs sort newest-first; the selected conversation on
+  // the right is keyed by sessionId and is unaffected.
   useEffect(() => {
-    const unlisten = getTransport().listen("cron:run_completed", () => {
+    const unlisteners: Array<() => void> = []
+    const refresh = () => {
       fetchPage(0)
         .then((page) => {
           setRows(page)
@@ -104,8 +105,10 @@ export default function CronConversationsPanel() {
           setHasMore(page.length === PAGE_SIZE)
         })
         .catch(() => {})
-    })
-    return unlisten
+    }
+    unlisteners.push(getTransport().listen("cron:run_started", refresh))
+    unlisteners.push(getTransport().listen("cron:run_completed", refresh))
+    return () => unlisteners.forEach((fn) => fn())
   }, [fetchPage])
 
   useEffect(() => {

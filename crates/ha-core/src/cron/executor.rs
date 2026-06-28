@@ -271,6 +271,13 @@ pub(crate) async fn execute_claimed_job(
         .run_log_id
         .store(run_log_id.unwrap_or(0), Ordering::SeqCst);
 
+    // Notify the frontend that a run has started so CronJobDetail can
+    // refresh its run log and auto-select the new session for live
+    // streaming.  Without this, the detail view only learns about a run
+    // when it completes (`cron:run_completed`), so the user never sees
+    // real-time output.
+    emit_cron_run_started(&job.id, &session_id);
+
     // Persist the cron prompt before execution so `run_chat_engine` can reuse
     // the same DB contract as interactive chat without duplicating user rows.
     let mut user_msg =
@@ -1136,6 +1143,20 @@ fn record_cancelled(
         job.notify_on_complete,
         None,
     );
+}
+
+/// Emit an event to notify the frontend that a cron run has started.
+/// This lets CronJobDetail refresh its run log and auto-select the new
+/// session so the user sees real-time streaming output instead of waiting
+/// until the run completes.
+fn emit_cron_run_started(job_id: &str, session_id: &str) {
+    if let Some(bus) = crate::get_event_bus() {
+        let payload = serde_json::json!({
+            "job_id": job_id,
+            "session_id": session_id,
+        });
+        bus.emit("cron:run_started", payload);
+    }
 }
 
 /// Emit an event to notify the frontend of a cron run result.

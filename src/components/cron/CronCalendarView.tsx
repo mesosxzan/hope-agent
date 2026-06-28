@@ -166,12 +166,16 @@ export default function CronCalendarView({
     }
   }, [mode, jobsLoaded, fetchJobs])
 
-  // Listen for cron:run_completed events
+  // Listen for cron run lifecycle events
   useEffect(() => {
-    return getTransport().listen("cron:run_completed", () => {
+    const unlisteners: Array<() => void> = []
+    const refresh = () => {
       fetchEvents()
       if (jobsLoaded) fetchJobs()
-    })
+    }
+    unlisteners.push(getTransport().listen("cron:run_started", refresh))
+    unlisteners.push(getTransport().listen("cron:run_completed", refresh))
+    return () => unlisteners.forEach((fn) => fn())
   }, [fetchEvents, fetchJobs, jobsLoaded])
 
   // Load the agent roster once (job-independent); shared by both the embedded

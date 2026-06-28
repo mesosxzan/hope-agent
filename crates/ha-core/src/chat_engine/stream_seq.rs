@@ -59,8 +59,14 @@ impl ChatSource {
     ///
     /// Subagent / ParentInjection stay off the bus — those are background
     /// turns the user shouldn't see streaming live.
+    ///
+    /// Cron broadcasts so the GUI can render a running cron job's output
+    /// live in CronJobDetail / CronConversationsPanel (the user opened the
+    /// detail view while the job is executing). Cron sessions are persisted,
+    /// user-viewable, and already tracked by `tracks_seq` — the delta seq
+    /// dedup works the same as Desktop / HTTP.
     pub fn broadcasts_to_user_ui(&self) -> bool {
-        matches!(self, Self::Desktop | Self::Http)
+        matches!(self, Self::Desktop | Self::Http | Self::Cron)
     }
 
     /// Sources tracked by the stream_seq registry (so reload-recovery can
@@ -375,11 +381,12 @@ mod tests {
     #[test]
     fn cron_source_wire_roundtrip_and_buckets() {
         // Cron is owner-internal: it tracks seq (real session + concurrency
-        // guard) but does NOT broadcast to the user UI (background run), and its
+        // guard) AND broadcasts to the user UI (the GUI renders a running cron
+        // job's output live in CronJobDetail / CronConversationsPanel), and its
         // wire string round-trips so persisted `messages.source` rows reload as
         // Cron rather than collapsing to Desktop.
         assert!(ChatSource::Cron.tracks_seq());
-        assert!(!ChatSource::Cron.broadcasts_to_user_ui());
+        assert!(ChatSource::Cron.broadcasts_to_user_ui());
         assert_eq!(ChatSource::Cron.as_str(), "cron");
         assert_eq!(ChatSource::from_db_string("cron"), ChatSource::Cron);
         assert_eq!(
