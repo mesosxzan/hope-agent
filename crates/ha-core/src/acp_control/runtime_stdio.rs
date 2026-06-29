@@ -272,7 +272,6 @@ impl AcpRuntime for StdioAcpRuntime {
             pid,
             timeout_secs,
             created_at: chrono::Utc::now().to_rfc3339(),
-
         })
     }
 
