@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **LLM 503/服务繁忙容错增强**：主对话链的重试次数从 2 提到 3（共 4 次尝试），退避上限从 10 秒提到 30 秒，给服务商更长的恢复窗口，减少偶发性「The system is busy」直接报错退出的情况。
+
 ## [0.14.0] - 2026-06-29
 
 ### Added

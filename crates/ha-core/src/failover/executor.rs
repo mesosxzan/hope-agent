@@ -56,13 +56,21 @@ pub struct FailoverPolicy {
 }
 
 impl FailoverPolicy {
-    /// chat_engine main loop default (matches pre-Phase-3 hand-rolled values).
+    /// chat_engine main loop default.
+    ///
+    /// Tuned for transient server-side failures (503 / overloaded):
+    /// - `max_retries: 3` → 4 total attempts (1 initial + 3 retries)
+    /// - `retry_base_ms: 1000`, `retry_max_ms: 30000` → backoff curve
+    ///   `1s → 2s → 4s` (clamped), total wait ~7s before giving up
+    /// - Previously `max_retries: 2` / `retry_max_ms: 10000` which was
+    ///   too aggressive for provider-side "system busy" spikes that
+    ///   need 10-30s to recover.
     pub fn chat_engine_default() -> Self {
         Self {
-            max_retries: 2,
+            max_retries: 3,
             allow_profile_rotation: true,
             retry_base_ms: 1000,
-            retry_max_ms: 10000,
+            retry_max_ms: 30000,
             cancel: None,
         }
     }
@@ -74,7 +82,7 @@ impl FailoverPolicy {
             max_retries: 1,
             allow_profile_rotation: true,
             retry_base_ms: 1000,
-            retry_max_ms: 10000,
+            retry_max_ms: 30000,
             cancel: None,
         }
     }
@@ -90,7 +98,7 @@ impl FailoverPolicy {
             max_retries: 2,
             allow_profile_rotation: false,
             retry_base_ms: 1000,
-            retry_max_ms: 10000,
+            retry_max_ms: 30000,
             cancel: None,
         }
     }
@@ -823,5 +831,59 @@ mod tests {
         .await;
 
         assert_eq!(*observed_first_key.lock().unwrap(), "key-1");
+    }
+
+    /// Verify the tuned chat_engine_default values that defend against
+    /// transient 503 / "system busy" spikes. These constants are the
+    /// contract for how long the main chat loop will keep retrying
+    /// before surfacing "All models exhausted" to the user.
+    #[test]
+    fn chat_engine_default_policy_values() {
+        let p = FailoverPolicy::chat_engine_default();
+        assert_eq!(p.max_retries, 3, "4 total attempts (1 + 3 retries)");
+        assert_eq!(p.retry_base_ms, 1000);
+        assert_eq!(p.retry_max_ms, 30000, "allow backoff to grow to 30s");
+        assert!(p.allow_profile_rotation);
+    }
+
+    /// 503 Overloaded should retry `max_retries` times (4 total attempts)
+    /// before returning Exhausted, matching the tuned chat_engine policy.
+    /// Uses a fast policy (small base/max) to keep the test snappy.
+    #[tokio::test]
+    async fn overloaded_retries_to_policy_max_then_exhausts() {
+        let (cfg, _ids) = make_provider(1);
+        let session = format!("sess-{}", uuid::Uuid::new_v4());
+        let attempt = AtomicU32::new(0);
+
+        let policy = FailoverPolicy {
+            max_retries: 3,
+            allow_profile_rotation: false,
+            retry_base_ms: 5,
+            retry_max_ms: 10,
+            cancel: None,
+        };
+
+        let result: Result<String, _> =
+            execute_with_failover(&cfg, &session, policy, None, |_profile| {
+                attempt.fetch_add(1, Ordering::SeqCst);
+                // 503 → Overloaded → retryable
+                async move {
+                    Err(anyhow::anyhow!(
+                        "LLM_ERR:503:-:-:".to_string()
+                            + "{\"error\":{\"message\":\"The system is busy\"}}"
+                    ))
+                }
+            })
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(ExecutorError::Exhausted {
+                last_reason: FailoverReason::Overloaded,
+                ..
+            })
+        ));
+        // 1 initial + 3 retries = 4 total attempts.
+        assert_eq!(attempt.load(Ordering::SeqCst), 4);
     }
 }
