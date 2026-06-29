@@ -22,7 +22,17 @@
 
 services:
   hope-agent:
+    # Official pre-built image from GHCR (default).
+    # To build locally from source using the base image, uncomment the
+    # `build` block below and comment out `image:`.
     image: ghcr.io/shiwenwen/hope-agent:latest
+    #build:
+    #  context: .
+    #  dockerfile: Dockerfile
+    #  args:
+    #    # Override to use a custom base image tag.
+    #    # See docker/Dockerfile.base for building the base image first.
+    #    BASE_IMAGE: ghcr.io/shiwenwen/hope-agent-base:1.0
     container_name: hope-agent
     restart: unless-stopped
     ports:

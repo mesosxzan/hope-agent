@@ -4919,7 +4919,17 @@
     "webSearchRecommended": "Khuyến nghị",
     "webSearchSaved": "Đã lưu",
     "webSearchTimeout": "Hết thời gian (giây)",
-    "webSearchTimeoutDesc": "Thời gian chờ HTTP cho yêu cầu tìm kiếm (5-120 giây)"
+    "webSearchTimeoutDesc": "Thời gian chờ HTTP cho yêu cầu tìm kiếm (5-120 giây)",
+    "webSearchProxy": "Search Proxy",
+    "webSearchProxyDesc": "Configure proxy for web search requests. Useful when DuckDuckGo is blocked in your region.",
+    "webSearchProxyGlobal": "Use Global Proxy",
+    "webSearchProxyGlobalDesc": "Inherit the global proxy settings",
+    "webSearchProxyNone": "No Proxy",
+    "webSearchProxyNoneDesc": "Direct connection, ignore global proxy for web search",
+    "webSearchProxyCustom": "Custom Proxy",
+    "webSearchProxyCustomDesc": "Use a dedicated proxy for web search only",
+    "webSearchProxyUrl": "Proxy URL",
+    "webSearchProxyUrlPlaceholder": "http://127.0.0.1:7890"
   },
   "shortcuts": {
     "actionOpenSettings": "Mở cài đặt",

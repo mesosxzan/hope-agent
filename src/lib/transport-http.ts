@@ -671,6 +671,8 @@ const COMMAND_MAP: Record<string, EndpointDef> = {
   // -- Theme / Language / UI --
   get_theme:                       { method: "GET",    path: "/api/config/theme" },
   set_theme:                       { method: "POST",   path: "/api/config/theme" },
+  get_color_theme:                 { method: "GET",    path: "/api/config/color-theme" },
+  set_color_theme:                 { method: "POST",   path: "/api/config/color-theme" },
   set_window_theme:                { method: "POST",   path: "/api/config/window-theme" },
   get_language:                    { method: "GET",    path: "/api/config/language" },
   set_language:                    { method: "POST",   path: "/api/config/language" },
@@ -801,7 +803,16 @@ function buildUrl(
   let match: RegExpExecArray | null;
   while ((match = paramRegex.exec(def.path)) !== null) {
     const key = match[1];
-    const value = remaining[key];
+    let value = remaining[key];
+    // Fallback: look inside nested objects (e.g. `job.id` when args = { job: { id: "..." } })
+    if (value === undefined || value === null) {
+      for (const v of Object.values(remaining)) {
+        if (v && typeof v === "object" && !Array.isArray(v) && key in v) {
+          value = (v as Record<string, unknown>)[key];
+          break;
+        }
+      }
+    }
     if (value === undefined || value === null) {
       throw new Error(
         `Missing required path parameter "${key}" for endpoint ${def.method} ${def.path}`,
@@ -890,6 +901,62 @@ function normalizeCommandResponse(command: string, value: unknown): unknown {
         // axum 路由用 `Json(json!({"active_model": ...}))` 包了一层；Tauri 命令
         // 直接返回 `Option<ActiveModelRef>`，前端跨 transport 期望统一类型。
         return record.active_model ?? null;
+      case "get_log_file_path_cmd":
+        // axum 路由返回 `{ path: "..." }`；Tauri 命令直接返回 String。
+        return record.path ?? "";
+      case "get_global_temperature":
+        // axum 路由返回 `{ temperature: f64 | null }`；Tauri 命令直接返回 Option<f64>。
+        return record.temperature ?? null;
+      case "test_provider":
+      case "test_model":
+      case "test_image_generate":
+      case "test_embedding":
+        // axum 路由返回 `{ success, message, url, ... }` (full result as Value)；
+        // Tauri 命令直接返回 JSON 字符串。前端 `parseTestResult` 需要 JSON.parse(string)。
+        // Re-serialize the object so the caller gets the same string format.
+        return JSON.stringify(record);
+      case "get_agent_markdown":
+      case "get_global_memory_md":
+      case "get_agent_memory_md":
+        // axum 路由返回 `{ content: string | null }`；Tauri 命令直接返回 Option<String>。
+        return record.content ?? null;
+      case "get_agent_template":
+      case "render_persona_to_soul_md":
+        // axum 路由返回 `{ content: string }`；Tauri 命令直接返回 String。
+        return record.content ?? "";
+      case "memory_count":
+        // axum 路由返回 `{ count: usize }`；Tauri 命令直接返回 usize。
+        return record.count ?? 0;
+      case "memory_add":
+        // axum 路由返回 `{ id: i64 }`；Tauri 命令直接返回 i64。
+        return record.id ?? -1;
+      case "memory_update":
+        // axum 路由返回 `{ updated: bool }`；Tauri 命令直接返回 bool。
+        return record.updated ?? false;
+      case "memory_delete":
+        // axum 路由返回 `{ deleted: bool }`；Tauri 命令直接返回 bool。
+        return record.deleted ?? false;
+      case "get_skill_env_check":
+        // axum 路由返回 `{ enabled: bool }`；Tauri 命令直接返回 bool。
+        return record.enabled ?? false;
+      case "get_auto_review_enabled":
+        // axum 路由返回 `{ enabled: bool }`；Tauri 命令直接返回 bool。
+        return record.enabled ?? false;
+      case "get_guardian_enabled":
+        // axum 路由返回 `{ enabled: bool }`；Tauri 命令直接返回 bool。
+        return record.enabled ?? false;
+      case "export_plan":
+        // axum 路由返回 `{ filePath: String }`；Tauri 命令直接返回 String。
+        return record.filePath ?? "";
+      case "get_app_log_path":
+        // axum 路由返回 `{ path: String }`；Tauri 命令直接返回 String。
+        return record.path ?? "";
+      case "get_avatar_path":
+        // axum 路由返回 `{ path: String }`；Tauri 命令直接返回 Option<String>。
+        return record.path ?? null;
+      case "get_crash_report_path":
+        // axum 路由返回 `{ path: String }`；Tauri 命令直接返回 String。
+        return record.path ?? "";
       case "get_local_llm_auto_maintenance_enabled":
         // axum 路由返回 `{ enabled: bool }`；Tauri 命令直接返回 bool。
         return record.enabled ?? false;
@@ -1001,7 +1068,29 @@ export class HttpTransport implements Transport {
       );
     }
 
-    const { url: rawUrl, remainingArgs } = buildUrl(this.baseUrl, def, args);
+    // Tauri commands use named params like `{ config: ProviderConfig }`,
+    // but some HTTP routes expect a flat JSON body (e.g. `Json<ProviderConfig>`).
+    // Flatten the wrapper key only for commands where the HTTP endpoint
+    // expects a bare struct, not a `{ config, ... }` / `{ draft, ... }` wrapper.
+    // Commands like test_model keep `{ config, modelId }` intact.
+    const FLATTEN_WRAPPER_COMMANDS: Record<string, string> = {
+      test_provider: "config",
+      add_provider: "config",
+      update_provider: "config",
+      mcp_add_server: "draft",
+      mcp_update_server: "draft",
+    };
+    let flatArgs = args;
+    const wrapperKey = FLATTEN_WRAPPER_COMMANDS[command];
+    if (
+      wrapperKey &&
+      args && typeof args[wrapperKey] === "object" && args[wrapperKey] !== null && !Array.isArray(args[wrapperKey])
+    ) {
+      const { [wrapperKey]: wrapper, ...rest } = args;
+      flatArgs = { ...(wrapper as Record<string, unknown>), ...rest };
+    }
+
+    const { url: rawUrl, remainingArgs } = buildUrl(this.baseUrl, def, flatArgs);
 
     const isBodyMethod = def.method === "POST" || def.method === "PUT" || def.method === "PATCH";
     const url = isBodyMethod ? rawUrl : appendQueryParams(rawUrl, remainingArgs);
@@ -1015,6 +1104,7 @@ export class HttpTransport implements Transport {
     if (isBodyMethod) {
       headers["Content-Type"] = "application/json";
       body = JSON.stringify(remainingArgs);
+      console.log(`[HttpTransport] ${def.method} ${url} body:`, body);
     }
 
     const response = await fetch(url, {

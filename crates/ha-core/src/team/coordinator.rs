@@ -37,7 +37,7 @@ pub async fn create_team(
         ));
     }
 
-    let now = chrono::Utc::now().to_rfc3339();
+    let now = crate::user_config::now_local_rfc3339();
     let team = Team {
         team_id: uuid::Uuid::new_v4().to_string(),
         name: name.to_string(),
@@ -107,7 +107,7 @@ pub async fn spawn_member(
     color_index: usize,
 ) -> Result<TeamMember> {
     let member_id = uuid::Uuid::new_v4().to_string();
-    let now = chrono::Utc::now().to_rfc3339();
+    let now = crate::user_config::now_local_rfc3339();
 
     let member = TeamMember {
         member_id: member_id.clone(),

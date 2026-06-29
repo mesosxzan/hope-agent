@@ -1060,8 +1060,11 @@ impl AssistantAgent {
         }
         if collected_text.is_empty() && !cancelled {
             return Err(anyhow::anyhow!(
-                "No content received from {} API",
-                provider_label
+                "No content received from {} API (rounds={}, total_usage_input={}, total_usage_output={})",
+                provider_label,
+                round_count,
+                total_usage.input_tokens,
+                total_usage.output_tokens,
             ));
         }
 

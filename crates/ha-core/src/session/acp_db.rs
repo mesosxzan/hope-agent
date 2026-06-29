@@ -55,7 +55,7 @@ impl SessionDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         conn.execute(
             "INSERT INTO acp_runs (run_id, parent_session_id, backend_id, task, status, started_at, label)
              VALUES (?1, ?2, ?3, ?4, 'starting', ?5, ?6)",
@@ -99,7 +99,7 @@ impl SessionDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
 
         // Calculate duration from started_at
         let duration_ms: Option<i64> = conn

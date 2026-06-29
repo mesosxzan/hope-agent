@@ -259,7 +259,7 @@ impl ChannelPlugin for IrcPlugin {
         match IrcClient::probe(&creds).await {
             Ok(nick) => Ok(ChannelHealth {
                 is_running: false,
-                last_probe: Some(chrono::Utc::now().to_rfc3339()),
+                last_probe: Some(crate::user_config::now_local_rfc3339()),
                 probe_ok: Some(true),
                 error: None,
                 uptime_secs: None,
@@ -267,7 +267,7 @@ impl ChannelPlugin for IrcPlugin {
             }),
             Err(e) => Ok(ChannelHealth {
                 is_running: false,
-                last_probe: Some(chrono::Utc::now().to_rfc3339()),
+                last_probe: Some(crate::user_config::now_local_rfc3339()),
                 probe_ok: Some(false),
                 error: Some(e.to_string()),
                 uptime_secs: None,

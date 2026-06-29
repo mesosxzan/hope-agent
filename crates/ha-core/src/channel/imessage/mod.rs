@@ -315,7 +315,7 @@ impl ChannelPlugin for IMessagePlugin {
         if crate::channel::process_manager::find_binary(&imsg_path).is_none() {
             return Ok(ChannelHealth {
                 is_running: false,
-                last_probe: Some(chrono::Utc::now().to_rfc3339()),
+                last_probe: Some(crate::user_config::now_local_rfc3339()),
                 probe_ok: Some(false),
                 error: Some(format!("imsg binary not found at '{}'", imsg_path)),
                 uptime_secs: None,
@@ -332,7 +332,7 @@ impl ChannelPlugin for IMessagePlugin {
                 match result {
                     Ok(_) => Ok(ChannelHealth {
                         is_running: false,
-                        last_probe: Some(chrono::Utc::now().to_rfc3339()),
+                        last_probe: Some(crate::user_config::now_local_rfc3339()),
                         probe_ok: Some(true),
                         error: None,
                         uptime_secs: None,
@@ -340,7 +340,7 @@ impl ChannelPlugin for IMessagePlugin {
                     }),
                     Err(e) => Ok(ChannelHealth {
                         is_running: false,
-                        last_probe: Some(chrono::Utc::now().to_rfc3339()),
+                        last_probe: Some(crate::user_config::now_local_rfc3339()),
                         probe_ok: Some(false),
                         error: Some(e.to_string()),
                         uptime_secs: None,
@@ -350,7 +350,7 @@ impl ChannelPlugin for IMessagePlugin {
             }
             Err(e) => Ok(ChannelHealth {
                 is_running: false,
-                last_probe: Some(chrono::Utc::now().to_rfc3339()),
+                last_probe: Some(crate::user_config::now_local_rfc3339()),
                 probe_ok: Some(false),
                 error: Some(e.to_string()),
                 uptime_secs: None,
@@ -363,7 +363,7 @@ impl ChannelPlugin for IMessagePlugin {
     async fn probe(&self, _account: &ChannelAccountConfig) -> Result<ChannelHealth> {
         Ok(ChannelHealth {
             is_running: false,
-            last_probe: Some(chrono::Utc::now().to_rfc3339()),
+            last_probe: Some(crate::user_config::now_local_rfc3339()),
             probe_ok: Some(false),
             error: Some("iMessage is only supported on macOS".to_string()),
             uptime_secs: None,

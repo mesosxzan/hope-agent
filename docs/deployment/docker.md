@@ -205,6 +205,65 @@ server {
 
 **`HA_API_KEY` 没生效？** entrypoint 只在 `CMD` 为 `server start` 时翻译环境变量。如果你覆盖了 CMD（例如 `docker run ... hope-agent server status`），需要手动传 `--api-key` 参数。
 
+## 基础镜像
+
+项目 Dockerfile 依赖预构建的基础镜像 `ghcr.io/shiwenwen/hope-agent-base`，内置全部工具链和系统依赖，避免每次 `docker build` 都重装 Rust / Node / Python 等。
+
+基础镜像包含：
+
+| 工具 | 版本 | 说明 |
+| --- | --- | --- |
+| Rust | 1.95.0 (stable) | 含 clippy、rustfmt |
+| Node.js | 20 LTS | 通过 nodesource 安装 |
+| pnpm | 10.33.1 | 与 `package.json#packageManager` 一致 |
+| Python | 3.x | Debian trixie 自带，含 pip + venv |
+| mold | 最新 | Rust 链接加速 |
+| cmake / make / git | 最新 | 通用构建工具 |
+| protobuf-compiler | 最新 | prost-build 编译期依赖 |
+| libclang-dev | 最新 | bindgen 依赖 |
+| Chromium | 最新 | headless 浏览器自动化 |
+| jq / curl / wget | 最新 | 脚本与调试工具 |
+| tini | 最新 | PID 1 信号转发 |
+| ca-certificates / tzdata | 最新 | HTTPS 与时区 |
+
+镜像源已预配中国大陆镜像（rsproxy.cn / npmmirror / TUNA PyPI）。
+
+### 构建基础镜像
+
+只在工具链版本升级时需要重建：
+
+```bash
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t ghcr.io/shiwenwen/hope-agent-base:1.0 \
+  -t ghcr.io/shiwenwen/hope-agent-base:latest \
+  --push \
+  -f docker/Dockerfile.base .
+```
+
+### 本地从源码构建 hope-agent
+
+先确保基础镜像可用（已推送到 GHCR 或本地已 `docker load`），然后：
+
+```bash
+# 方式一：用 docker compose
+# 取消 docker-compose.yml 中 `build` 块的注释，然后：
+docker compose build hope-agent
+
+# 方式二：直接 docker build
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t hope-agent:dev \
+  --load \
+  .
+
+# 方式三：自定义基础镜像标签
+docker buildx build \
+  --build-arg BASE_IMAGE=ghcr.io/shiwenwen/hope-agent-base:1.0 \
+  -t hope-agent:dev \
+  .
+```
+
 ## fork / 自建镜像
 
 如果在 fork 仓库里跑 `.github/workflows/docker.yml`，需要：

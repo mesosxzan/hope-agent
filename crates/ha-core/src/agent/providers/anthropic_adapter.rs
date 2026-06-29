@@ -190,6 +190,13 @@ impl<'a> StreamingChatAdapter for AnthropicStreamingAdapter<'a> {
             Err(e) => return Err(anyhow::anyhow!("Anthropic API request failed: {}", e)),
         };
 
+        // ── Extract Retry-After header for structured error propagation.
+        let retry_after_secs = resp
+            .headers()
+            .get("retry-after")
+            .and_then(|v| v.to_str().ok())
+            .and_then(crate::failover::LlmError::parse_retry_after);
+
         // ── Log response status with rate-limit headers for debugging.
         if let Some(logger) = crate::get_logger() {
             let status = resp.status().as_u16();
@@ -261,11 +268,11 @@ impl<'a> StreamingChatAdapter for AnthropicStreamingAdapter<'a> {
                     None,
                 );
             }
-            return Err(anyhow::anyhow!(
-                "Anthropic API error ({}): {}",
-                status,
-                error_text
-            ));
+            let mut err = crate::failover::LlmError::from_http_status(status, &error_text);
+            if let Some(secs) = retry_after_secs {
+                err = err.with_retry_after(secs);
+            }
+            return Err(err.to_anyhow());
         }
 
         // ── Parse SSE stream.
@@ -428,11 +435,52 @@ async fn parse_anthropic_sse(
     let mut stop_reason: Option<String> = None;
     let mut first_token_time: Option<u64> = None;
 
+    // tolerate the error when partial output has already been collected,
+    // or surface a retryable error when no content was received at all.
+    let mut stream_error: Option<anyhow::Error> = None;
+
     let mut stream = resp.bytes_stream();
     let mut buffer = String::new();
 
     while let Some(chunk) = super::cancel::next_chunk_or_cancel(&mut stream, cancel).await {
-        let chunk = chunk?;
+        let chunk = match chunk {
+            Ok(c) => c,
+            Err(e) => {
+                let err = anyhow::anyhow!("SSE stream read error: {}", e);
+                // If we already have partial text or tool calls, salvage
+                // what we have rather than failing the entire request.
+                if !collected_text.is_empty() || !tool_calls.is_empty() || current_tool.is_some() {
+                    if let Some(logger) = crate::get_logger() {
+                        logger.log(
+                            "warn",
+                            "agent",
+                            "agent::parse_anthropic_sse::stream_error_tolerated",
+                            &format!(
+                                "SSE stream read error after partial output; salvaging: {}chars text, {} tool_calls",
+                                collected_text.len(),
+                                tool_calls.len(),
+                            ),
+                            Some(
+                                json!({
+                                    "error": e.to_string(),
+                                    "text_length": collected_text.len(),
+                                    "tool_call_count": tool_calls.len(),
+                                    "has_current_tool": current_tool.is_some(),
+                                })
+                                .to_string(),
+                            ),
+                            None,
+                            None,
+                        );
+                    }
+                    stream_error = Some(err);
+                    break;
+                }
+                // No partial output — propagate the error so the failover
+                // executor can classify and retry / rotate.
+                return Err(err);
+            }
+        };
         buffer.push_str(&String::from_utf8_lossy(&chunk));
 
         while let Some(idx) = buffer.find("\n\n") {
@@ -568,7 +616,38 @@ async fn parse_anthropic_sse(
                     }
                     _ => {}
                 }
+            } else {
+                // SSE data line was not valid JSON — log and skip.
+                if let Some(logger) = crate::get_logger() {
+                    logger.log(
+                        "warn",
+                        "agent",
+                        "agent::parse_anthropic_sse::sse_json_parse_error",
+                        &format!(
+                            "Failed to parse Anthropic SSE JSON data ({} bytes)",
+                            data.len(),
+                        ),
+                        Some(
+                            json!({
+                                "event_name": event_name,
+                                "data_preview": if data.len() > 200 { &data[..200] } else { &data },
+                            })
+                            .to_string(),
+                        ),
+                        None,
+                        None,
+                    );
+                }
             }
+        }
+    }
+
+    // If the stream was interrupted AND we collected nothing, propagate the
+    // stream error directly so the caller gets a meaningful message instead
+    // of a generic "No content received".
+    if collected_text.is_empty() && tool_calls.is_empty() {
+        if let Some(err) = stream_error.take() {
+            return Err(err.context("SSE stream ended with no content"));
         }
     }
 
@@ -576,6 +655,18 @@ async fn parse_anthropic_sse(
         stop_reason = Some("cancelled".to_string());
         let _ = current_tool.take();
         tool_calls.clear();
+    } else if stream_error.is_some() {
+        // Stream was interrupted — drop any in-progress (incomplete) tool call
+        // rather than silently losing it or returning truncated arguments.
+        if let Some((id, tc)) = current_tool.take() {
+            app_warn!(
+                "agent",
+                "parse_anthropic_sse",
+                "Dropping incomplete tool call '{}' (id={}) due to stream error",
+                tc.name,
+                id
+            );
+        }
     }
 
     if let Some(logger) = crate::get_logger() {

@@ -204,6 +204,65 @@ server {
 
 **`HA_API_KEY` not taking effect?** The entrypoint only translates env vars to flags when the CMD is `server start`. If you override the CMD (e.g. `docker run ... hope-agent server status`), pass `--api-key` explicitly.
 
+## Base image
+
+The project Dockerfile depends on a pre-built base image `ghcr.io/shiwenwen/hope-agent-base` that bundles all toolchains and system dependencies, so `docker build` only needs to copy source and compile — no repeated Rust / Node / Python installs.
+
+The base image includes:
+
+| Tool | Version | Notes |
+| --- | --- | --- |
+| Rust | 1.95.0 (stable) | With clippy, rustfmt |
+| Node.js | 20 LTS | Installed via nodesource |
+| pnpm | 10.33.1 | Matches `package.json#packageManager` |
+| Python | 3.x | Debian trixie bundled, with pip + venv |
+| mold | latest | Faster Rust linking |
+| cmake / make / git | latest | General build tools |
+| protobuf-compiler | latest | prost-build compile-time dependency |
+| libclang-dev | latest | bindgen dependency |
+| Chromium | latest | Headless browser automation |
+| jq / curl / wget | latest | Scripting and debugging |
+| tini | latest | PID 1 signal forwarding |
+| ca-certificates / tzdata | latest | HTTPS and timezone |
+
+Registry mirrors for mainland China are pre-configured (rsproxy.cn / npmmirror / TUNA PyPI).
+
+### Building the base image
+
+Only needed when toolchain versions change:
+
+```bash
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t ghcr.io/shiwenwen/hope-agent-base:1.0 \
+  -t ghcr.io/shiwenwen/hope-agent-base:latest \
+  --push \
+  -f docker/Dockerfile.base .
+```
+
+### Building hope-agent from source locally
+
+Make sure the base image is available (pushed to GHCR or `docker load`-ed locally), then:
+
+```bash
+# Option 1: via docker compose
+# Uncomment the `build` block in docker-compose.yml, then:
+docker compose build hope-agent
+
+# Option 2: direct docker build
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t hope-agent:dev \
+  --load \
+  .
+
+# Option 3: custom base image tag
+docker buildx build \
+  --build-arg BASE_IMAGE=ghcr.io/shiwenwen/hope-agent-base:1.0 \
+  -t hope-agent:dev \
+  .
+```
+
 ## Forks and custom images
 
 To run `.github/workflows/docker.yml` from a fork:

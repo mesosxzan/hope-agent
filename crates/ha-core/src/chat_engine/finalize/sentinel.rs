@@ -54,7 +54,7 @@ fn try_write_clean_marker() -> anyhow::Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    let stamp = chrono::Utc::now().to_rfc3339();
+    let stamp = crate::user_config::now_local_rfc3339();
     std::fs::write(&path, stamp.as_bytes())?;
     Ok(())
 }

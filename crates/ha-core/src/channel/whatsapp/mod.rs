@@ -293,7 +293,7 @@ impl ChannelPlugin for WhatsAppPlugin {
         match api.health().await {
             Ok(health) => Ok(ChannelHealth {
                 is_running: false,
-                last_probe: Some(chrono::Utc::now().to_rfc3339()),
+                last_probe: Some(crate::user_config::now_local_rfc3339()),
                 probe_ok: Some(health.connected),
                 error: health.error,
                 uptime_secs: None,
@@ -301,7 +301,7 @@ impl ChannelPlugin for WhatsAppPlugin {
             }),
             Err(err) => Ok(ChannelHealth {
                 is_running: false,
-                last_probe: Some(chrono::Utc::now().to_rfc3339()),
+                last_probe: Some(crate::user_config::now_local_rfc3339()),
                 probe_ok: Some(false),
                 error: Some(err.to_string()),
                 uptime_secs: None,

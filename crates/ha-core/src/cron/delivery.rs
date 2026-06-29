@@ -252,7 +252,16 @@ pub async fn deliver_results(job: &CronJob, outcome: DeliveryOutcome<'_>) -> Del
                         Err(_) => format!("send timeout after {SEND_TIMEOUT_SECS}s"),
                     };
 
-                    if attempt < MAX_SEND_ATTEMPTS {
+                    // Detect unrecoverable errors that should not be retried.
+                    // WeChat context_token errors (both with and without
+                    // tokenless retry) are protocol limitations — retrying
+                    // will never succeed until the user sends a new inbound
+                    // message.
+                    let is_unrecoverable = err.contains("ret=-2")
+                        || err.contains("no context_token")
+                        || err.contains("iLink protocol limitation");
+
+                    if !is_unrecoverable && attempt < MAX_SEND_ATTEMPTS {
                         let backoff =
                             SEND_BACKOFF_BASE_MS.saturating_mul(1u64 << (attempt - 1));
                         app_warn!(
@@ -272,14 +281,19 @@ pub async fn deliver_results(job: &CronJob, outcome: DeliveryOutcome<'_>) -> Del
                         continue;
                     }
 
+                    let attempt_info = if is_unrecoverable {
+                        "unrecoverable ".to_string()
+                    } else {
+                        format!("after {attempt} attempts ")
+                    };
                     app_warn!(
                         "cron",
                         "delivery",
-                        "deliver job '{}' to {}:{} failed after {} attempts: {}",
+                        "deliver job '{}' to {}:{} {}failed: {}",
                         job.name,
                         target.channel_id,
                         target.chat_id,
-                        attempt,
+                        attempt_info,
                         err
                     );
                     return (idx, TargetResult::Failed);

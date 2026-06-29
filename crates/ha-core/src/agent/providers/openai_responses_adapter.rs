@@ -647,6 +647,13 @@ impl<'a> StreamingChatAdapter for OpenAIResponsesStreamingAdapter<'a> {
             }
         };
 
+        // Extract Retry-After before consuming the response body.
+        let retry_after_secs = resp
+            .headers()
+            .get("retry-after")
+            .and_then(|v| v.to_str().ok())
+            .and_then(crate::failover::LlmError::parse_retry_after);
+
         if let Some(logger) = crate::get_logger() {
             let status = resp.status().as_u16();
             let headers = resp.headers();
@@ -719,11 +726,11 @@ impl<'a> StreamingChatAdapter for OpenAIResponsesStreamingAdapter<'a> {
                     None,
                 );
             }
-            return Err(anyhow::anyhow!(
-                "OpenAI Responses API error ({}): {}",
-                status,
-                error_text
-            ));
+            let mut err = crate::failover::LlmError::from_http_status(status, &error_text);
+            if let Some(secs) = retry_after_secs {
+                err = err.with_retry_after(secs);
+            }
+            return Err(err.to_anyhow());
         }
 
         let (text, tool_calls, usage, thinking_text, ttft_ms) =

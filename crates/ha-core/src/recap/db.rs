@@ -147,7 +147,7 @@ impl RecapDb {
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
         let json = serde_json::to_string(facet)?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         conn.execute(
             "INSERT INTO session_facets
                  (session_id, language, last_message_ts, message_count, analysis_model, facet_json, created_at, schema_version)

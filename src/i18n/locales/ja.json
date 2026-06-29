@@ -4919,7 +4919,17 @@
     "webSearchRecommended": "推奨",
     "webSearchSaved": "保存しました",
     "webSearchTimeout": "タイムアウト（秒）",
-    "webSearchTimeoutDesc": "検索リクエストの HTTP タイムアウト (5-120 秒)"
+    "webSearchTimeoutDesc": "検索リクエストの HTTP タイムアウト (5-120 秒)",
+    "webSearchProxy": "検索プロキシ",
+    "webSearchProxyDesc": "ウェブ検索リクエストのプロキシを設定します。DuckDuckGoがブロックされている地域で便利です。",
+    "webSearchProxyGlobal": "グローバルプロキシを使用",
+    "webSearchProxyGlobalDesc": "グローバルプロキシ設定を継承",
+    "webSearchProxyNone": "プロキシなし",
+    "webSearchProxyNoneDesc": "直接接続、ウェブ検索はグローバルプロキシを無視",
+    "webSearchProxyCustom": "カスタムプロキシ",
+    "webSearchProxyCustomDesc": "ウェブ検索専用プロキシを使用",
+    "webSearchProxyUrl": "プロキシURL",
+    "webSearchProxyUrlPlaceholder": "http://127.0.0.1:7890"
   },
   "shortcuts": {
     "actionOpenSettings": "設定を開く",

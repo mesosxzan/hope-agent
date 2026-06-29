@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::Datelike;
+use chrono::{Datelike, NaiveDate};
 use serde::{Deserialize, Serialize};
 
 use crate::paths;

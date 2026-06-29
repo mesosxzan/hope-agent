@@ -40,7 +40,7 @@ pub async fn set_plan_state(session_id: &str, state: PlanModeState) -> bool {
             return false;
         }
         meta.state = state;
-        meta.updated_at = chrono::Utc::now().to_rfc3339();
+        meta.updated_at = crate::user_config::now_local_rfc3339();
         true
     } else {
         // Create a new PlanMeta entry
@@ -54,8 +54,8 @@ pub async fn set_plan_state(session_id: &str, state: PlanModeState) -> bool {
                 title: None,
                 file_path,
                 state,
-                created_at: chrono::Utc::now().to_rfc3339(),
-                updated_at: chrono::Utc::now().to_rfc3339(),
+                created_at: crate::user_config::now_local_rfc3339(),
+                updated_at: crate::user_config::now_local_rfc3339(),
                 version: 1,
                 checkpoint_ref: None,
                 executing_started_at: None,
@@ -109,8 +109,8 @@ pub async fn restore_from_db(session_id: &str, state: PlanModeState) {
             title: None,
             file_path,
             state,
-            created_at: chrono::Utc::now().to_rfc3339(),
-            updated_at: chrono::Utc::now().to_rfc3339(),
+            created_at: crate::user_config::now_local_rfc3339(),
+            updated_at: crate::user_config::now_local_rfc3339(),
             version: 1,
             checkpoint_ref: None,
             executing_started_at,

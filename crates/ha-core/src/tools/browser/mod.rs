@@ -1001,7 +1001,16 @@ async fn snapshot_pdf(args: &Value, backend: &dyn BrowserBackend) -> Result<Stri
     } else {
         let share_dir = crate::paths::share_dir()?;
         std::fs::create_dir_all(&share_dir)?;
-        let ts = chrono::Local::now().format("%Y%m%d_%H%M%S");
+        let ts = {
+            let tz_name = crate::user_config::effective_timezone();
+            match tz_name.parse::<chrono_tz::Tz>() {
+                Ok(tz) => chrono::Utc::now()
+                    .with_timezone(&tz)
+                    .format("%Y%m%d_%H%M%S")
+                    .to_string(),
+                Err(_) => chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string(),
+            }
+        };
         share_dir.join(format!("page_{}.pdf", ts))
     };
     // `authorise_pdf_output_path` already created the parent for the

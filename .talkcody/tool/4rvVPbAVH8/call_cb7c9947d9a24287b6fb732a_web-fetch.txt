@@ -1,0 +1,1702 @@
+Title: Releases · Anush008/fastembed-rs
+
+URL Source: https://github.com/Anush008/fastembed-rs/releases
+
+Markdown Content:
+[Skip to content](https://github.com/Anush008/fastembed-rs/releases#start-of-content)
+## Navigation Menu
+
+Toggle navigation
+
+[](https://github.com/)
+
+[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2FAnush008%2Ffastembed-rs%2Freleases)
+
+Appearance settings
+
+*   
+Platform
+
+    *   
+AI CODE CREATION
+        *   [GitHub Copilot Write better code with AI](https://github.com/features/copilot)
+        *   [GitHub Copilot app Direct agents from issue to merge](https://github.com/features/ai/github-app)
+        *   [MCP Registry New Integrate external tools](https://github.com/mcp)
+
+    *   
+DEVELOPER WORKFLOWS
+        *   [Actions Automate any workflow](https://github.com/features/actions)
+        *   [Codespaces Instant dev environments](https://github.com/features/codespaces)
+        *   [Issues Plan and track work](https://github.com/features/issues)
+        *   [Code Review Manage code changes](https://github.com/features/code-review)
+
+    *   
+APPLICATION SECURITY
+        *   [GitHub Advanced Security Find and fix vulnerabilities](https://github.com/security/advanced-security)
+        *   [Code security Secure your code as you build](https://github.com/security/advanced-security/code-security)
+        *   [Secret protection Stop leaks before they start](https://github.com/security/advanced-security/secret-protection)
+
+    *   
+EXPLORE
+        *   [Why GitHub](https://github.com/why-github)
+        *   [Documentation](https://docs.github.com/)
+        *   [Blog](https://github.blog/)
+        *   [Changelog](https://github.blog/changelog)
+        *   [Marketplace](https://github.com/marketplace)
+
+[View all features](https://github.com/features)
+
+*   
+Solutions
+
+    *   
+BY COMPANY SIZE
+        *   [Enterprises](https://github.com/enterprise)
+        *   [Small and medium teams](https://github.com/team)
+        *   [Startups](https://github.com/enterprise/startups)
+        *   [Nonprofits](https://github.com/solutions/industry/nonprofits)
+
+    *   
+BY USE CASE
+        *   [App Modernization](https://github.com/solutions/use-case/app-modernization)
+        *   [DevSecOps](https://github.com/solutions/use-case/devsecops)
+        *   [DevOps](https://github.com/solutions/use-case/devops)
+        *   [CI/CD](https://github.com/solutions/use-case/ci-cd)
+        *   [View all use cases](https://github.com/solutions/use-case)
+
+    *   
+BY INDUSTRY
+        *   [Healthcare](https://github.com/solutions/industry/healthcare)
+        *   [Financial services](https://github.com/solutions/industry/financial-services)
+        *   [Manufacturing](https://github.com/solutions/industry/manufacturing)
+        *   [Government](https://github.com/solutions/industry/government)
+        *   [View all industries](https://github.com/solutions/industry)
+
+[View all solutions](https://github.com/solutions)
+
+*   
+Resources
+
+    *   
+EXPLORE BY TOPIC
+        *   [AI](https://github.com/resources/articles?topic=ai)
+        *   [Software Development](https://github.com/resources/articles?topic=software-development)
+        *   [DevOps](https://github.com/resources/articles?topic=devops)
+        *   [Security](https://github.com/resources/articles?topic=security)
+        *   [View all topics](https://github.com/resources/articles)
+
+    *   
+EXPLORE BY TYPE
+        *   [Customer stories](https://github.com/customer-stories)
+        *   [Events & webinars](https://github.com/resources/events)
+        *   [Ebooks & reports](https://github.com/resources/whitepapers)
+        *   [Business insights](https://github.com/solutions/executive-insights)
+        *   [GitHub Skills](https://skills.github.com/)
+
+    *   
+SUPPORT & SERVICES
+        *   [Documentation](https://docs.github.com/)
+        *   [Customer support](https://support.github.com/)
+        *   [Community forum](https://github.com/orgs/community/discussions)
+        *   [Trust center](https://github.com/trust-center)
+        *   [Partners](https://github.com/partners)
+
+[View all resources](https://github.com/resources)
+
+*   
+Open Source
+
+    *   
+COMMUNITY
+        *   [GitHub Sponsors Fund open source developers](https://github.com/sponsors)
+
+    *   
+PROGRAMS
+        *   [Security Lab](https://securitylab.github.com/)
+        *   [Maintainer Community](https://maintainers.github.com/)
+        *   [Accelerator](https://github.com/accelerator)
+        *   [GitHub Stars](https://stars.github.com/)
+        *   [Archive Program](https://archiveprogram.github.com/)
+
+    *   
+REPOSITORIES
+        *   [Topics](https://github.com/topics)
+        *   [Trending](https://github.com/trending)
+        *   [Collections](https://github.com/collections)
+
+*   
+Enterprise
+
+    *   
+ENTERPRISE SOLUTIONS
+        *   [Enterprise platform AI-powered developer platform](https://github.com/enterprise)
+
+    *   
+AVAILABLE ADD-ONS
+        *   [GitHub Advanced Security Enterprise-grade security features](https://github.com/security/advanced-security)
+        *   [Copilot for Business Enterprise-grade AI features](https://github.com/features/copilot/copilot-business)
+        *   [Premium Support Enterprise-grade 24/7 support](https://github.com/premium-support)
+
+*   [Pricing](https://github.com/pricing)
+
+Search or jump to...
+
+# Search code, repositories, users, issues, pull requests...
+
+ Search  
+
+Clear
+
+[Search syntax tips](https://docs.github.com/search-github/github-code-search/understanding-github-code-search-syntax)
+
+# Provide feedback
+
+We read every piece of feedback, and take your input very seriously.
+
+- [x] Include my email address so I can be contacted 
+
+ Cancel  Submit feedback 
+
+# Saved searches
+
+## Use saved searches to filter your results more quickly
+
+Name 
+
+Query 
+
+To see all available qualifiers, see our [documentation](https://docs.github.com/search-github/github-code-search/understanding-github-code-search-syntax).
+
+ Cancel  Create saved search 
+
+[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2FAnush008%2Ffastembed-rs%2Freleases)
+
+[Sign up](https://github.com/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E%2Freleases%2Findex&source=header-repo&source_repo=Anush008%2Ffastembed-rs)
+
+Appearance settings
+
+Resetting focus
+
+You signed in with another tab or window. [Reload](https://github.com/Anush008/fastembed-rs/releases) to refresh your session.You signed out in another tab or window. [Reload](https://github.com/Anush008/fastembed-rs/releases) to refresh your session.You switched accounts on another tab or window. [Reload](https://github.com/Anush008/fastembed-rs/releases) to refresh your session.Dismiss alert
+
+{{ message }}
+
+[Anush008](https://github.com/Anush008)/**[fastembed-rs](https://github.com/Anush008/fastembed-rs)**Public
+
+*   [Notifications](https://github.com/login?return_to=%2FAnush008%2Ffastembed-rs)You must be signed in to change notification settings
+*   [Fork 132](https://github.com/login?return_to=%2FAnush008%2Ffastembed-rs)
+*   [Star 942](https://github.com/login?return_to=%2FAnush008%2Ffastembed-rs) 
+
+*   [Code](https://github.com/Anush008/fastembed-rs)
+*   [Issues 1](https://github.com/Anush008/fastembed-rs/issues)
+*   [Pull requests 0](https://github.com/Anush008/fastembed-rs/pulls)
+*   [Actions](https://github.com/Anush008/fastembed-rs/actions)
+*   [Projects](https://github.com/Anush008/fastembed-rs/projects)
+*   [Models](https://github.com/Anush008/fastembed-rs/models)
+*   [Security and quality 0](https://github.com/Anush008/fastembed-rs/security)
+*   [Insights](https://github.com/Anush008/fastembed-rs/pulse)
+
+Additional navigation options
+
+*   [Code](https://github.com/Anush008/fastembed-rs)
+*   [Issues](https://github.com/Anush008/fastembed-rs/issues)
+*   [Pull requests](https://github.com/Anush008/fastembed-rs/pulls)
+*   [Actions](https://github.com/Anush008/fastembed-rs/actions)
+*   [Projects](https://github.com/Anush008/fastembed-rs/projects)
+*   [Models](https://github.com/Anush008/fastembed-rs/models)
+*   [Security and quality](https://github.com/Anush008/fastembed-rs/security)
+*   [Insights](https://github.com/Anush008/fastembed-rs/pulse)
+
+# Releases: Anush008/fastembed-rs
+
+[Releases](https://github.com/Anush008/fastembed-rs/releases)[Tags](https://github.com/Anush008/fastembed-rs/tags)
+
+Releases · Anush008/fastembed-rs
+
+## v5.17.2
+
+ 15 Jun 09:44 
+
+[github-actions](https://github.com/apps/github-actions)
+
+[v5.17.2](https://github.com/Anush008/fastembed-rs/tree/v5.17.2)
+
+[`d0e8e9e`](https://github.com/Anush008/fastembed-rs/commit/d0e8e9e958215ad4106f58ed4ac1b9220e4a1296)
+
+Compare
+
+# Choose a tag to compare
+
+## Sorry, something went wrong.
+
+ Filter  
+
+Loading
+
+*   [v5.17.2](https://github.com/Anush008/fastembed-rs/compare/v5.17.2...v5.17.2)
+*   [v5.17.1](https://github.com/Anush008/fastembed-rs/compare/v5.17.1...v5.17.2)
+*   [v5.17.0](https://github.com/Anush008/fastembed-rs/compare/v5.17.0...v5.17.2)
+*   [v5.16.2](https://github.com/Anush008/fastembed-rs/compare/v5.16.2...v5.17.2)
+*   [v5.16.1](https://github.com/Anush008/fastembed-rs/compare/v5.16.1...v5.17.2)
+*   [v5.16.0](https://github.com/Anush008/fastembed-rs/compare/v5.16.0...v5.17.2)
+*   [v5.15.0](https://github.com/Anush008/fastembed-rs/compare/v5.15.0...v5.17.2)
+*   [v5.14.0](https://github.com/Anush008/fastembed-rs/compare/v5.14.0...v5.17.2)
+*   [v5.13.4](https://github.com/Anush008/fastembed-rs/compare/v5.13.4...v5.17.2)
+*   [v5.13.3](https://github.com/Anush008/fastembed-rs/compare/v5.13.3...v5.17.2)
+*   [v5.13.2](https://github.com/Anush008/fastembed-rs/compare/v5.13.2...v5.17.2)
+*   [v5.13.1](https://github.com/Anush008/fastembed-rs/compare/v5.13.1...v5.17.2)
+*   [v5.13.0](https://github.com/Anush008/fastembed-rs/compare/v5.13.0...v5.17.2)
+*   [v5.12.1](https://github.com/Anush008/fastembed-rs/compare/v5.12.1...v5.17.2)
+*   [v5.12.0](https://github.com/Anush008/fastembed-rs/compare/v5.12.0...v5.17.2)
+*   [v5.11.0](https://github.com/Anush008/fastembed-rs/compare/v5.11.0...v5.17.2)
+*   [v5.10.0](https://github.com/Anush008/fastembed-rs/compare/v5.10.0...v5.17.2)
+*   [v5.9.0](https://github.com/Anush008/fastembed-rs/compare/v5.9.0...v5.17.2)
+*   [v5.8.1](https://github.com/Anush008/fastembed-rs/compare/v5.8.1...v5.17.2)
+*   [v5.8.0](https://github.com/Anush008/fastembed-rs/compare/v5.8.0...v5.17.2)
+*   [v5.7.0](https://github.com/Anush008/fastembed-rs/compare/v5.7.0...v5.17.2)
+*   [v5.6.0](https://github.com/Anush008/fastembed-rs/compare/v5.6.0...v5.17.2)
+*   [v5.5.0](https://github.com/Anush008/fastembed-rs/compare/v5.5.0...v5.17.2)
+*   [v5.4.0](https://github.com/Anush008/fastembed-rs/compare/v5.4.0...v5.17.2)
+*   [v5.3.1](https://github.com/Anush008/fastembed-rs/compare/v5.3.1...v5.17.2)
+*   [v5.3.0](https://github.com/Anush008/fastembed-rs/compare/v5.3.0...v5.17.2)
+*   [v5.2.1](https://github.com/Anush008/fastembed-rs/compare/v5.2.1...v5.17.2)
+*   [v5.2.0](https://github.com/Anush008/fastembed-rs/compare/v5.2.0...v5.17.2)
+*   [v5.1.0](https://github.com/Anush008/fastembed-rs/compare/v5.1.0...v5.17.2)
+*   [v5.0.3](https://github.com/Anush008/fastembed-rs/compare/v5.0.3...v5.17.2)
+*   [v5.0.2](https://github.com/Anush008/fastembed-rs/compare/v5.0.2...v5.17.2)
+*   [v5.0.1](https://github.com/Anush008/fastembed-rs/compare/v5.0.1...v5.17.2)
+*   [v5.0.0](https://github.com/Anush008/fastembed-rs/compare/v5.0.0...v5.17.2)
+*   [v4.9.1](https://github.com/Anush008/fastembed-rs/compare/v4.9.1...v5.17.2)
+*   [v4.9.0](https://github.com/Anush008/fastembed-rs/compare/v4.9.0...v5.17.2)
+*   [v4.8.0](https://github.com/Anush008/fastembed-rs/compare/v4.8.0...v5.17.2)
+*   [v4.7.0](https://github.com/Anush008/fastembed-rs/compare/v4.7.0...v5.17.2)
+*   [v4.6.0](https://github.com/Anush008/fastembed-rs/compare/v4.6.0...v5.17.2)
+*   [v4.5.0](https://github.com/Anush008/fastembed-rs/compare/v4.5.0...v5.17.2)
+*   [v4.4.0](https://github.com/Anush008/fastembed-rs/compare/v4.4.0...v5.17.2)
+*   [v4.3.0](https://github.com/Anush008/fastembed-rs/compare/v4.3.0...v5.17.2)
+*   [v4.2.1](https://github.com/Anush008/fastembed-rs/compare/v4.2.1...v5.17.2)
+*   [v4.2.0](https://github.com/Anush008/fastembed-rs/compare/v4.2.0...v5.17.2)
+*   [v4.1.2](https://github.com/Anush008/fastembed-rs/compare/v4.1.2...v5.17.2)
+*   [v4.1.1](https://github.com/Anush008/fastembed-rs/compare/v4.1.1...v5.17.2)
+*   [v4.1.0](https://github.com/Anush008/fastembed-rs/compare/v4.1.0...v5.17.2)
+*   [v4.0.0](https://github.com/Anush008/fastembed-rs/compare/v4.0.0...v5.17.2)
+*   [v3.14.1](https://github.com/Anush008/fastembed-rs/compare/v3.14.1...v5.17.2)
+*   [v3.14.0](https://github.com/Anush008/fastembed-rs/compare/v3.14.0...v5.17.2)
+*   [v3.13.0](https://github.com/Anush008/fastembed-rs/compare/v3.13.0...v5.17.2)
+*   [v3.12.0](https://github.com/Anush008/fastembed-rs/compare/v3.12.0...v5.17.2)
+*   [v3.11.1](https://github.com/Anush008/fastembed-rs/compare/v3.11.1...v5.17.2)
+*   [v3.11.0](https://github.com/Anush008/fastembed-rs/compare/v3.11.0...v5.17.2)
+*   [v3.10.0](https://github.com/Anush008/fastembed-rs/compare/v3.10.0...v5.17.2)
+*   [v3.9.1](https://github.com/Anush008/fastembed-rs/compare/v3.9.1...v5.17.2)
+*   [v3.9.0](https://github.com/Anush008/fastembed-rs/compare/v3.9.0...v5.17.2)
+*   [v3.8.0](https://github.com/Anush008/fastembed-rs/compare/v3.8.0...v5.17.2)
+*   [v3.7.1](https://github.com/Anush008/fastembed-rs/compare/v3.7.1...v5.17.2)
+*   [v3.7.0](https://github.com/Anush008/fastembed-rs/compare/v3.7.0...v5.17.2)
+*   [v3.6.2](https://github.com/Anush008/fastembed-rs/compare/v3.6.2...v5.17.2)
+*   [v3.6.1](https://github.com/Anush008/fastembed-rs/compare/v3.6.1...v5.17.2)
+*   [v3.6.0](https://github.com/Anush008/fastembed-rs/compare/v3.6.0...v5.17.2)
+*   [v3.5.0](https://github.com/Anush008/fastembed-rs/compare/v3.5.0...v5.17.2)
+*   [v3.4.1](https://github.com/Anush008/fastembed-rs/compare/v3.4.1...v5.17.2)
+*   [v3.4.0](https://github.com/Anush008/fastembed-rs/compare/v3.4.0...v5.17.2)
+*   [v3.3.0](https://github.com/Anush008/fastembed-rs/compare/v3.3.0...v5.17.2)
+*   [v3.2.0](https://github.com/Anush008/fastembed-rs/compare/v3.2.0...v5.17.2)
+*   [v3.1.4](https://github.com/Anush008/fastembed-rs/compare/v3.1.4...v5.17.2)
+*   [v3.1.3](https://github.com/Anush008/fastembed-rs/compare/v3.1.3...v5.17.2)
+*   [v3.1.2](https://github.com/Anush008/fastembed-rs/compare/v3.1.2...v5.17.2)
+*   [v3.1.1](https://github.com/Anush008/fastembed-rs/compare/v3.1.1...v5.17.2)
+*   [v3.1.0](https://github.com/Anush008/fastembed-rs/compare/v3.1.0...v5.17.2)
+*   [v3.0.2](https://github.com/Anush008/fastembed-rs/compare/v3.0.2...v5.17.2)
+*   [v3.0.1](https://github.com/Anush008/fastembed-rs/compare/v3.0.1...v5.17.2)
+*   [v3.0.0](https://github.com/Anush008/fastembed-rs/compare/v3.0.0...v5.17.2)
+*   [v2.1.1](https://github.com/Anush008/fastembed-rs/compare/v2.1.1...v5.17.2)
+*   [v2.1.0](https://github.com/Anush008/fastembed-rs/compare/v2.1.0...v5.17.2)
+*   [v2.0.1](https://github.com/Anush008/fastembed-rs/compare/v2.0.1...v5.17.2)
+*   [v2.0.0](https://github.com/Anush008/fastembed-rs/compare/v2.0.0...v5.17.2)
+*   [v1.11.0](https://github.com/Anush008/fastembed-rs/compare/v1.11.0...v5.17.2)
+*   [v1.10.0](https://github.com/Anush008/fastembed-rs/compare/v1.10.0...v5.17.2)
+*   [v1.9.0](https://github.com/Anush008/fastembed-rs/compare/v1.9.0...v5.17.2)
+*   [v1.8.0](https://github.com/Anush008/fastembed-rs/compare/v1.8.0...v5.17.2)
+*   [v1.7.0](https://github.com/Anush008/fastembed-rs/compare/v1.7.0...v5.17.2)
+*   [v1.6.0](https://github.com/Anush008/fastembed-rs/compare/v1.6.0...v5.17.2)
+*   [v1.5.0](https://github.com/Anush008/fastembed-rs/compare/v1.5.0...v5.17.2)
+*   [v1.4.3](https://github.com/Anush008/fastembed-rs/compare/v1.4.3...v5.17.2)
+*   [v1.4.2](https://github.com/Anush008/fastembed-rs/compare/v1.4.2...v5.17.2)
+*   [v1.4.1](https://github.com/Anush008/fastembed-rs/compare/v1.4.1...v5.17.2)
+*   [v1.4.0](https://github.com/Anush008/fastembed-rs/compare/v1.4.0...v5.17.2)
+*   [v1.3.0](https://github.com/Anush008/fastembed-rs/compare/v1.3.0...v5.17.2)
+*   [v1.2.0](https://github.com/Anush008/fastembed-rs/compare/v1.2.0...v5.17.2)
+*   [v1.1.3](https://github.com/Anush008/fastembed-rs/compare/v1.1.3...v5.17.2)
+*   [v1.1.2](https://github.com/Anush008/fastembed-rs/compare/v1.1.2...v5.17.2)
+*   [v1.1.1](https://github.com/Anush008/fastembed-rs/compare/v1.1.1...v5.17.2)
+*   [v1.1.0](https://github.com/Anush008/fastembed-rs/compare/v1.1.0...v5.17.2)
+*   [v1.0.0](https://github.com/Anush008/fastembed-rs/compare/v1.0.0...v5.17.2)
+
+## No results found
+
+[View all tags](https://github.com/Anush008/fastembed-rs/tags)
+
+[v5.17.2](https://github.com/Anush008/fastembed-rs/releases/tag/v5.17.2)[Latest](https://github.com/Anush008/fastembed-rs/releases/latest)
+
+[Latest](https://github.com/Anush008/fastembed-rs/releases/latest)
+
+## [5.17.2](https://github.com/Anush008/fastembed-rs/compare/v5.17.1...v5.17.2) (2026-06-15)
+
+### 🍕 Features
+
+*   Add `cosine_similarity`, `dot`, `top_k` helpers ([#263](https://github.com/Anush008/fastembed-rs/issues/263)) ([6fc2eb9](https://github.com/Anush008/fastembed-rs/commit/6fc2eb993d91a035509859dfc01d68c8cf60da82)).
+
+### 🐛 Bug Fixes
+
+*   Replace removed `doc_auto_cfg` with `doc_cfg` for [https://docs.rs/](https://docs.rs/) build to work ([#265](https://github.com/Anush008/fastembed-rs/issues/265)) ([ee2465f](https://github.com/Anush008/fastembed-rs/commit/ee2465f0789513b79bcc22b239725469b5678fc8)).
+
+### 🧹 Chores
+
+*   Update safetensors requirement from 0.7.0 to 0.8.0 ([#261](https://github.com/Anush008/fastembed-rs/issues/261)) ([d2c55c0](https://github.com/Anush008/fastembed-rs/commit/d2c55c0c508b01740e0bbd16c494269a308a8218)).
+
+### 📖 Documentation
+
+*   Re-order README.md sections ([#264](https://github.com/Anush008/fastembed-rs/pull/264)) ([5cd990f](https://github.com/Anush008/fastembed-rs/commit/5cd990f65ef387e6e52c87b4acb95bc5685a7832)).
+
+### 🔁 Continuous Integration
+
+*   Update GitHub Actions, bump to Node 24 runtimes ([#262](https://github.com/Anush008/fastembed-rs/issues/262)) ([78c4a68](https://github.com/Anush008/fastembed-rs/commit/78c4a68005de0f7a912e21729f17e3f5475700f1)).
+
+Assets 2
+
+*   [Source code(zip)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.17.2.zip) 2026-06-15T09:44:01Z 
+*   [Source code(tar.gz)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.17.2.tar.gz) 2026-06-15T09:44:01Z 
+
+All reactions
+
+## v5.17.0
+
+ 15 Jun 08:31 
+
+[github-actions](https://github.com/apps/github-actions)
+
+[v5.17.0](https://github.com/Anush008/fastembed-rs/tree/v5.17.0)
+
+[`bceb1e9`](https://github.com/Anush008/fastembed-rs/commit/bceb1e93de76635d68f9cec535e0f482e53fb829)
+
+Compare
+
+# Choose a tag to compare
+
+## Sorry, something went wrong.
+
+ Filter  
+
+Loading
+
+*   [v5.17.2](https://github.com/Anush008/fastembed-rs/compare/v5.17.2...v5.17.0)
+*   [v5.17.1](https://github.com/Anush008/fastembed-rs/compare/v5.17.1...v5.17.0)
+*   [v5.17.0](https://github.com/Anush008/fastembed-rs/compare/v5.17.0...v5.17.0)
+*   [v5.16.2](https://github.com/Anush008/fastembed-rs/compare/v5.16.2...v5.17.0)
+*   [v5.16.1](https://github.com/Anush008/fastembed-rs/compare/v5.16.1...v5.17.0)
+*   [v5.16.0](https://github.com/Anush008/fastembed-rs/compare/v5.16.0...v5.17.0)
+*   [v5.15.0](https://github.com/Anush008/fastembed-rs/compare/v5.15.0...v5.17.0)
+*   [v5.14.0](https://github.com/Anush008/fastembed-rs/compare/v5.14.0...v5.17.0)
+*   [v5.13.4](https://github.com/Anush008/fastembed-rs/compare/v5.13.4...v5.17.0)
+*   [v5.13.3](https://github.com/Anush008/fastembed-rs/compare/v5.13.3...v5.17.0)
+*   [v5.13.2](https://github.com/Anush008/fastembed-rs/compare/v5.13.2...v5.17.0)
+*   [v5.13.1](https://github.com/Anush008/fastembed-rs/compare/v5.13.1...v5.17.0)
+*   [v5.13.0](https://github.com/Anush008/fastembed-rs/compare/v5.13.0...v5.17.0)
+*   [v5.12.1](https://github.com/Anush008/fastembed-rs/compare/v5.12.1...v5.17.0)
+*   [v5.12.0](https://github.com/Anush008/fastembed-rs/compare/v5.12.0...v5.17.0)
+*   [v5.11.0](https://github.com/Anush008/fastembed-rs/compare/v5.11.0...v5.17.0)
+*   [v5.10.0](https://github.com/Anush008/fastembed-rs/compare/v5.10.0...v5.17.0)
+*   [v5.9.0](https://github.com/Anush008/fastembed-rs/compare/v5.9.0...v5.17.0)
+*   [v5.8.1](https://github.com/Anush008/fastembed-rs/compare/v5.8.1...v5.17.0)
+*   [v5.8.0](https://github.com/Anush008/fastembed-rs/compare/v5.8.0...v5.17.0)
+*   [v5.7.0](https://github.com/Anush008/fastembed-rs/compare/v5.7.0...v5.17.0)
+*   [v5.6.0](https://github.com/Anush008/fastembed-rs/compare/v5.6.0...v5.17.0)
+*   [v5.5.0](https://github.com/Anush008/fastembed-rs/compare/v5.5.0...v5.17.0)
+*   [v5.4.0](https://github.com/Anush008/fastembed-rs/compare/v5.4.0...v5.17.0)
+*   [v5.3.1](https://github.com/Anush008/fastembed-rs/compare/v5.3.1...v5.17.0)
+*   [v5.3.0](https://github.com/Anush008/fastembed-rs/compare/v5.3.0...v5.17.0)
+*   [v5.2.1](https://github.com/Anush008/fastembed-rs/compare/v5.2.1...v5.17.0)
+*   [v5.2.0](https://github.com/Anush008/fastembed-rs/compare/v5.2.0...v5.17.0)
+*   [v5.1.0](https://github.com/Anush008/fastembed-rs/compare/v5.1.0...v5.17.0)
+*   [v5.0.3](https://github.com/Anush008/fastembed-rs/compare/v5.0.3...v5.17.0)
+*   [v5.0.2](https://github.com/Anush008/fastembed-rs/compare/v5.0.2...v5.17.0)
+*   [v5.0.1](https://github.com/Anush008/fastembed-rs/compare/v5.0.1...v5.17.0)
+*   [v5.0.0](https://github.com/Anush008/fastembed-rs/compare/v5.0.0...v5.17.0)
+*   [v4.9.1](https://github.com/Anush008/fastembed-rs/compare/v4.9.1...v5.17.0)
+*   [v4.9.0](https://github.com/Anush008/fastembed-rs/compare/v4.9.0...v5.17.0)
+*   [v4.8.0](https://github.com/Anush008/fastembed-rs/compare/v4.8.0...v5.17.0)
+*   [v4.7.0](https://github.com/Anush008/fastembed-rs/compare/v4.7.0...v5.17.0)
+*   [v4.6.0](https://github.com/Anush008/fastembed-rs/compare/v4.6.0...v5.17.0)
+*   [v4.5.0](https://github.com/Anush008/fastembed-rs/compare/v4.5.0...v5.17.0)
+*   [v4.4.0](https://github.com/Anush008/fastembed-rs/compare/v4.4.0...v5.17.0)
+*   [v4.3.0](https://github.com/Anush008/fastembed-rs/compare/v4.3.0...v5.17.0)
+*   [v4.2.1](https://github.com/Anush008/fastembed-rs/compare/v4.2.1...v5.17.0)
+*   [v4.2.0](https://github.com/Anush008/fastembed-rs/compare/v4.2.0...v5.17.0)
+*   [v4.1.2](https://github.com/Anush008/fastembed-rs/compare/v4.1.2...v5.17.0)
+*   [v4.1.1](https://github.com/Anush008/fastembed-rs/compare/v4.1.1...v5.17.0)
+*   [v4.1.0](https://github.com/Anush008/fastembed-rs/compare/v4.1.0...v5.17.0)
+*   [v4.0.0](https://github.com/Anush008/fastembed-rs/compare/v4.0.0...v5.17.0)
+*   [v3.14.1](https://github.com/Anush008/fastembed-rs/compare/v3.14.1...v5.17.0)
+*   [v3.14.0](https://github.com/Anush008/fastembed-rs/compare/v3.14.0...v5.17.0)
+*   [v3.13.0](https://github.com/Anush008/fastembed-rs/compare/v3.13.0...v5.17.0)
+*   [v3.12.0](https://github.com/Anush008/fastembed-rs/compare/v3.12.0...v5.17.0)
+*   [v3.11.1](https://github.com/Anush008/fastembed-rs/compare/v3.11.1...v5.17.0)
+*   [v3.11.0](https://github.com/Anush008/fastembed-rs/compare/v3.11.0...v5.17.0)
+*   [v3.10.0](https://github.com/Anush008/fastembed-rs/compare/v3.10.0...v5.17.0)
+*   [v3.9.1](https://github.com/Anush008/fastembed-rs/compare/v3.9.1...v5.17.0)
+*   [v3.9.0](https://github.com/Anush008/fastembed-rs/compare/v3.9.0...v5.17.0)
+*   [v3.8.0](https://github.com/Anush008/fastembed-rs/compare/v3.8.0...v5.17.0)
+*   [v3.7.1](https://github.com/Anush008/fastembed-rs/compare/v3.7.1...v5.17.0)
+*   [v3.7.0](https://github.com/Anush008/fastembed-rs/compare/v3.7.0...v5.17.0)
+*   [v3.6.2](https://github.com/Anush008/fastembed-rs/compare/v3.6.2...v5.17.0)
+*   [v3.6.1](https://github.com/Anush008/fastembed-rs/compare/v3.6.1...v5.17.0)
+*   [v3.6.0](https://github.com/Anush008/fastembed-rs/compare/v3.6.0...v5.17.0)
+*   [v3.5.0](https://github.com/Anush008/fastembed-rs/compare/v3.5.0...v5.17.0)
+*   [v3.4.1](https://github.com/Anush008/fastembed-rs/compare/v3.4.1...v5.17.0)
+*   [v3.4.0](https://github.com/Anush008/fastembed-rs/compare/v3.4.0...v5.17.0)
+*   [v3.3.0](https://github.com/Anush008/fastembed-rs/compare/v3.3.0...v5.17.0)
+*   [v3.2.0](https://github.com/Anush008/fastembed-rs/compare/v3.2.0...v5.17.0)
+*   [v3.1.4](https://github.com/Anush008/fastembed-rs/compare/v3.1.4...v5.17.0)
+*   [v3.1.3](https://github.com/Anush008/fastembed-rs/compare/v3.1.3...v5.17.0)
+*   [v3.1.2](https://github.com/Anush008/fastembed-rs/compare/v3.1.2...v5.17.0)
+*   [v3.1.1](https://github.com/Anush008/fastembed-rs/compare/v3.1.1...v5.17.0)
+*   [v3.1.0](https://github.com/Anush008/fastembed-rs/compare/v3.1.0...v5.17.0)
+*   [v3.0.2](https://github.com/Anush008/fastembed-rs/compare/v3.0.2...v5.17.0)
+*   [v3.0.1](https://github.com/Anush008/fastembed-rs/compare/v3.0.1...v5.17.0)
+*   [v3.0.0](https://github.com/Anush008/fastembed-rs/compare/v3.0.0...v5.17.0)
+*   [v2.1.1](https://github.com/Anush008/fastembed-rs/compare/v2.1.1...v5.17.0)
+*   [v2.1.0](https://github.com/Anush008/fastembed-rs/compare/v2.1.0...v5.17.0)
+*   [v2.0.1](https://github.com/Anush008/fastembed-rs/compare/v2.0.1...v5.17.0)
+*   [v2.0.0](https://github.com/Anush008/fastembed-rs/compare/v2.0.0...v5.17.0)
+*   [v1.11.0](https://github.com/Anush008/fastembed-rs/compare/v1.11.0...v5.17.0)
+*   [v1.10.0](https://github.com/Anush008/fastembed-rs/compare/v1.10.0...v5.17.0)
+*   [v1.9.0](https://github.com/Anush008/fastembed-rs/compare/v1.9.0...v5.17.0)
+*   [v1.8.0](https://github.com/Anush008/fastembed-rs/compare/v1.8.0...v5.17.0)
+*   [v1.7.0](https://github.com/Anush008/fastembed-rs/compare/v1.7.0...v5.17.0)
+*   [v1.6.0](https://github.com/Anush008/fastembed-rs/compare/v1.6.0...v5.17.0)
+*   [v1.5.0](https://github.com/Anush008/fastembed-rs/compare/v1.5.0...v5.17.0)
+*   [v1.4.3](https://github.com/Anush008/fastembed-rs/compare/v1.4.3...v5.17.0)
+*   [v1.4.2](https://github.com/Anush008/fastembed-rs/compare/v1.4.2...v5.17.0)
+*   [v1.4.1](https://github.com/Anush008/fastembed-rs/compare/v1.4.1...v5.17.0)
+*   [v1.4.0](https://github.com/Anush008/fastembed-rs/compare/v1.4.0...v5.17.0)
+*   [v1.3.0](https://github.com/Anush008/fastembed-rs/compare/v1.3.0...v5.17.0)
+*   [v1.2.0](https://github.com/Anush008/fastembed-rs/compare/v1.2.0...v5.17.0)
+*   [v1.1.3](https://github.com/Anush008/fastembed-rs/compare/v1.1.3...v5.17.0)
+*   [v1.1.2](https://github.com/Anush008/fastembed-rs/compare/v1.1.2...v5.17.0)
+*   [v1.1.1](https://github.com/Anush008/fastembed-rs/compare/v1.1.1...v5.17.0)
+*   [v1.1.0](https://github.com/Anush008/fastembed-rs/compare/v1.1.0...v5.17.0)
+*   [v1.0.0](https://github.com/Anush008/fastembed-rs/compare/v1.0.0...v5.17.0)
+
+## No results found
+
+[View all tags](https://github.com/Anush008/fastembed-rs/tags)
+
+[v5.17.0](https://github.com/Anush008/fastembed-rs/releases/tag/v5.17.0)
+
+## [5.17.0](https://github.com/Anush008/fastembed-rs/compare/v5.16.2...v5.17.0) (2026-06-15)
+
+### 🍕 Features
+
+*   **similarity:** add cosine_similarity, dot, top_k helpers ([#263](https://github.com/Anush008/fastembed-rs/issues/263)) ([6fc2eb9](https://github.com/Anush008/fastembed-rs/commit/6fc2eb993d91a035509859dfc01d68c8cf60da82))
+
+### 🔁 Continuous Integration
+
+*   strip commas from clippy-features cache key, pin actions to SHAs, bump to Node 24 runtimes ([#262](https://github.com/Anush008/fastembed-rs/issues/262)) ([78c4a68](https://github.com/Anush008/fastembed-rs/commit/78c4a68005de0f7a912e21729f17e3f5475700f1))
+
+### 🧹 Chores
+
+*   **deps:** update safetensors requirement from 0.7.0 to 0.8.0 ([#261](https://github.com/Anush008/fastembed-rs/issues/261)) ([d2c55c0](https://github.com/Anush008/fastembed-rs/commit/d2c55c0c508b01740e0bbd16c494269a308a8218))
+
+Assets 2
+
+*   [Source code(zip)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.17.0.zip) 2026-06-15T08:31:44Z 
+*   [Source code(tar.gz)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.17.0.tar.gz) 2026-06-15T08:31:44Z 
+
+🎉1 reneleonhardt reacted with hooray emoji
+
+All reactions
+*   🎉1 reaction
+
+1 person reacted
+
+## v5.16.2
+
+ 14 Jun 10:55 
+
+[github-actions](https://github.com/apps/github-actions)
+
+[v5.16.2](https://github.com/Anush008/fastembed-rs/tree/v5.16.2)
+
+[`3a9588a`](https://github.com/Anush008/fastembed-rs/commit/3a9588ac52c0d825118b44775526caac02175193)
+
+Compare
+
+# Choose a tag to compare
+
+## Sorry, something went wrong.
+
+ Filter  
+
+Loading
+
+*   [v5.17.2](https://github.com/Anush008/fastembed-rs/compare/v5.17.2...v5.16.2)
+*   [v5.17.1](https://github.com/Anush008/fastembed-rs/compare/v5.17.1...v5.16.2)
+*   [v5.17.0](https://github.com/Anush008/fastembed-rs/compare/v5.17.0...v5.16.2)
+*   [v5.16.2](https://github.com/Anush008/fastembed-rs/compare/v5.16.2...v5.16.2)
+*   [v5.16.1](https://github.com/Anush008/fastembed-rs/compare/v5.16.1...v5.16.2)
+*   [v5.16.0](https://github.com/Anush008/fastembed-rs/compare/v5.16.0...v5.16.2)
+*   [v5.15.0](https://github.com/Anush008/fastembed-rs/compare/v5.15.0...v5.16.2)
+*   [v5.14.0](https://github.com/Anush008/fastembed-rs/compare/v5.14.0...v5.16.2)
+*   [v5.13.4](https://github.com/Anush008/fastembed-rs/compare/v5.13.4...v5.16.2)
+*   [v5.13.3](https://github.com/Anush008/fastembed-rs/compare/v5.13.3...v5.16.2)
+*   [v5.13.2](https://github.com/Anush008/fastembed-rs/compare/v5.13.2...v5.16.2)
+*   [v5.13.1](https://github.com/Anush008/fastembed-rs/compare/v5.13.1...v5.16.2)
+*   [v5.13.0](https://github.com/Anush008/fastembed-rs/compare/v5.13.0...v5.16.2)
+*   [v5.12.1](https://github.com/Anush008/fastembed-rs/compare/v5.12.1...v5.16.2)
+*   [v5.12.0](https://github.com/Anush008/fastembed-rs/compare/v5.12.0...v5.16.2)
+*   [v5.11.0](https://github.com/Anush008/fastembed-rs/compare/v5.11.0...v5.16.2)
+*   [v5.10.0](https://github.com/Anush008/fastembed-rs/compare/v5.10.0...v5.16.2)
+*   [v5.9.0](https://github.com/Anush008/fastembed-rs/compare/v5.9.0...v5.16.2)
+*   [v5.8.1](https://github.com/Anush008/fastembed-rs/compare/v5.8.1...v5.16.2)
+*   [v5.8.0](https://github.com/Anush008/fastembed-rs/compare/v5.8.0...v5.16.2)
+*   [v5.7.0](https://github.com/Anush008/fastembed-rs/compare/v5.7.0...v5.16.2)
+*   [v5.6.0](https://github.com/Anush008/fastembed-rs/compare/v5.6.0...v5.16.2)
+*   [v5.5.0](https://github.com/Anush008/fastembed-rs/compare/v5.5.0...v5.16.2)
+*   [v5.4.0](https://github.com/Anush008/fastembed-rs/compare/v5.4.0...v5.16.2)
+*   [v5.3.1](https://github.com/Anush008/fastembed-rs/compare/v5.3.1...v5.16.2)
+*   [v5.3.0](https://github.com/Anush008/fastembed-rs/compare/v5.3.0...v5.16.2)
+*   [v5.2.1](https://github.com/Anush008/fastembed-rs/compare/v5.2.1...v5.16.2)
+*   [v5.2.0](https://github.com/Anush008/fastembed-rs/compare/v5.2.0...v5.16.2)
+*   [v5.1.0](https://github.com/Anush008/fastembed-rs/compare/v5.1.0...v5.16.2)
+*   [v5.0.3](https://github.com/Anush008/fastembed-rs/compare/v5.0.3...v5.16.2)
+*   [v5.0.2](https://github.com/Anush008/fastembed-rs/compare/v5.0.2...v5.16.2)
+*   [v5.0.1](https://github.com/Anush008/fastembed-rs/compare/v5.0.1...v5.16.2)
+*   [v5.0.0](https://github.com/Anush008/fastembed-rs/compare/v5.0.0...v5.16.2)
+*   [v4.9.1](https://github.com/Anush008/fastembed-rs/compare/v4.9.1...v5.16.2)
+*   [v4.9.0](https://github.com/Anush008/fastembed-rs/compare/v4.9.0...v5.16.2)
+*   [v4.8.0](https://github.com/Anush008/fastembed-rs/compare/v4.8.0...v5.16.2)
+*   [v4.7.0](https://github.com/Anush008/fastembed-rs/compare/v4.7.0...v5.16.2)
+*   [v4.6.0](https://github.com/Anush008/fastembed-rs/compare/v4.6.0...v5.16.2)
+*   [v4.5.0](https://github.com/Anush008/fastembed-rs/compare/v4.5.0...v5.16.2)
+*   [v4.4.0](https://github.com/Anush008/fastembed-rs/compare/v4.4.0...v5.16.2)
+*   [v4.3.0](https://github.com/Anush008/fastembed-rs/compare/v4.3.0...v5.16.2)
+*   [v4.2.1](https://github.com/Anush008/fastembed-rs/compare/v4.2.1...v5.16.2)
+*   [v4.2.0](https://github.com/Anush008/fastembed-rs/compare/v4.2.0...v5.16.2)
+*   [v4.1.2](https://github.com/Anush008/fastembed-rs/compare/v4.1.2...v5.16.2)
+*   [v4.1.1](https://github.com/Anush008/fastembed-rs/compare/v4.1.1...v5.16.2)
+*   [v4.1.0](https://github.com/Anush008/fastembed-rs/compare/v4.1.0...v5.16.2)
+*   [v4.0.0](https://github.com/Anush008/fastembed-rs/compare/v4.0.0...v5.16.2)
+*   [v3.14.1](https://github.com/Anush008/fastembed-rs/compare/v3.14.1...v5.16.2)
+*   [v3.14.0](https://github.com/Anush008/fastembed-rs/compare/v3.14.0...v5.16.2)
+*   [v3.13.0](https://github.com/Anush008/fastembed-rs/compare/v3.13.0...v5.16.2)
+*   [v3.12.0](https://github.com/Anush008/fastembed-rs/compare/v3.12.0...v5.16.2)
+*   [v3.11.1](https://github.com/Anush008/fastembed-rs/compare/v3.11.1...v5.16.2)
+*   [v3.11.0](https://github.com/Anush008/fastembed-rs/compare/v3.11.0...v5.16.2)
+*   [v3.10.0](https://github.com/Anush008/fastembed-rs/compare/v3.10.0...v5.16.2)
+*   [v3.9.1](https://github.com/Anush008/fastembed-rs/compare/v3.9.1...v5.16.2)
+*   [v3.9.0](https://github.com/Anush008/fastembed-rs/compare/v3.9.0...v5.16.2)
+*   [v3.8.0](https://github.com/Anush008/fastembed-rs/compare/v3.8.0...v5.16.2)
+*   [v3.7.1](https://github.com/Anush008/fastembed-rs/compare/v3.7.1...v5.16.2)
+*   [v3.7.0](https://github.com/Anush008/fastembed-rs/compare/v3.7.0...v5.16.2)
+*   [v3.6.2](https://github.com/Anush008/fastembed-rs/compare/v3.6.2...v5.16.2)
+*   [v3.6.1](https://github.com/Anush008/fastembed-rs/compare/v3.6.1...v5.16.2)
+*   [v3.6.0](https://github.com/Anush008/fastembed-rs/compare/v3.6.0...v5.16.2)
+*   [v3.5.0](https://github.com/Anush008/fastembed-rs/compare/v3.5.0...v5.16.2)
+*   [v3.4.1](https://github.com/Anush008/fastembed-rs/compare/v3.4.1...v5.16.2)
+*   [v3.4.0](https://github.com/Anush008/fastembed-rs/compare/v3.4.0...v5.16.2)
+*   [v3.3.0](https://github.com/Anush008/fastembed-rs/compare/v3.3.0...v5.16.2)
+*   [v3.2.0](https://github.com/Anush008/fastembed-rs/compare/v3.2.0...v5.16.2)
+*   [v3.1.4](https://github.com/Anush008/fastembed-rs/compare/v3.1.4...v5.16.2)
+*   [v3.1.3](https://github.com/Anush008/fastembed-rs/compare/v3.1.3...v5.16.2)
+*   [v3.1.2](https://github.com/Anush008/fastembed-rs/compare/v3.1.2...v5.16.2)
+*   [v3.1.1](https://github.com/Anush008/fastembed-rs/compare/v3.1.1...v5.16.2)
+*   [v3.1.0](https://github.com/Anush008/fastembed-rs/compare/v3.1.0...v5.16.2)
+*   [v3.0.2](https://github.com/Anush008/fastembed-rs/compare/v3.0.2...v5.16.2)
+*   [v3.0.1](https://github.com/Anush008/fastembed-rs/compare/v3.0.1...v5.16.2)
+*   [v3.0.0](https://github.com/Anush008/fastembed-rs/compare/v3.0.0...v5.16.2)
+*   [v2.1.1](https://github.com/Anush008/fastembed-rs/compare/v2.1.1...v5.16.2)
+*   [v2.1.0](https://github.com/Anush008/fastembed-rs/compare/v2.1.0...v5.16.2)
+*   [v2.0.1](https://github.com/Anush008/fastembed-rs/compare/v2.0.1...v5.16.2)
+*   [v2.0.0](https://github.com/Anush008/fastembed-rs/compare/v2.0.0...v5.16.2)
+*   [v1.11.0](https://github.com/Anush008/fastembed-rs/compare/v1.11.0...v5.16.2)
+*   [v1.10.0](https://github.com/Anush008/fastembed-rs/compare/v1.10.0...v5.16.2)
+*   [v1.9.0](https://github.com/Anush008/fastembed-rs/compare/v1.9.0...v5.16.2)
+*   [v1.8.0](https://github.com/Anush008/fastembed-rs/compare/v1.8.0...v5.16.2)
+*   [v1.7.0](https://github.com/Anush008/fastembed-rs/compare/v1.7.0...v5.16.2)
+*   [v1.6.0](https://github.com/Anush008/fastembed-rs/compare/v1.6.0...v5.16.2)
+*   [v1.5.0](https://github.com/Anush008/fastembed-rs/compare/v1.5.0...v5.16.2)
+*   [v1.4.3](https://github.com/Anush008/fastembed-rs/compare/v1.4.3...v5.16.2)
+*   [v1.4.2](https://github.com/Anush008/fastembed-rs/compare/v1.4.2...v5.16.2)
+*   [v1.4.1](https://github.com/Anush008/fastembed-rs/compare/v1.4.1...v5.16.2)
+*   [v1.4.0](https://github.com/Anush008/fastembed-rs/compare/v1.4.0...v5.16.2)
+*   [v1.3.0](https://github.com/Anush008/fastembed-rs/compare/v1.3.0...v5.16.2)
+*   [v1.2.0](https://github.com/Anush008/fastembed-rs/compare/v1.2.0...v5.16.2)
+*   [v1.1.3](https://github.com/Anush008/fastembed-rs/compare/v1.1.3...v5.16.2)
+*   [v1.1.2](https://github.com/Anush008/fastembed-rs/compare/v1.1.2...v5.16.2)
+*   [v1.1.1](https://github.com/Anush008/fastembed-rs/compare/v1.1.1...v5.16.2)
+*   [v1.1.0](https://github.com/Anush008/fastembed-rs/compare/v1.1.0...v5.16.2)
+*   [v1.0.0](https://github.com/Anush008/fastembed-rs/compare/v1.0.0...v5.16.2)
+
+## No results found
+
+[View all tags](https://github.com/Anush008/fastembed-rs/tags)
+
+[v5.16.2](https://github.com/Anush008/fastembed-rs/releases/tag/v5.16.2)
+
+## [5.16.2](https://github.com/Anush008/fastembed-rs/compare/v5.16.1...v5.16.2) (2026-06-14)
+
+### 🐛 Bug Fixes
+
+*   **qwen3:** clamp image max_pixels to tokenizer token budget ([#260](https://github.com/Anush008/fastembed-rs/issues/260)) ([5340989](https://github.com/Anush008/fastembed-rs/commit/53409891e2950ab47c735aa759457769e5dfe4d7))
+*   **nomic-v2-moe:** resolve dtype mismatches for BF16/F16 inference ([#259](https://github.com/Anush008/fastembed-rs/issues/259)) ([5dae66b](https://github.com/Anush008/fastembed-rs/commit/5dae66bce3c2ee3b46293b147a660feac89b8b21))
+
+### 📝 Documentation
+
+*   Usage reconciliation at README.md and lib.rs docstrings ([#258](https://github.com/Anush008/fastembed-rs/issues/258)) ([53bf4db](https://github.com/Anush008/fastembed-rs/commit/53bf4db6110b770272b129bb2defd981937027a2))
+
+Assets 2
+
+*   [Source code(zip)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.16.2.zip) 2026-06-14T10:55:18Z 
+*   [Source code(tar.gz)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.16.2.tar.gz) 2026-06-14T10:55:18Z 
+
+All reactions
+
+## v5.16.1
+
+ 12 Jun 12:13 
+
+[github-actions](https://github.com/apps/github-actions)
+
+[v5.16.1](https://github.com/Anush008/fastembed-rs/tree/v5.16.1)
+
+[`aa8cb6b`](https://github.com/Anush008/fastembed-rs/commit/aa8cb6b35116d5cb48e4c548914c5a9914def90a)
+
+Compare
+
+# Choose a tag to compare
+
+## Sorry, something went wrong.
+
+ Filter  
+
+Loading
+
+*   [v5.17.2](https://github.com/Anush008/fastembed-rs/compare/v5.17.2...v5.16.1)
+*   [v5.17.1](https://github.com/Anush008/fastembed-rs/compare/v5.17.1...v5.16.1)
+*   [v5.17.0](https://github.com/Anush008/fastembed-rs/compare/v5.17.0...v5.16.1)
+*   [v5.16.2](https://github.com/Anush008/fastembed-rs/compare/v5.16.2...v5.16.1)
+*   [v5.16.1](https://github.com/Anush008/fastembed-rs/compare/v5.16.1...v5.16.1)
+*   [v5.16.0](https://github.com/Anush008/fastembed-rs/compare/v5.16.0...v5.16.1)
+*   [v5.15.0](https://github.com/Anush008/fastembed-rs/compare/v5.15.0...v5.16.1)
+*   [v5.14.0](https://github.com/Anush008/fastembed-rs/compare/v5.14.0...v5.16.1)
+*   [v5.13.4](https://github.com/Anush008/fastembed-rs/compare/v5.13.4...v5.16.1)
+*   [v5.13.3](https://github.com/Anush008/fastembed-rs/compare/v5.13.3...v5.16.1)
+*   [v5.13.2](https://github.com/Anush008/fastembed-rs/compare/v5.13.2...v5.16.1)
+*   [v5.13.1](https://github.com/Anush008/fastembed-rs/compare/v5.13.1...v5.16.1)
+*   [v5.13.0](https://github.com/Anush008/fastembed-rs/compare/v5.13.0...v5.16.1)
+*   [v5.12.1](https://github.com/Anush008/fastembed-rs/compare/v5.12.1...v5.16.1)
+*   [v5.12.0](https://github.com/Anush008/fastembed-rs/compare/v5.12.0...v5.16.1)
+*   [v5.11.0](https://github.com/Anush008/fastembed-rs/compare/v5.11.0...v5.16.1)
+*   [v5.10.0](https://github.com/Anush008/fastembed-rs/compare/v5.10.0...v5.16.1)
+*   [v5.9.0](https://github.com/Anush008/fastembed-rs/compare/v5.9.0...v5.16.1)
+*   [v5.8.1](https://github.com/Anush008/fastembed-rs/compare/v5.8.1...v5.16.1)
+*   [v5.8.0](https://github.com/Anush008/fastembed-rs/compare/v5.8.0...v5.16.1)
+*   [v5.7.0](https://github.com/Anush008/fastembed-rs/compare/v5.7.0...v5.16.1)
+*   [v5.6.0](https://github.com/Anush008/fastembed-rs/compare/v5.6.0...v5.16.1)
+*   [v5.5.0](https://github.com/Anush008/fastembed-rs/compare/v5.5.0...v5.16.1)
+*   [v5.4.0](https://github.com/Anush008/fastembed-rs/compare/v5.4.0...v5.16.1)
+*   [v5.3.1](https://github.com/Anush008/fastembed-rs/compare/v5.3.1...v5.16.1)
+*   [v5.3.0](https://github.com/Anush008/fastembed-rs/compare/v5.3.0...v5.16.1)
+*   [v5.2.1](https://github.com/Anush008/fastembed-rs/compare/v5.2.1...v5.16.1)
+*   [v5.2.0](https://github.com/Anush008/fastembed-rs/compare/v5.2.0...v5.16.1)
+*   [v5.1.0](https://github.com/Anush008/fastembed-rs/compare/v5.1.0...v5.16.1)
+*   [v5.0.3](https://github.com/Anush008/fastembed-rs/compare/v5.0.3...v5.16.1)
+*   [v5.0.2](https://github.com/Anush008/fastembed-rs/compare/v5.0.2...v5.16.1)
+*   [v5.0.1](https://github.com/Anush008/fastembed-rs/compare/v5.0.1...v5.16.1)
+*   [v5.0.0](https://github.com/Anush008/fastembed-rs/compare/v5.0.0...v5.16.1)
+*   [v4.9.1](https://github.com/Anush008/fastembed-rs/compare/v4.9.1...v5.16.1)
+*   [v4.9.0](https://github.com/Anush008/fastembed-rs/compare/v4.9.0...v5.16.1)
+*   [v4.8.0](https://github.com/Anush008/fastembed-rs/compare/v4.8.0...v5.16.1)
+*   [v4.7.0](https://github.com/Anush008/fastembed-rs/compare/v4.7.0...v5.16.1)
+*   [v4.6.0](https://github.com/Anush008/fastembed-rs/compare/v4.6.0...v5.16.1)
+*   [v4.5.0](https://github.com/Anush008/fastembed-rs/compare/v4.5.0...v5.16.1)
+*   [v4.4.0](https://github.com/Anush008/fastembed-rs/compare/v4.4.0...v5.16.1)
+*   [v4.3.0](https://github.com/Anush008/fastembed-rs/compare/v4.3.0...v5.16.1)
+*   [v4.2.1](https://github.com/Anush008/fastembed-rs/compare/v4.2.1...v5.16.1)
+*   [v4.2.0](https://github.com/Anush008/fastembed-rs/compare/v4.2.0...v5.16.1)
+*   [v4.1.2](https://github.com/Anush008/fastembed-rs/compare/v4.1.2...v5.16.1)
+*   [v4.1.1](https://github.com/Anush008/fastembed-rs/compare/v4.1.1...v5.16.1)
+*   [v4.1.0](https://github.com/Anush008/fastembed-rs/compare/v4.1.0...v5.16.1)
+*   [v4.0.0](https://github.com/Anush008/fastembed-rs/compare/v4.0.0...v5.16.1)
+*   [v3.14.1](https://github.com/Anush008/fastembed-rs/compare/v3.14.1...v5.16.1)
+*   [v3.14.0](https://github.com/Anush008/fastembed-rs/compare/v3.14.0...v5.16.1)
+*   [v3.13.0](https://github.com/Anush008/fastembed-rs/compare/v3.13.0...v5.16.1)
+*   [v3.12.0](https://github.com/Anush008/fastembed-rs/compare/v3.12.0...v5.16.1)
+*   [v3.11.1](https://github.com/Anush008/fastembed-rs/compare/v3.11.1...v5.16.1)
+*   [v3.11.0](https://github.com/Anush008/fastembed-rs/compare/v3.11.0...v5.16.1)
+*   [v3.10.0](https://github.com/Anush008/fastembed-rs/compare/v3.10.0...v5.16.1)
+*   [v3.9.1](https://github.com/Anush008/fastembed-rs/compare/v3.9.1...v5.16.1)
+*   [v3.9.0](https://github.com/Anush008/fastembed-rs/compare/v3.9.0...v5.16.1)
+*   [v3.8.0](https://github.com/Anush008/fastembed-rs/compare/v3.8.0...v5.16.1)
+*   [v3.7.1](https://github.com/Anush008/fastembed-rs/compare/v3.7.1...v5.16.1)
+*   [v3.7.0](https://github.com/Anush008/fastembed-rs/compare/v3.7.0...v5.16.1)
+*   [v3.6.2](https://github.com/Anush008/fastembed-rs/compare/v3.6.2...v5.16.1)
+*   [v3.6.1](https://github.com/Anush008/fastembed-rs/compare/v3.6.1...v5.16.1)
+*   [v3.6.0](https://github.com/Anush008/fastembed-rs/compare/v3.6.0...v5.16.1)
+*   [v3.5.0](https://github.com/Anush008/fastembed-rs/compare/v3.5.0...v5.16.1)
+*   [v3.4.1](https://github.com/Anush008/fastembed-rs/compare/v3.4.1...v5.16.1)
+*   [v3.4.0](https://github.com/Anush008/fastembed-rs/compare/v3.4.0...v5.16.1)
+*   [v3.3.0](https://github.com/Anush008/fastembed-rs/compare/v3.3.0...v5.16.1)
+*   [v3.2.0](https://github.com/Anush008/fastembed-rs/compare/v3.2.0...v5.16.1)
+*   [v3.1.4](https://github.com/Anush008/fastembed-rs/compare/v3.1.4...v5.16.1)
+*   [v3.1.3](https://github.com/Anush008/fastembed-rs/compare/v3.1.3...v5.16.1)
+*   [v3.1.2](https://github.com/Anush008/fastembed-rs/compare/v3.1.2...v5.16.1)
+*   [v3.1.1](https://github.com/Anush008/fastembed-rs/compare/v3.1.1...v5.16.1)
+*   [v3.1.0](https://github.com/Anush008/fastembed-rs/compare/v3.1.0...v5.16.1)
+*   [v3.0.2](https://github.com/Anush008/fastembed-rs/compare/v3.0.2...v5.16.1)
+*   [v3.0.1](https://github.com/Anush008/fastembed-rs/compare/v3.0.1...v5.16.1)
+*   [v3.0.0](https://github.com/Anush008/fastembed-rs/compare/v3.0.0...v5.16.1)
+*   [v2.1.1](https://github.com/Anush008/fastembed-rs/compare/v2.1.1...v5.16.1)
+*   [v2.1.0](https://github.com/Anush008/fastembed-rs/compare/v2.1.0...v5.16.1)
+*   [v2.0.1](https://github.com/Anush008/fastembed-rs/compare/v2.0.1...v5.16.1)
+*   [v2.0.0](https://github.com/Anush008/fastembed-rs/compare/v2.0.0...v5.16.1)
+*   [v1.11.0](https://github.com/Anush008/fastembed-rs/compare/v1.11.0...v5.16.1)
+*   [v1.10.0](https://github.com/Anush008/fastembed-rs/compare/v1.10.0...v5.16.1)
+*   [v1.9.0](https://github.com/Anush008/fastembed-rs/compare/v1.9.0...v5.16.1)
+*   [v1.8.0](https://github.com/Anush008/fastembed-rs/compare/v1.8.0...v5.16.1)
+*   [v1.7.0](https://github.com/Anush008/fastembed-rs/compare/v1.7.0...v5.16.1)
+*   [v1.6.0](https://github.com/Anush008/fastembed-rs/compare/v1.6.0...v5.16.1)
+*   [v1.5.0](https://github.com/Anush008/fastembed-rs/compare/v1.5.0...v5.16.1)
+*   [v1.4.3](https://github.com/Anush008/fastembed-rs/compare/v1.4.3...v5.16.1)
+*   [v1.4.2](https://github.com/Anush008/fastembed-rs/compare/v1.4.2...v5.16.1)
+*   [v1.4.1](https://github.com/Anush008/fastembed-rs/compare/v1.4.1...v5.16.1)
+*   [v1.4.0](https://github.com/Anush008/fastembed-rs/compare/v1.4.0...v5.16.1)
+*   [v1.3.0](https://github.com/Anush008/fastembed-rs/compare/v1.3.0...v5.16.1)
+*   [v1.2.0](https://github.com/Anush008/fastembed-rs/compare/v1.2.0...v5.16.1)
+*   [v1.1.3](https://github.com/Anush008/fastembed-rs/compare/v1.1.3...v5.16.1)
+*   [v1.1.2](https://github.com/Anush008/fastembed-rs/compare/v1.1.2...v5.16.1)
+*   [v1.1.1](https://github.com/Anush008/fastembed-rs/compare/v1.1.1...v5.16.1)
+*   [v1.1.0](https://github.com/Anush008/fastembed-rs/compare/v1.1.0...v5.16.1)
+*   [v1.0.0](https://github.com/Anush008/fastembed-rs/compare/v1.0.0...v5.16.1)
+
+## No results found
+
+[View all tags](https://github.com/Anush008/fastembed-rs/tags)
+
+[v5.16.1](https://github.com/Anush008/fastembed-rs/releases/tag/v5.16.1)
+
+## [5.16.1](https://github.com/Anush008/fastembed-rs/compare/v5.16.0...v5.16.1) (2026-06-12)
+
+### 🧑‍💻 Code Refactoring
+
+*   Miscellaneous internal improvements ([#257](https://github.com/Anush008/fastembed-rs/issues/257)) ([ad00f45](https://github.com/Anush008/fastembed-rs/commit/ad00f45a7db43de71bef7ed6ee90f26fac216d2c)) - By [@Anush008](https://github.com/Anush008)
+
+### Contributors
+
+*   [](https://github.com/Anush008)
+
+ Anush008 
+
+Assets 2
+
+*   [Source code(zip)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.16.1.zip) 2026-06-12T12:13:11Z 
+*   [Source code(tar.gz)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.16.1.tar.gz) 2026-06-12T12:13:11Z 
+
+👍1 reneleonhardt reacted with thumbs up emoji
+
+All reactions
+*   👍1 reaction
+
+1 person reacted
+
+## v5.16.0
+
+ 04 Jun 19:49 
+
+[github-actions](https://github.com/apps/github-actions)
+
+[v5.16.0](https://github.com/Anush008/fastembed-rs/tree/v5.16.0)
+
+[`a500072`](https://github.com/Anush008/fastembed-rs/commit/a500072fbcd4f0d16ec4e50e44d3b3fb0b8a034a)
+
+Compare
+
+# Choose a tag to compare
+
+## Sorry, something went wrong.
+
+ Filter  
+
+Loading
+
+*   [v5.17.2](https://github.com/Anush008/fastembed-rs/compare/v5.17.2...v5.16.0)
+*   [v5.17.1](https://github.com/Anush008/fastembed-rs/compare/v5.17.1...v5.16.0)
+*   [v5.17.0](https://github.com/Anush008/fastembed-rs/compare/v5.17.0...v5.16.0)
+*   [v5.16.2](https://github.com/Anush008/fastembed-rs/compare/v5.16.2...v5.16.0)
+*   [v5.16.1](https://github.com/Anush008/fastembed-rs/compare/v5.16.1...v5.16.0)
+*   [v5.16.0](https://github.com/Anush008/fastembed-rs/compare/v5.16.0...v5.16.0)
+*   [v5.15.0](https://github.com/Anush008/fastembed-rs/compare/v5.15.0...v5.16.0)
+*   [v5.14.0](https://github.com/Anush008/fastembed-rs/compare/v5.14.0...v5.16.0)
+*   [v5.13.4](https://github.com/Anush008/fastembed-rs/compare/v5.13.4...v5.16.0)
+*   [v5.13.3](https://github.com/Anush008/fastembed-rs/compare/v5.13.3...v5.16.0)
+*   [v5.13.2](https://github.com/Anush008/fastembed-rs/compare/v5.13.2...v5.16.0)
+*   [v5.13.1](https://github.com/Anush008/fastembed-rs/compare/v5.13.1...v5.16.0)
+*   [v5.13.0](https://github.com/Anush008/fastembed-rs/compare/v5.13.0...v5.16.0)
+*   [v5.12.1](https://github.com/Anush008/fastembed-rs/compare/v5.12.1...v5.16.0)
+*   [v5.12.0](https://github.com/Anush008/fastembed-rs/compare/v5.12.0...v5.16.0)
+*   [v5.11.0](https://github.com/Anush008/fastembed-rs/compare/v5.11.0...v5.16.0)
+*   [v5.10.0](https://github.com/Anush008/fastembed-rs/compare/v5.10.0...v5.16.0)
+*   [v5.9.0](https://github.com/Anush008/fastembed-rs/compare/v5.9.0...v5.16.0)
+*   [v5.8.1](https://github.com/Anush008/fastembed-rs/compare/v5.8.1...v5.16.0)
+*   [v5.8.0](https://github.com/Anush008/fastembed-rs/compare/v5.8.0...v5.16.0)
+*   [v5.7.0](https://github.com/Anush008/fastembed-rs/compare/v5.7.0...v5.16.0)
+*   [v5.6.0](https://github.com/Anush008/fastembed-rs/compare/v5.6.0...v5.16.0)
+*   [v5.5.0](https://github.com/Anush008/fastembed-rs/compare/v5.5.0...v5.16.0)
+*   [v5.4.0](https://github.com/Anush008/fastembed-rs/compare/v5.4.0...v5.16.0)
+*   [v5.3.1](https://github.com/Anush008/fastembed-rs/compare/v5.3.1...v5.16.0)
+*   [v5.3.0](https://github.com/Anush008/fastembed-rs/compare/v5.3.0...v5.16.0)
+*   [v5.2.1](https://github.com/Anush008/fastembed-rs/compare/v5.2.1...v5.16.0)
+*   [v5.2.0](https://github.com/Anush008/fastembed-rs/compare/v5.2.0...v5.16.0)
+*   [v5.1.0](https://github.com/Anush008/fastembed-rs/compare/v5.1.0...v5.16.0)
+*   [v5.0.3](https://github.com/Anush008/fastembed-rs/compare/v5.0.3...v5.16.0)
+*   [v5.0.2](https://github.com/Anush008/fastembed-rs/compare/v5.0.2...v5.16.0)
+*   [v5.0.1](https://github.com/Anush008/fastembed-rs/compare/v5.0.1...v5.16.0)
+*   [v5.0.0](https://github.com/Anush008/fastembed-rs/compare/v5.0.0...v5.16.0)
+*   [v4.9.1](https://github.com/Anush008/fastembed-rs/compare/v4.9.1...v5.16.0)
+*   [v4.9.0](https://github.com/Anush008/fastembed-rs/compare/v4.9.0...v5.16.0)
+*   [v4.8.0](https://github.com/Anush008/fastembed-rs/compare/v4.8.0...v5.16.0)
+*   [v4.7.0](https://github.com/Anush008/fastembed-rs/compare/v4.7.0...v5.16.0)
+*   [v4.6.0](https://github.com/Anush008/fastembed-rs/compare/v4.6.0...v5.16.0)
+*   [v4.5.0](https://github.com/Anush008/fastembed-rs/compare/v4.5.0...v5.16.0)
+*   [v4.4.0](https://github.com/Anush008/fastembed-rs/compare/v4.4.0...v5.16.0)
+*   [v4.3.0](https://github.com/Anush008/fastembed-rs/compare/v4.3.0...v5.16.0)
+*   [v4.2.1](https://github.com/Anush008/fastembed-rs/compare/v4.2.1...v5.16.0)
+*   [v4.2.0](https://github.com/Anush008/fastembed-rs/compare/v4.2.0...v5.16.0)
+*   [v4.1.2](https://github.com/Anush008/fastembed-rs/compare/v4.1.2...v5.16.0)
+*   [v4.1.1](https://github.com/Anush008/fastembed-rs/compare/v4.1.1...v5.16.0)
+*   [v4.1.0](https://github.com/Anush008/fastembed-rs/compare/v4.1.0...v5.16.0)
+*   [v4.0.0](https://github.com/Anush008/fastembed-rs/compare/v4.0.0...v5.16.0)
+*   [v3.14.1](https://github.com/Anush008/fastembed-rs/compare/v3.14.1...v5.16.0)
+*   [v3.14.0](https://github.com/Anush008/fastembed-rs/compare/v3.14.0...v5.16.0)
+*   [v3.13.0](https://github.com/Anush008/fastembed-rs/compare/v3.13.0...v5.16.0)
+*   [v3.12.0](https://github.com/Anush008/fastembed-rs/compare/v3.12.0...v5.16.0)
+*   [v3.11.1](https://github.com/Anush008/fastembed-rs/compare/v3.11.1...v5.16.0)
+*   [v3.11.0](https://github.com/Anush008/fastembed-rs/compare/v3.11.0...v5.16.0)
+*   [v3.10.0](https://github.com/Anush008/fastembed-rs/compare/v3.10.0...v5.16.0)
+*   [v3.9.1](https://github.com/Anush008/fastembed-rs/compare/v3.9.1...v5.16.0)
+*   [v3.9.0](https://github.com/Anush008/fastembed-rs/compare/v3.9.0...v5.16.0)
+*   [v3.8.0](https://github.com/Anush008/fastembed-rs/compare/v3.8.0...v5.16.0)
+*   [v3.7.1](https://github.com/Anush008/fastembed-rs/compare/v3.7.1...v5.16.0)
+*   [v3.7.0](https://github.com/Anush008/fastembed-rs/compare/v3.7.0...v5.16.0)
+*   [v3.6.2](https://github.com/Anush008/fastembed-rs/compare/v3.6.2...v5.16.0)
+*   [v3.6.1](https://github.com/Anush008/fastembed-rs/compare/v3.6.1...v5.16.0)
+*   [v3.6.0](https://github.com/Anush008/fastembed-rs/compare/v3.6.0...v5.16.0)
+*   [v3.5.0](https://github.com/Anush008/fastembed-rs/compare/v3.5.0...v5.16.0)
+*   [v3.4.1](https://github.com/Anush008/fastembed-rs/compare/v3.4.1...v5.16.0)
+*   [v3.4.0](https://github.com/Anush008/fastembed-rs/compare/v3.4.0...v5.16.0)
+*   [v3.3.0](https://github.com/Anush008/fastembed-rs/compare/v3.3.0...v5.16.0)
+*   [v3.2.0](https://github.com/Anush008/fastembed-rs/compare/v3.2.0...v5.16.0)
+*   [v3.1.4](https://github.com/Anush008/fastembed-rs/compare/v3.1.4...v5.16.0)
+*   [v3.1.3](https://github.com/Anush008/fastembed-rs/compare/v3.1.3...v5.16.0)
+*   [v3.1.2](https://github.com/Anush008/fastembed-rs/compare/v3.1.2...v5.16.0)
+*   [v3.1.1](https://github.com/Anush008/fastembed-rs/compare/v3.1.1...v5.16.0)
+*   [v3.1.0](https://github.com/Anush008/fastembed-rs/compare/v3.1.0...v5.16.0)
+*   [v3.0.2](https://github.com/Anush008/fastembed-rs/compare/v3.0.2...v5.16.0)
+*   [v3.0.1](https://github.com/Anush008/fastembed-rs/compare/v3.0.1...v5.16.0)
+*   [v3.0.0](https://github.com/Anush008/fastembed-rs/compare/v3.0.0...v5.16.0)
+*   [v2.1.1](https://github.com/Anush008/fastembed-rs/compare/v2.1.1...v5.16.0)
+*   [v2.1.0](https://github.com/Anush008/fastembed-rs/compare/v2.1.0...v5.16.0)
+*   [v2.0.1](https://github.com/Anush008/fastembed-rs/compare/v2.0.1...v5.16.0)
+*   [v2.0.0](https://github.com/Anush008/fastembed-rs/compare/v2.0.0...v5.16.0)
+*   [v1.11.0](https://github.com/Anush008/fastembed-rs/compare/v1.11.0...v5.16.0)
+*   [v1.10.0](https://github.com/Anush008/fastembed-rs/compare/v1.10.0...v5.16.0)
+*   [v1.9.0](https://github.com/Anush008/fastembed-rs/compare/v1.9.0...v5.16.0)
+*   [v1.8.0](https://github.com/Anush008/fastembed-rs/compare/v1.8.0...v5.16.0)
+*   [v1.7.0](https://github.com/Anush008/fastembed-rs/compare/v1.7.0...v5.16.0)
+*   [v1.6.0](https://github.com/Anush008/fastembed-rs/compare/v1.6.0...v5.16.0)
+*   [v1.5.0](https://github.com/Anush008/fastembed-rs/compare/v1.5.0...v5.16.0)
+*   [v1.4.3](https://github.com/Anush008/fastembed-rs/compare/v1.4.3...v5.16.0)
+*   [v1.4.2](https://github.com/Anush008/fastembed-rs/compare/v1.4.2...v5.16.0)
+*   [v1.4.1](https://github.com/Anush008/fastembed-rs/compare/v1.4.1...v5.16.0)
+*   [v1.4.0](https://github.com/Anush008/fastembed-rs/compare/v1.4.0...v5.16.0)
+*   [v1.3.0](https://github.com/Anush008/fastembed-rs/compare/v1.3.0...v5.16.0)
+*   [v1.2.0](https://github.com/Anush008/fastembed-rs/compare/v1.2.0...v5.16.0)
+*   [v1.1.3](https://github.com/Anush008/fastembed-rs/compare/v1.1.3...v5.16.0)
+*   [v1.1.2](https://github.com/Anush008/fastembed-rs/compare/v1.1.2...v5.16.0)
+*   [v1.1.1](https://github.com/Anush008/fastembed-rs/compare/v1.1.1...v5.16.0)
+*   [v1.1.0](https://github.com/Anush008/fastembed-rs/compare/v1.1.0...v5.16.0)
+*   [v1.0.0](https://github.com/Anush008/fastembed-rs/compare/v1.0.0...v5.16.0)
+
+## No results found
+
+[View all tags](https://github.com/Anush008/fastembed-rs/tags)
+
+[v5.16.0](https://github.com/Anush008/fastembed-rs/releases/tag/v5.16.0)
+
+## [5.16.0](https://github.com/Anush008/fastembed-rs/compare/v5.15.0...v5.16.0) (2026-06-04)
+
+### 🍕 Features
+
+*   Added quantized EmbeddingGemma-300m variants (Q4 4-bit + Q int8) ([#256](https://github.com/Anush008/fastembed-rs/issues/256)) ([e36ae0f](https://github.com/Anush008/fastembed-rs/commit/e36ae0f0295760c18bd8b93e0063f124ddd311f4)) - By [@xiongzubiao](https://github.com/xiongzubiao)
+
+### Contributors
+
+*   [](https://github.com/xiongzubiao)
+
+ xiongzubiao 
+
+Assets 2
+
+*   [Source code(zip)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.16.0.zip) 2026-06-04T19:48:58Z 
+*   [Source code(tar.gz)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.16.0.tar.gz) 2026-06-04T19:48:58Z 
+
+🎉2 reneleonhardt and Anush008 reacted with hooray emoji
+
+All reactions
+*   🎉2 reactions
+
+2 people reacted
+
+## v5.15.0
+
+ 30 May 08:06 
+
+[github-actions](https://github.com/apps/github-actions)
+
+[v5.15.0](https://github.com/Anush008/fastembed-rs/tree/v5.15.0)
+
+[`47d5ab7`](https://github.com/Anush008/fastembed-rs/commit/47d5ab7dbea2c99901e50b1a5a104d6b5de75122)
+
+Compare
+
+# Choose a tag to compare
+
+## Sorry, something went wrong.
+
+ Filter  
+
+Loading
+
+*   [v5.17.2](https://github.com/Anush008/fastembed-rs/compare/v5.17.2...v5.15.0)
+*   [v5.17.1](https://github.com/Anush008/fastembed-rs/compare/v5.17.1...v5.15.0)
+*   [v5.17.0](https://github.com/Anush008/fastembed-rs/compare/v5.17.0...v5.15.0)
+*   [v5.16.2](https://github.com/Anush008/fastembed-rs/compare/v5.16.2...v5.15.0)
+*   [v5.16.1](https://github.com/Anush008/fastembed-rs/compare/v5.16.1...v5.15.0)
+*   [v5.16.0](https://github.com/Anush008/fastembed-rs/compare/v5.16.0...v5.15.0)
+*   [v5.15.0](https://github.com/Anush008/fastembed-rs/compare/v5.15.0...v5.15.0)
+*   [v5.14.0](https://github.com/Anush008/fastembed-rs/compare/v5.14.0...v5.15.0)
+*   [v5.13.4](https://github.com/Anush008/fastembed-rs/compare/v5.13.4...v5.15.0)
+*   [v5.13.3](https://github.com/Anush008/fastembed-rs/compare/v5.13.3...v5.15.0)
+*   [v5.13.2](https://github.com/Anush008/fastembed-rs/compare/v5.13.2...v5.15.0)
+*   [v5.13.1](https://github.com/Anush008/fastembed-rs/compare/v5.13.1...v5.15.0)
+*   [v5.13.0](https://github.com/Anush008/fastembed-rs/compare/v5.13.0...v5.15.0)
+*   [v5.12.1](https://github.com/Anush008/fastembed-rs/compare/v5.12.1...v5.15.0)
+*   [v5.12.0](https://github.com/Anush008/fastembed-rs/compare/v5.12.0...v5.15.0)
+*   [v5.11.0](https://github.com/Anush008/fastembed-rs/compare/v5.11.0...v5.15.0)
+*   [v5.10.0](https://github.com/Anush008/fastembed-rs/compare/v5.10.0...v5.15.0)
+*   [v5.9.0](https://github.com/Anush008/fastembed-rs/compare/v5.9.0...v5.15.0)
+*   [v5.8.1](https://github.com/Anush008/fastembed-rs/compare/v5.8.1...v5.15.0)
+*   [v5.8.0](https://github.com/Anush008/fastembed-rs/compare/v5.8.0...v5.15.0)
+*   [v5.7.0](https://github.com/Anush008/fastembed-rs/compare/v5.7.0...v5.15.0)
+*   [v5.6.0](https://github.com/Anush008/fastembed-rs/compare/v5.6.0...v5.15.0)
+*   [v5.5.0](https://github.com/Anush008/fastembed-rs/compare/v5.5.0...v5.15.0)
+*   [v5.4.0](https://github.com/Anush008/fastembed-rs/compare/v5.4.0...v5.15.0)
+*   [v5.3.1](https://github.com/Anush008/fastembed-rs/compare/v5.3.1...v5.15.0)
+*   [v5.3.0](https://github.com/Anush008/fastembed-rs/compare/v5.3.0...v5.15.0)
+*   [v5.2.1](https://github.com/Anush008/fastembed-rs/compare/v5.2.1...v5.15.0)
+*   [v5.2.0](https://github.com/Anush008/fastembed-rs/compare/v5.2.0...v5.15.0)
+*   [v5.1.0](https://github.com/Anush008/fastembed-rs/compare/v5.1.0...v5.15.0)
+*   [v5.0.3](https://github.com/Anush008/fastembed-rs/compare/v5.0.3...v5.15.0)
+*   [v5.0.2](https://github.com/Anush008/fastembed-rs/compare/v5.0.2...v5.15.0)
+*   [v5.0.1](https://github.com/Anush008/fastembed-rs/compare/v5.0.1...v5.15.0)
+*   [v5.0.0](https://github.com/Anush008/fastembed-rs/compare/v5.0.0...v5.15.0)
+*   [v4.9.1](https://github.com/Anush008/fastembed-rs/compare/v4.9.1...v5.15.0)
+*   [v4.9.0](https://github.com/Anush008/fastembed-rs/compare/v4.9.0...v5.15.0)
+*   [v4.8.0](https://github.com/Anush008/fastembed-rs/compare/v4.8.0...v5.15.0)
+*   [v4.7.0](https://github.com/Anush008/fastembed-rs/compare/v4.7.0...v5.15.0)
+*   [v4.6.0](https://github.com/Anush008/fastembed-rs/compare/v4.6.0...v5.15.0)
+*   [v4.5.0](https://github.com/Anush008/fastembed-rs/compare/v4.5.0...v5.15.0)
+*   [v4.4.0](https://github.com/Anush008/fastembed-rs/compare/v4.4.0...v5.15.0)
+*   [v4.3.0](https://github.com/Anush008/fastembed-rs/compare/v4.3.0...v5.15.0)
+*   [v4.2.1](https://github.com/Anush008/fastembed-rs/compare/v4.2.1...v5.15.0)
+*   [v4.2.0](https://github.com/Anush008/fastembed-rs/compare/v4.2.0...v5.15.0)
+*   [v4.1.2](https://github.com/Anush008/fastembed-rs/compare/v4.1.2...v5.15.0)
+*   [v4.1.1](https://github.com/Anush008/fastembed-rs/compare/v4.1.1...v5.15.0)
+*   [v4.1.0](https://github.com/Anush008/fastembed-rs/compare/v4.1.0...v5.15.0)
+*   [v4.0.0](https://github.com/Anush008/fastembed-rs/compare/v4.0.0...v5.15.0)
+*   [v3.14.1](https://github.com/Anush008/fastembed-rs/compare/v3.14.1...v5.15.0)
+*   [v3.14.0](https://github.com/Anush008/fastembed-rs/compare/v3.14.0...v5.15.0)
+*   [v3.13.0](https://github.com/Anush008/fastembed-rs/compare/v3.13.0...v5.15.0)
+*   [v3.12.0](https://github.com/Anush008/fastembed-rs/compare/v3.12.0...v5.15.0)
+*   [v3.11.1](https://github.com/Anush008/fastembed-rs/compare/v3.11.1...v5.15.0)
+*   [v3.11.0](https://github.com/Anush008/fastembed-rs/compare/v3.11.0...v5.15.0)
+*   [v3.10.0](https://github.com/Anush008/fastembed-rs/compare/v3.10.0...v5.15.0)
+*   [v3.9.1](https://github.com/Anush008/fastembed-rs/compare/v3.9.1...v5.15.0)
+*   [v3.9.0](https://github.com/Anush008/fastembed-rs/compare/v3.9.0...v5.15.0)
+*   [v3.8.0](https://github.com/Anush008/fastembed-rs/compare/v3.8.0...v5.15.0)
+*   [v3.7.1](https://github.com/Anush008/fastembed-rs/compare/v3.7.1...v5.15.0)
+*   [v3.7.0](https://github.com/Anush008/fastembed-rs/compare/v3.7.0...v5.15.0)
+*   [v3.6.2](https://github.com/Anush008/fastembed-rs/compare/v3.6.2...v5.15.0)
+*   [v3.6.1](https://github.com/Anush008/fastembed-rs/compare/v3.6.1...v5.15.0)
+*   [v3.6.0](https://github.com/Anush008/fastembed-rs/compare/v3.6.0...v5.15.0)
+*   [v3.5.0](https://github.com/Anush008/fastembed-rs/compare/v3.5.0...v5.15.0)
+*   [v3.4.1](https://github.com/Anush008/fastembed-rs/compare/v3.4.1...v5.15.0)
+*   [v3.4.0](https://github.com/Anush008/fastembed-rs/compare/v3.4.0...v5.15.0)
+*   [v3.3.0](https://github.com/Anush008/fastembed-rs/compare/v3.3.0...v5.15.0)
+*   [v3.2.0](https://github.com/Anush008/fastembed-rs/compare/v3.2.0...v5.15.0)
+*   [v3.1.4](https://github.com/Anush008/fastembed-rs/compare/v3.1.4...v5.15.0)
+*   [v3.1.3](https://github.com/Anush008/fastembed-rs/compare/v3.1.3...v5.15.0)
+*   [v3.1.2](https://github.com/Anush008/fastembed-rs/compare/v3.1.2...v5.15.0)
+*   [v3.1.1](https://github.com/Anush008/fastembed-rs/compare/v3.1.1...v5.15.0)
+*   [v3.1.0](https://github.com/Anush008/fastembed-rs/compare/v3.1.0...v5.15.0)
+*   [v3.0.2](https://github.com/Anush008/fastembed-rs/compare/v3.0.2...v5.15.0)
+*   [v3.0.1](https://github.com/Anush008/fastembed-rs/compare/v3.0.1...v5.15.0)
+*   [v3.0.0](https://github.com/Anush008/fastembed-rs/compare/v3.0.0...v5.15.0)
+*   [v2.1.1](https://github.com/Anush008/fastembed-rs/compare/v2.1.1...v5.15.0)
+*   [v2.1.0](https://github.com/Anush008/fastembed-rs/compare/v2.1.0...v5.15.0)
+*   [v2.0.1](https://github.com/Anush008/fastembed-rs/compare/v2.0.1...v5.15.0)
+*   [v2.0.0](https://github.com/Anush008/fastembed-rs/compare/v2.0.0...v5.15.0)
+*   [v1.11.0](https://github.com/Anush008/fastembed-rs/compare/v1.11.0...v5.15.0)
+*   [v1.10.0](https://github.com/Anush008/fastembed-rs/compare/v1.10.0...v5.15.0)
+*   [v1.9.0](https://github.com/Anush008/fastembed-rs/compare/v1.9.0...v5.15.0)
+*   [v1.8.0](https://github.com/Anush008/fastembed-rs/compare/v1.8.0...v5.15.0)
+*   [v1.7.0](https://github.com/Anush008/fastembed-rs/compare/v1.7.0...v5.15.0)
+*   [v1.6.0](https://github.com/Anush008/fastembed-rs/compare/v1.6.0...v5.15.0)
+*   [v1.5.0](https://github.com/Anush008/fastembed-rs/compare/v1.5.0...v5.15.0)
+*   [v1.4.3](https://github.com/Anush008/fastembed-rs/compare/v1.4.3...v5.15.0)
+*   [v1.4.2](https://github.com/Anush008/fastembed-rs/compare/v1.4.2...v5.15.0)
+*   [v1.4.1](https://github.com/Anush008/fastembed-rs/compare/v1.4.1...v5.15.0)
+*   [v1.4.0](https://github.com/Anush008/fastembed-rs/compare/v1.4.0...v5.15.0)
+*   [v1.3.0](https://github.com/Anush008/fastembed-rs/compare/v1.3.0...v5.15.0)
+*   [v1.2.0](https://github.com/Anush008/fastembed-rs/compare/v1.2.0...v5.15.0)
+*   [v1.1.3](https://github.com/Anush008/fastembed-rs/compare/v1.1.3...v5.15.0)
+*   [v1.1.2](https://github.com/Anush008/fastembed-rs/compare/v1.1.2...v5.15.0)
+*   [v1.1.1](https://github.com/Anush008/fastembed-rs/compare/v1.1.1...v5.15.0)
+*   [v1.1.0](https://github.com/Anush008/fastembed-rs/compare/v1.1.0...v5.15.0)
+*   [v1.0.0](https://github.com/Anush008/fastembed-rs/compare/v1.0.0...v5.15.0)
+
+## No results found
+
+[View all tags](https://github.com/Anush008/fastembed-rs/tags)
+
+[v5.15.0](https://github.com/Anush008/fastembed-rs/releases/tag/v5.15.0)
+
+## [5.15.0](https://github.com/Anush008/fastembed-rs/compare/v5.14.0...v5.15.0) (2026-05-30)
+
+### 🍕 Features
+
+*   Support for configurable ONNX Runtime intra-op thread count (`.with_intra_threads(...)`) ([#255](https://github.com/Anush008/fastembed-rs/issues/255)) ([4ac869a](https://github.com/Anush008/fastembed-rs/commit/4ac869a1dc60027446b46ddcb23e8fc3487c575f)) - By [@ComBba](https://github.com/ComBba)
+
+### Contributors
+
+*   [](https://github.com/ComBba)
+
+ ComBba 
+
+Assets 2
+
+*   [Source code(zip)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.15.0.zip) 2026-05-30T08:06:28Z 
+*   [Source code(tar.gz)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.15.0.tar.gz) 2026-05-30T08:06:28Z 
+
+🎉1 reneleonhardt reacted with hooray emoji
+
+All reactions
+*   🎉1 reaction
+
+1 person reacted
+
+## v5.14.0
+
+ 27 May 11:32 
+
+[github-actions](https://github.com/apps/github-actions)
+
+[v5.14.0](https://github.com/Anush008/fastembed-rs/tree/v5.14.0)
+
+[`aae697b`](https://github.com/Anush008/fastembed-rs/commit/aae697bba9d7ef61bbf685f46ff09a1ec442afaa)
+
+Compare
+
+# Choose a tag to compare
+
+## Sorry, something went wrong.
+
+ Filter  
+
+Loading
+
+*   [v5.17.2](https://github.com/Anush008/fastembed-rs/compare/v5.17.2...v5.14.0)
+*   [v5.17.1](https://github.com/Anush008/fastembed-rs/compare/v5.17.1...v5.14.0)
+*   [v5.17.0](https://github.com/Anush008/fastembed-rs/compare/v5.17.0...v5.14.0)
+*   [v5.16.2](https://github.com/Anush008/fastembed-rs/compare/v5.16.2...v5.14.0)
+*   [v5.16.1](https://github.com/Anush008/fastembed-rs/compare/v5.16.1...v5.14.0)
+*   [v5.16.0](https://github.com/Anush008/fastembed-rs/compare/v5.16.0...v5.14.0)
+*   [v5.15.0](https://github.com/Anush008/fastembed-rs/compare/v5.15.0...v5.14.0)
+*   [v5.14.0](https://github.com/Anush008/fastembed-rs/compare/v5.14.0...v5.14.0)
+*   [v5.13.4](https://github.com/Anush008/fastembed-rs/compare/v5.13.4...v5.14.0)
+*   [v5.13.3](https://github.com/Anush008/fastembed-rs/compare/v5.13.3...v5.14.0)
+*   [v5.13.2](https://github.com/Anush008/fastembed-rs/compare/v5.13.2...v5.14.0)
+*   [v5.13.1](https://github.com/Anush008/fastembed-rs/compare/v5.13.1...v5.14.0)
+*   [v5.13.0](https://github.com/Anush008/fastembed-rs/compare/v5.13.0...v5.14.0)
+*   [v5.12.1](https://github.com/Anush008/fastembed-rs/compare/v5.12.1...v5.14.0)
+*   [v5.12.0](https://github.com/Anush008/fastembed-rs/compare/v5.12.0...v5.14.0)
+*   [v5.11.0](https://github.com/Anush008/fastembed-rs/compare/v5.11.0...v5.14.0)
+*   [v5.10.0](https://github.com/Anush008/fastembed-rs/compare/v5.10.0...v5.14.0)
+*   [v5.9.0](https://github.com/Anush008/fastembed-rs/compare/v5.9.0...v5.14.0)
+*   [v5.8.1](https://github.com/Anush008/fastembed-rs/compare/v5.8.1...v5.14.0)
+*   [v5.8.0](https://github.com/Anush008/fastembed-rs/compare/v5.8.0...v5.14.0)
+*   [v5.7.0](https://github.com/Anush008/fastembed-rs/compare/v5.7.0...v5.14.0)
+*   [v5.6.0](https://github.com/Anush008/fastembed-rs/compare/v5.6.0...v5.14.0)
+*   [v5.5.0](https://github.com/Anush008/fastembed-rs/compare/v5.5.0...v5.14.0)
+*   [v5.4.0](https://github.com/Anush008/fastembed-rs/compare/v5.4.0...v5.14.0)
+*   [v5.3.1](https://github.com/Anush008/fastembed-rs/compare/v5.3.1...v5.14.0)
+*   [v5.3.0](https://github.com/Anush008/fastembed-rs/compare/v5.3.0...v5.14.0)
+*   [v5.2.1](https://github.com/Anush008/fastembed-rs/compare/v5.2.1...v5.14.0)
+*   [v5.2.0](https://github.com/Anush008/fastembed-rs/compare/v5.2.0...v5.14.0)
+*   [v5.1.0](https://github.com/Anush008/fastembed-rs/compare/v5.1.0...v5.14.0)
+*   [v5.0.3](https://github.com/Anush008/fastembed-rs/compare/v5.0.3...v5.14.0)
+*   [v5.0.2](https://github.com/Anush008/fastembed-rs/compare/v5.0.2...v5.14.0)
+*   [v5.0.1](https://github.com/Anush008/fastembed-rs/compare/v5.0.1...v5.14.0)
+*   [v5.0.0](https://github.com/Anush008/fastembed-rs/compare/v5.0.0...v5.14.0)
+*   [v4.9.1](https://github.com/Anush008/fastembed-rs/compare/v4.9.1...v5.14.0)
+*   [v4.9.0](https://github.com/Anush008/fastembed-rs/compare/v4.9.0...v5.14.0)
+*   [v4.8.0](https://github.com/Anush008/fastembed-rs/compare/v4.8.0...v5.14.0)
+*   [v4.7.0](https://github.com/Anush008/fastembed-rs/compare/v4.7.0...v5.14.0)
+*   [v4.6.0](https://github.com/Anush008/fastembed-rs/compare/v4.6.0...v5.14.0)
+*   [v4.5.0](https://github.com/Anush008/fastembed-rs/compare/v4.5.0...v5.14.0)
+*   [v4.4.0](https://github.com/Anush008/fastembed-rs/compare/v4.4.0...v5.14.0)
+*   [v4.3.0](https://github.com/Anush008/fastembed-rs/compare/v4.3.0...v5.14.0)
+*   [v4.2.1](https://github.com/Anush008/fastembed-rs/compare/v4.2.1...v5.14.0)
+*   [v4.2.0](https://github.com/Anush008/fastembed-rs/compare/v4.2.0...v5.14.0)
+*   [v4.1.2](https://github.com/Anush008/fastembed-rs/compare/v4.1.2...v5.14.0)
+*   [v4.1.1](https://github.com/Anush008/fastembed-rs/compare/v4.1.1...v5.14.0)
+*   [v4.1.0](https://github.com/Anush008/fastembed-rs/compare/v4.1.0...v5.14.0)
+*   [v4.0.0](https://github.com/Anush008/fastembed-rs/compare/v4.0.0...v5.14.0)
+*   [v3.14.1](https://github.com/Anush008/fastembed-rs/compare/v3.14.1...v5.14.0)
+*   [v3.14.0](https://github.com/Anush008/fastembed-rs/compare/v3.14.0...v5.14.0)
+*   [v3.13.0](https://github.com/Anush008/fastembed-rs/compare/v3.13.0...v5.14.0)
+*   [v3.12.0](https://github.com/Anush008/fastembed-rs/compare/v3.12.0...v5.14.0)
+*   [v3.11.1](https://github.com/Anush008/fastembed-rs/compare/v3.11.1...v5.14.0)
+*   [v3.11.0](https://github.com/Anush008/fastembed-rs/compare/v3.11.0...v5.14.0)
+*   [v3.10.0](https://github.com/Anush008/fastembed-rs/compare/v3.10.0...v5.14.0)
+*   [v3.9.1](https://github.com/Anush008/fastembed-rs/compare/v3.9.1...v5.14.0)
+*   [v3.9.0](https://github.com/Anush008/fastembed-rs/compare/v3.9.0...v5.14.0)
+*   [v3.8.0](https://github.com/Anush008/fastembed-rs/compare/v3.8.0...v5.14.0)
+*   [v3.7.1](https://github.com/Anush008/fastembed-rs/compare/v3.7.1...v5.14.0)
+*   [v3.7.0](https://github.com/Anush008/fastembed-rs/compare/v3.7.0...v5.14.0)
+*   [v3.6.2](https://github.com/Anush008/fastembed-rs/compare/v3.6.2...v5.14.0)
+*   [v3.6.1](https://github.com/Anush008/fastembed-rs/compare/v3.6.1...v5.14.0)
+*   [v3.6.0](https://github.com/Anush008/fastembed-rs/compare/v3.6.0...v5.14.0)
+*   [v3.5.0](https://github.com/Anush008/fastembed-rs/compare/v3.5.0...v5.14.0)
+*   [v3.4.1](https://github.com/Anush008/fastembed-rs/compare/v3.4.1...v5.14.0)
+*   [v3.4.0](https://github.com/Anush008/fastembed-rs/compare/v3.4.0...v5.14.0)
+*   [v3.3.0](https://github.com/Anush008/fastembed-rs/compare/v3.3.0...v5.14.0)
+*   [v3.2.0](https://github.com/Anush008/fastembed-rs/compare/v3.2.0...v5.14.0)
+*   [v3.1.4](https://github.com/Anush008/fastembed-rs/compare/v3.1.4...v5.14.0)
+*   [v3.1.3](https://github.com/Anush008/fastembed-rs/compare/v3.1.3...v5.14.0)
+*   [v3.1.2](https://github.com/Anush008/fastembed-rs/compare/v3.1.2...v5.14.0)
+*   [v3.1.1](https://github.com/Anush008/fastembed-rs/compare/v3.1.1...v5.14.0)
+*   [v3.1.0](https://github.com/Anush008/fastembed-rs/compare/v3.1.0...v5.14.0)
+*   [v3.0.2](https://github.com/Anush008/fastembed-rs/compare/v3.0.2...v5.14.0)
+*   [v3.0.1](https://github.com/Anush008/fastembed-rs/compare/v3.0.1...v5.14.0)
+*   [v3.0.0](https://github.com/Anush008/fastembed-rs/compare/v3.0.0...v5.14.0)
+*   [v2.1.1](https://github.com/Anush008/fastembed-rs/compare/v2.1.1...v5.14.0)
+*   [v2.1.0](https://github.com/Anush008/fastembed-rs/compare/v2.1.0...v5.14.0)
+*   [v2.0.1](https://github.com/Anush008/fastembed-rs/compare/v2.0.1...v5.14.0)
+*   [v2.0.0](https://github.com/Anush008/fastembed-rs/compare/v2.0.0...v5.14.0)
+*   [v1.11.0](https://github.com/Anush008/fastembed-rs/compare/v1.11.0...v5.14.0)
+*   [v1.10.0](https://github.com/Anush008/fastembed-rs/compare/v1.10.0...v5.14.0)
+*   [v1.9.0](https://github.com/Anush008/fastembed-rs/compare/v1.9.0...v5.14.0)
+*   [v1.8.0](https://github.com/Anush008/fastembed-rs/compare/v1.8.0...v5.14.0)
+*   [v1.7.0](https://github.com/Anush008/fastembed-rs/compare/v1.7.0...v5.14.0)
+*   [v1.6.0](https://github.com/Anush008/fastembed-rs/compare/v1.6.0...v5.14.0)
+*   [v1.5.0](https://github.com/Anush008/fastembed-rs/compare/v1.5.0...v5.14.0)
+*   [v1.4.3](https://github.com/Anush008/fastembed-rs/compare/v1.4.3...v5.14.0)
+*   [v1.4.2](https://github.com/Anush008/fastembed-rs/compare/v1.4.2...v5.14.0)
+*   [v1.4.1](https://github.com/Anush008/fastembed-rs/compare/v1.4.1...v5.14.0)
+*   [v1.4.0](https://github.com/Anush008/fastembed-rs/compare/v1.4.0...v5.14.0)
+*   [v1.3.0](https://github.com/Anush008/fastembed-rs/compare/v1.3.0...v5.14.0)
+*   [v1.2.0](https://github.com/Anush008/fastembed-rs/compare/v1.2.0...v5.14.0)
+*   [v1.1.3](https://github.com/Anush008/fastembed-rs/compare/v1.1.3...v5.14.0)
+*   [v1.1.2](https://github.com/Anush008/fastembed-rs/compare/v1.1.2...v5.14.0)
+*   [v1.1.1](https://github.com/Anush008/fastembed-rs/compare/v1.1.1...v5.14.0)
+*   [v1.1.0](https://github.com/Anush008/fastembed-rs/compare/v1.1.0...v5.14.0)
+*   [v1.0.0](https://github.com/Anush008/fastembed-rs/compare/v1.0.0...v5.14.0)
+
+## No results found
+
+[View all tags](https://github.com/Anush008/fastembed-rs/tags)
+
+[v5.14.0](https://github.com/Anush008/fastembed-rs/releases/tag/v5.14.0)
+
+## [5.14.0](https://github.com/Anush008/fastembed-rs/compare/v5.13.4...v5.14.0) (2026-05-27)
+
+### 🍕 Features
+
+*   BGE M3 Embeddings - Joint dense/sparse/ColBERT in a single pass ([#254](https://github.com/Anush008/fastembed-rs/issues/254)) ([72c8697](https://github.com/Anush008/fastembed-rs/commit/72c86979d6fb4e52e02f6f8abc8270bc49be387d)) - By [@Megane1c](https://github.com/Megane1c)
+
+### Contributors
+
+*   [](https://github.com/Megane1c)
+
+ Megane1c 
+
+Assets 2
+
+*   [Source code(zip)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.14.0.zip) 2026-05-27T11:32:43Z 
+*   [Source code(tar.gz)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.14.0.tar.gz) 2026-05-27T11:32:43Z 
+
+🎉1 reneleonhardt reacted with hooray emoji
+
+All reactions
+*   🎉1 reaction
+
+1 person reacted
+
+## v5.13.4
+
+ 27 Apr 16:47 
+
+[github-actions](https://github.com/apps/github-actions)
+
+[v5.13.4](https://github.com/Anush008/fastembed-rs/tree/v5.13.4)
+
+[`c34435d`](https://github.com/Anush008/fastembed-rs/commit/c34435d99c84a8e907c86cbde281984d810f31fa)
+
+Compare
+
+# Choose a tag to compare
+
+## Sorry, something went wrong.
+
+ Filter  
+
+Loading
+
+*   [v5.17.2](https://github.com/Anush008/fastembed-rs/compare/v5.17.2...v5.13.4)
+*   [v5.17.1](https://github.com/Anush008/fastembed-rs/compare/v5.17.1...v5.13.4)
+*   [v5.17.0](https://github.com/Anush008/fastembed-rs/compare/v5.17.0...v5.13.4)
+*   [v5.16.2](https://github.com/Anush008/fastembed-rs/compare/v5.16.2...v5.13.4)
+*   [v5.16.1](https://github.com/Anush008/fastembed-rs/compare/v5.16.1...v5.13.4)
+*   [v5.16.0](https://github.com/Anush008/fastembed-rs/compare/v5.16.0...v5.13.4)
+*   [v5.15.0](https://github.com/Anush008/fastembed-rs/compare/v5.15.0...v5.13.4)
+*   [v5.14.0](https://github.com/Anush008/fastembed-rs/compare/v5.14.0...v5.13.4)
+*   [v5.13.4](https://github.com/Anush008/fastembed-rs/compare/v5.13.4...v5.13.4)
+*   [v5.13.3](https://github.com/Anush008/fastembed-rs/compare/v5.13.3...v5.13.4)
+*   [v5.13.2](https://github.com/Anush008/fastembed-rs/compare/v5.13.2...v5.13.4)
+*   [v5.13.1](https://github.com/Anush008/fastembed-rs/compare/v5.13.1...v5.13.4)
+*   [v5.13.0](https://github.com/Anush008/fastembed-rs/compare/v5.13.0...v5.13.4)
+*   [v5.12.1](https://github.com/Anush008/fastembed-rs/compare/v5.12.1...v5.13.4)
+*   [v5.12.0](https://github.com/Anush008/fastembed-rs/compare/v5.12.0...v5.13.4)
+*   [v5.11.0](https://github.com/Anush008/fastembed-rs/compare/v5.11.0...v5.13.4)
+*   [v5.10.0](https://github.com/Anush008/fastembed-rs/compare/v5.10.0...v5.13.4)
+*   [v5.9.0](https://github.com/Anush008/fastembed-rs/compare/v5.9.0...v5.13.4)
+*   [v5.8.1](https://github.com/Anush008/fastembed-rs/compare/v5.8.1...v5.13.4)
+*   [v5.8.0](https://github.com/Anush008/fastembed-rs/compare/v5.8.0...v5.13.4)
+*   [v5.7.0](https://github.com/Anush008/fastembed-rs/compare/v5.7.0...v5.13.4)
+*   [v5.6.0](https://github.com/Anush008/fastembed-rs/compare/v5.6.0...v5.13.4)
+*   [v5.5.0](https://github.com/Anush008/fastembed-rs/compare/v5.5.0...v5.13.4)
+*   [v5.4.0](https://github.com/Anush008/fastembed-rs/compare/v5.4.0...v5.13.4)
+*   [v5.3.1](https://github.com/Anush008/fastembed-rs/compare/v5.3.1...v5.13.4)
+*   [v5.3.0](https://github.com/Anush008/fastembed-rs/compare/v5.3.0...v5.13.4)
+*   [v5.2.1](https://github.com/Anush008/fastembed-rs/compare/v5.2.1...v5.13.4)
+*   [v5.2.0](https://github.com/Anush008/fastembed-rs/compare/v5.2.0...v5.13.4)
+*   [v5.1.0](https://github.com/Anush008/fastembed-rs/compare/v5.1.0...v5.13.4)
+*   [v5.0.3](https://github.com/Anush008/fastembed-rs/compare/v5.0.3...v5.13.4)
+*   [v5.0.2](https://github.com/Anush008/fastembed-rs/compare/v5.0.2...v5.13.4)
+*   [v5.0.1](https://github.com/Anush008/fastembed-rs/compare/v5.0.1...v5.13.4)
+*   [v5.0.0](https://github.com/Anush008/fastembed-rs/compare/v5.0.0...v5.13.4)
+*   [v4.9.1](https://github.com/Anush008/fastembed-rs/compare/v4.9.1...v5.13.4)
+*   [v4.9.0](https://github.com/Anush008/fastembed-rs/compare/v4.9.0...v5.13.4)
+*   [v4.8.0](https://github.com/Anush008/fastembed-rs/compare/v4.8.0...v5.13.4)
+*   [v4.7.0](https://github.com/Anush008/fastembed-rs/compare/v4.7.0...v5.13.4)
+*   [v4.6.0](https://github.com/Anush008/fastembed-rs/compare/v4.6.0...v5.13.4)
+*   [v4.5.0](https://github.com/Anush008/fastembed-rs/compare/v4.5.0...v5.13.4)
+*   [v4.4.0](https://github.com/Anush008/fastembed-rs/compare/v4.4.0...v5.13.4)
+*   [v4.3.0](https://github.com/Anush008/fastembed-rs/compare/v4.3.0...v5.13.4)
+*   [v4.2.1](https://github.com/Anush008/fastembed-rs/compare/v4.2.1...v5.13.4)
+*   [v4.2.0](https://github.com/Anush008/fastembed-rs/compare/v4.2.0...v5.13.4)
+*   [v4.1.2](https://github.com/Anush008/fastembed-rs/compare/v4.1.2...v5.13.4)
+*   [v4.1.1](https://github.com/Anush008/fastembed-rs/compare/v4.1.1...v5.13.4)
+*   [v4.1.0](https://github.com/Anush008/fastembed-rs/compare/v4.1.0...v5.13.4)
+*   [v4.0.0](https://github.com/Anush008/fastembed-rs/compare/v4.0.0...v5.13.4)
+*   [v3.14.1](https://github.com/Anush008/fastembed-rs/compare/v3.14.1...v5.13.4)
+*   [v3.14.0](https://github.com/Anush008/fastembed-rs/compare/v3.14.0...v5.13.4)
+*   [v3.13.0](https://github.com/Anush008/fastembed-rs/compare/v3.13.0...v5.13.4)
+*   [v3.12.0](https://github.com/Anush008/fastembed-rs/compare/v3.12.0...v5.13.4)
+*   [v3.11.1](https://github.com/Anush008/fastembed-rs/compare/v3.11.1...v5.13.4)
+*   [v3.11.0](https://github.com/Anush008/fastembed-rs/compare/v3.11.0...v5.13.4)
+*   [v3.10.0](https://github.com/Anush008/fastembed-rs/compare/v3.10.0...v5.13.4)
+*   [v3.9.1](https://github.com/Anush008/fastembed-rs/compare/v3.9.1...v5.13.4)
+*   [v3.9.0](https://github.com/Anush008/fastembed-rs/compare/v3.9.0...v5.13.4)
+*   [v3.8.0](https://github.com/Anush008/fastembed-rs/compare/v3.8.0...v5.13.4)
+*   [v3.7.1](https://github.com/Anush008/fastembed-rs/compare/v3.7.1...v5.13.4)
+*   [v3.7.0](https://github.com/Anush008/fastembed-rs/compare/v3.7.0...v5.13.4)
+*   [v3.6.2](https://github.com/Anush008/fastembed-rs/compare/v3.6.2...v5.13.4)
+*   [v3.6.1](https://github.com/Anush008/fastembed-rs/compare/v3.6.1...v5.13.4)
+*   [v3.6.0](https://github.com/Anush008/fastembed-rs/compare/v3.6.0...v5.13.4)
+*   [v3.5.0](https://github.com/Anush008/fastembed-rs/compare/v3.5.0...v5.13.4)
+*   [v3.4.1](https://github.com/Anush008/fastembed-rs/compare/v3.4.1...v5.13.4)
+*   [v3.4.0](https://github.com/Anush008/fastembed-rs/compare/v3.4.0...v5.13.4)
+*   [v3.3.0](https://github.com/Anush008/fastembed-rs/compare/v3.3.0...v5.13.4)
+*   [v3.2.0](https://github.com/Anush008/fastembed-rs/compare/v3.2.0...v5.13.4)
+*   [v3.1.4](https://github.com/Anush008/fastembed-rs/compare/v3.1.4...v5.13.4)
+*   [v3.1.3](https://github.com/Anush008/fastembed-rs/compare/v3.1.3...v5.13.4)
+*   [v3.1.2](https://github.com/Anush008/fastembed-rs/compare/v3.1.2...v5.13.4)
+*   [v3.1.1](https://github.com/Anush008/fastembed-rs/compare/v3.1.1...v5.13.4)
+*   [v3.1.0](https://github.com/Anush008/fastembed-rs/compare/v3.1.0...v5.13.4)
+*   [v3.0.2](https://github.com/Anush008/fastembed-rs/compare/v3.0.2...v5.13.4)
+*   [v3.0.1](https://github.com/Anush008/fastembed-rs/compare/v3.0.1...v5.13.4)
+*   [v3.0.0](https://github.com/Anush008/fastembed-rs/compare/v3.0.0...v5.13.4)
+*   [v2.1.1](https://github.com/Anush008/fastembed-rs/compare/v2.1.1...v5.13.4)
+*   [v2.1.0](https://github.com/Anush008/fastembed-rs/compare/v2.1.0...v5.13.4)
+*   [v2.0.1](https://github.com/Anush008/fastembed-rs/compare/v2.0.1...v5.13.4)
+*   [v2.0.0](https://github.com/Anush008/fastembed-rs/compare/v2.0.0...v5.13.4)
+*   [v1.11.0](https://github.com/Anush008/fastembed-rs/compare/v1.11.0...v5.13.4)
+*   [v1.10.0](https://github.com/Anush008/fastembed-rs/compare/v1.10.0...v5.13.4)
+*   [v1.9.0](https://github.com/Anush008/fastembed-rs/compare/v1.9.0...v5.13.4)
+*   [v1.8.0](https://github.com/Anush008/fastembed-rs/compare/v1.8.0...v5.13.4)
+*   [v1.7.0](https://github.com/Anush008/fastembed-rs/compare/v1.7.0...v5.13.4)
+*   [v1.6.0](https://github.com/Anush008/fastembed-rs/compare/v1.6.0...v5.13.4)
+*   [v1.5.0](https://github.com/Anush008/fastembed-rs/compare/v1.5.0...v5.13.4)
+*   [v1.4.3](https://github.com/Anush008/fastembed-rs/compare/v1.4.3...v5.13.4)
+*   [v1.4.2](https://github.com/Anush008/fastembed-rs/compare/v1.4.2...v5.13.4)
+*   [v1.4.1](https://github.com/Anush008/fastembed-rs/compare/v1.4.1...v5.13.4)
+*   [v1.4.0](https://github.com/Anush008/fastembed-rs/compare/v1.4.0...v5.13.4)
+*   [v1.3.0](https://github.com/Anush008/fastembed-rs/compare/v1.3.0...v5.13.4)
+*   [v1.2.0](https://github.com/Anush008/fastembed-rs/compare/v1.2.0...v5.13.4)
+*   [v1.1.3](https://github.com/Anush008/fastembed-rs/compare/v1.1.3...v5.13.4)
+*   [v1.1.2](https://github.com/Anush008/fastembed-rs/compare/v1.1.2...v5.13.4)
+*   [v1.1.1](https://github.com/Anush008/fastembed-rs/compare/v1.1.1...v5.13.4)
+*   [v1.1.0](https://github.com/Anush008/fastembed-rs/compare/v1.1.0...v5.13.4)
+*   [v1.0.0](https://github.com/Anush008/fastembed-rs/compare/v1.0.0...v5.13.4)
+
+## No results found
+
+[View all tags](https://github.com/Anush008/fastembed-rs/tags)
+
+[v5.13.4](https://github.com/Anush008/fastembed-rs/releases/tag/v5.13.4)
+
+## [5.13.4](https://github.com/Anush008/fastembed-rs/compare/v5.13.3...v5.13.4) (2026-04-27)
+
+### 🐛 Bug Fixes
+
+*   Qwen3 F16 dtype mismatches in attention and l2_normalize ([#248](https://github.com/Anush008/fastembed-rs/issues/248)) ([b39d84b](https://github.com/Anush008/fastembed-rs/commit/b39d84b241a6cd5eac02e3c14e934827bae1c724)) - By [@ninthhousestudios](https://github.com/ninthhousestudios)
+
+### Contributors
+
+*   [](https://github.com/ninthhousestudios)
+
+ ninthhousestudios 
+
+Assets 2
+
+*   [Source code(zip)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.13.4.zip) 2026-04-27T16:47:13Z 
+*   [Source code(tar.gz)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.13.4.tar.gz) 2026-04-27T16:47:13Z 
+
+All reactions
+
+## v5.13.3
+
+ 21 Apr 10:14 
+
+[github-actions](https://github.com/apps/github-actions)
+
+[v5.13.3](https://github.com/Anush008/fastembed-rs/tree/v5.13.3)
+
+[`4ebcf55`](https://github.com/Anush008/fastembed-rs/commit/4ebcf55f139fb2788ccee0b35d51d564e36eadf7)
+
+Compare
+
+# Choose a tag to compare
+
+## Sorry, something went wrong.
+
+ Filter  
+
+Loading
+
+*   [v5.17.2](https://github.com/Anush008/fastembed-rs/compare/v5.17.2...v5.13.3)
+*   [v5.17.1](https://github.com/Anush008/fastembed-rs/compare/v5.17.1...v5.13.3)
+*   [v5.17.0](https://github.com/Anush008/fastembed-rs/compare/v5.17.0...v5.13.3)
+*   [v5.16.2](https://github.com/Anush008/fastembed-rs/compare/v5.16.2...v5.13.3)
+*   [v5.16.1](https://github.com/Anush008/fastembed-rs/compare/v5.16.1...v5.13.3)
+*   [v5.16.0](https://github.com/Anush008/fastembed-rs/compare/v5.16.0...v5.13.3)
+*   [v5.15.0](https://github.com/Anush008/fastembed-rs/compare/v5.15.0...v5.13.3)
+*   [v5.14.0](https://github.com/Anush008/fastembed-rs/compare/v5.14.0...v5.13.3)
+*   [v5.13.4](https://github.com/Anush008/fastembed-rs/compare/v5.13.4...v5.13.3)
+*   [v5.13.3](https://github.com/Anush008/fastembed-rs/compare/v5.13.3...v5.13.3)
+*   [v5.13.2](https://github.com/Anush008/fastembed-rs/compare/v5.13.2...v5.13.3)
+*   [v5.13.1](https://github.com/Anush008/fastembed-rs/compare/v5.13.1...v5.13.3)
+*   [v5.13.0](https://github.com/Anush008/fastembed-rs/compare/v5.13.0...v5.13.3)
+*   [v5.12.1](https://github.com/Anush008/fastembed-rs/compare/v5.12.1...v5.13.3)
+*   [v5.12.0](https://github.com/Anush008/fastembed-rs/compare/v5.12.0...v5.13.3)
+*   [v5.11.0](https://github.com/Anush008/fastembed-rs/compare/v5.11.0...v5.13.3)
+*   [v5.10.0](https://github.com/Anush008/fastembed-rs/compare/v5.10.0...v5.13.3)
+*   [v5.9.0](https://github.com/Anush008/fastembed-rs/compare/v5.9.0...v5.13.3)
+*   [v5.8.1](https://github.com/Anush008/fastembed-rs/compare/v5.8.1...v5.13.3)
+*   [v5.8.0](https://github.com/Anush008/fastembed-rs/compare/v5.8.0...v5.13.3)
+*   [v5.7.0](https://github.com/Anush008/fastembed-rs/compare/v5.7.0...v5.13.3)
+*   [v5.6.0](https://github.com/Anush008/fastembed-rs/compare/v5.6.0...v5.13.3)
+*   [v5.5.0](https://github.com/Anush008/fastembed-rs/compare/v5.5.0...v5.13.3)
+*   [v5.4.0](https://github.com/Anush008/fastembed-rs/compare/v5.4.0...v5.13.3)
+*   [v5.3.1](https://github.com/Anush008/fastembed-rs/compare/v5.3.1...v5.13.3)
+*   [v5.3.0](https://github.com/Anush008/fastembed-rs/compare/v5.3.0...v5.13.3)
+*   [v5.2.1](https://github.com/Anush008/fastembed-rs/compare/v5.2.1...v5.13.3)
+*   [v5.2.0](https://github.com/Anush008/fastembed-rs/compare/v5.2.0...v5.13.3)
+*   [v5.1.0](https://github.com/Anush008/fastembed-rs/compare/v5.1.0...v5.13.3)
+*   [v5.0.3](https://github.com/Anush008/fastembed-rs/compare/v5.0.3...v5.13.3)
+*   [v5.0.2](https://github.com/Anush008/fastembed-rs/compare/v5.0.2...v5.13.3)
+*   [v5.0.1](https://github.com/Anush008/fastembed-rs/compare/v5.0.1...v5.13.3)
+*   [v5.0.0](https://github.com/Anush008/fastembed-rs/compare/v5.0.0...v5.13.3)
+*   [v4.9.1](https://github.com/Anush008/fastembed-rs/compare/v4.9.1...v5.13.3)
+*   [v4.9.0](https://github.com/Anush008/fastembed-rs/compare/v4.9.0...v5.13.3)
+*   [v4.8.0](https://github.com/Anush008/fastembed-rs/compare/v4.8.0...v5.13.3)
+*   [v4.7.0](https://github.com/Anush008/fastembed-rs/compare/v4.7.0...v5.13.3)
+*   [v4.6.0](https://github.com/Anush008/fastembed-rs/compare/v4.6.0...v5.13.3)
+*   [v4.5.0](https://github.com/Anush008/fastembed-rs/compare/v4.5.0...v5.13.3)
+*   [v4.4.0](https://github.com/Anush008/fastembed-rs/compare/v4.4.0...v5.13.3)
+*   [v4.3.0](https://github.com/Anush008/fastembed-rs/compare/v4.3.0...v5.13.3)
+*   [v4.2.1](https://github.com/Anush008/fastembed-rs/compare/v4.2.1...v5.13.3)
+*   [v4.2.0](https://github.com/Anush008/fastembed-rs/compare/v4.2.0...v5.13.3)
+*   [v4.1.2](https://github.com/Anush008/fastembed-rs/compare/v4.1.2...v5.13.3)
+*   [v4.1.1](https://github.com/Anush008/fastembed-rs/compare/v4.1.1...v5.13.3)
+*   [v4.1.0](https://github.com/Anush008/fastembed-rs/compare/v4.1.0...v5.13.3)
+*   [v4.0.0](https://github.com/Anush008/fastembed-rs/compare/v4.0.0...v5.13.3)
+*   [v3.14.1](https://github.com/Anush008/fastembed-rs/compare/v3.14.1...v5.13.3)
+*   [v3.14.0](https://github.com/Anush008/fastembed-rs/compare/v3.14.0...v5.13.3)
+*   [v3.13.0](https://github.com/Anush008/fastembed-rs/compare/v3.13.0...v5.13.3)
+*   [v3.12.0](https://github.com/Anush008/fastembed-rs/compare/v3.12.0...v5.13.3)
+*   [v3.11.1](https://github.com/Anush008/fastembed-rs/compare/v3.11.1...v5.13.3)
+*   [v3.11.0](https://github.com/Anush008/fastembed-rs/compare/v3.11.0...v5.13.3)
+*   [v3.10.0](https://github.com/Anush008/fastembed-rs/compare/v3.10.0...v5.13.3)
+*   [v3.9.1](https://github.com/Anush008/fastembed-rs/compare/v3.9.1...v5.13.3)
+*   [v3.9.0](https://github.com/Anush008/fastembed-rs/compare/v3.9.0...v5.13.3)
+*   [v3.8.0](https://github.com/Anush008/fastembed-rs/compare/v3.8.0...v5.13.3)
+*   [v3.7.1](https://github.com/Anush008/fastembed-rs/compare/v3.7.1...v5.13.3)
+*   [v3.7.0](https://github.com/Anush008/fastembed-rs/compare/v3.7.0...v5.13.3)
+*   [v3.6.2](https://github.com/Anush008/fastembed-rs/compare/v3.6.2...v5.13.3)
+*   [v3.6.1](https://github.com/Anush008/fastembed-rs/compare/v3.6.1...v5.13.3)
+*   [v3.6.0](https://github.com/Anush008/fastembed-rs/compare/v3.6.0...v5.13.3)
+*   [v3.5.0](https://github.com/Anush008/fastembed-rs/compare/v3.5.0...v5.13.3)
+*   [v3.4.1](https://github.com/Anush008/fastembed-rs/compare/v3.4.1...v5.13.3)
+*   [v3.4.0](https://github.com/Anush008/fastembed-rs/compare/v3.4.0...v5.13.3)
+*   [v3.3.0](https://github.com/Anush008/fastembed-rs/compare/v3.3.0...v5.13.3)
+*   [v3.2.0](https://github.com/Anush008/fastembed-rs/compare/v3.2.0...v5.13.3)
+*   [v3.1.4](https://github.com/Anush008/fastembed-rs/compare/v3.1.4...v5.13.3)
+*   [v3.1.3](https://github.com/Anush008/fastembed-rs/compare/v3.1.3...v5.13.3)
+*   [v3.1.2](https://github.com/Anush008/fastembed-rs/compare/v3.1.2...v5.13.3)
+*   [v3.1.1](https://github.com/Anush008/fastembed-rs/compare/v3.1.1...v5.13.3)
+*   [v3.1.0](https://github.com/Anush008/fastembed-rs/compare/v3.1.0...v5.13.3)
+*   [v3.0.2](https://github.com/Anush008/fastembed-rs/compare/v3.0.2...v5.13.3)
+*   [v3.0.1](https://github.com/Anush008/fastembed-rs/compare/v3.0.1...v5.13.3)
+*   [v3.0.0](https://github.com/Anush008/fastembed-rs/compare/v3.0.0...v5.13.3)
+*   [v2.1.1](https://github.com/Anush008/fastembed-rs/compare/v2.1.1...v5.13.3)
+*   [v2.1.0](https://github.com/Anush008/fastembed-rs/compare/v2.1.0...v5.13.3)
+*   [v2.0.1](https://github.com/Anush008/fastembed-rs/compare/v2.0.1...v5.13.3)
+*   [v2.0.0](https://github.com/Anush008/fastembed-rs/compare/v2.0.0...v5.13.3)
+*   [v1.11.0](https://github.com/Anush008/fastembed-rs/compare/v1.11.0...v5.13.3)
+*   [v1.10.0](https://github.com/Anush008/fastembed-rs/compare/v1.10.0...v5.13.3)
+*   [v1.9.0](https://github.com/Anush008/fastembed-rs/compare/v1.9.0...v5.13.3)
+*   [v1.8.0](https://github.com/Anush008/fastembed-rs/compare/v1.8.0...v5.13.3)
+*   [v1.7.0](https://github.com/Anush008/fastembed-rs/compare/v1.7.0...v5.13.3)
+*   [v1.6.0](https://github.com/Anush008/fastembed-rs/compare/v1.6.0...v5.13.3)
+*   [v1.5.0](https://github.com/Anush008/fastembed-rs/compare/v1.5.0...v5.13.3)
+*   [v1.4.3](https://github.com/Anush008/fastembed-rs/compare/v1.4.3...v5.13.3)
+*   [v1.4.2](https://github.com/Anush008/fastembed-rs/compare/v1.4.2...v5.13.3)
+*   [v1.4.1](https://github.com/Anush008/fastembed-rs/compare/v1.4.1...v5.13.3)
+*   [v1.4.0](https://github.com/Anush008/fastembed-rs/compare/v1.4.0...v5.13.3)
+*   [v1.3.0](https://github.com/Anush008/fastembed-rs/compare/v1.3.0...v5.13.3)
+*   [v1.2.0](https://github.com/Anush008/fastembed-rs/compare/v1.2.0...v5.13.3)
+*   [v1.1.3](https://github.com/Anush008/fastembed-rs/compare/v1.1.3...v5.13.3)
+*   [v1.1.2](https://github.com/Anush008/fastembed-rs/compare/v1.1.2...v5.13.3)
+*   [v1.1.1](https://github.com/Anush008/fastembed-rs/compare/v1.1.1...v5.13.3)
+*   [v1.1.0](https://github.com/Anush008/fastembed-rs/compare/v1.1.0...v5.13.3)
+*   [v1.0.0](https://github.com/Anush008/fastembed-rs/compare/v1.0.0...v5.13.3)
+
+## No results found
+
+[View all tags](https://github.com/Anush008/fastembed-rs/tags)
+
+[v5.13.3](https://github.com/Anush008/fastembed-rs/releases/tag/v5.13.3)
+
+### 🧹 Chores
+
+*   Bump dependencies ([#247](https://github.com/Anush008/fastembed-rs/issues/247)) ([9566273](https://github.com/Anush008/fastembed-rs/commit/95662736739acde96fdbef3c47d7a6916c2a927a)) - By [@Anush008](https://github.com/Anush008)
+
+### Contributors
+
+*   [](https://github.com/Anush008)
+
+ Anush008 
+
+Assets 2
+
+*   [Source code(zip)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.13.3.zip) 2026-04-21T10:14:35Z 
+*   [Source code(tar.gz)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.13.3.tar.gz) 2026-04-21T10:14:35Z 
+
+All reactions
+
+## v5.13.2
+
+ 10 Apr 11:37 
+
+[github-actions](https://github.com/apps/github-actions)
+
+[v5.13.2](https://github.com/Anush008/fastembed-rs/tree/v5.13.2)
+
+[`9c707a1`](https://github.com/Anush008/fastembed-rs/commit/9c707a173f092620275ded18bf9d0799233fcce1)
+
+Compare
+
+# Choose a tag to compare
+
+## Sorry, something went wrong.
+
+ Filter  
+
+Loading
+
+*   [v5.17.2](https://github.com/Anush008/fastembed-rs/compare/v5.17.2...v5.13.2)
+*   [v5.17.1](https://github.com/Anush008/fastembed-rs/compare/v5.17.1...v5.13.2)
+*   [v5.17.0](https://github.com/Anush008/fastembed-rs/compare/v5.17.0...v5.13.2)
+*   [v5.16.2](https://github.com/Anush008/fastembed-rs/compare/v5.16.2...v5.13.2)
+*   [v5.16.1](https://github.com/Anush008/fastembed-rs/compare/v5.16.1...v5.13.2)
+*   [v5.16.0](https://github.com/Anush008/fastembed-rs/compare/v5.16.0...v5.13.2)
+*   [v5.15.0](https://github.com/Anush008/fastembed-rs/compare/v5.15.0...v5.13.2)
+*   [v5.14.0](https://github.com/Anush008/fastembed-rs/compare/v5.14.0...v5.13.2)
+*   [v5.13.4](https://github.com/Anush008/fastembed-rs/compare/v5.13.4...v5.13.2)
+*   [v5.13.3](https://github.com/Anush008/fastembed-rs/compare/v5.13.3...v5.13.2)
+*   [v5.13.2](https://github.com/Anush008/fastembed-rs/compare/v5.13.2...v5.13.2)
+*   [v5.13.1](https://github.com/Anush008/fastembed-rs/compare/v5.13.1...v5.13.2)
+*   [v5.13.0](https://github.com/Anush008/fastembed-rs/compare/v5.13.0...v5.13.2)
+*   [v5.12.1](https://github.com/Anush008/fastembed-rs/compare/v5.12.1...v5.13.2)
+*   [v5.12.0](https://github.com/Anush008/fastembed-rs/compare/v5.12.0...v5.13.2)
+*   [v5.11.0](https://github.com/Anush008/fastembed-rs/compare/v5.11.0...v5.13.2)
+*   [v5.10.0](https://github.com/Anush008/fastembed-rs/compare/v5.10.0...v5.13.2)
+*   [v5.9.0](https://github.com/Anush008/fastembed-rs/compare/v5.9.0...v5.13.2)
+*   [v5.8.1](https://github.com/Anush008/fastembed-rs/compare/v5.8.1...v5.13.2)
+*   [v5.8.0](https://github.com/Anush008/fastembed-rs/compare/v5.8.0...v5.13.2)
+*   [v5.7.0](https://github.com/Anush008/fastembed-rs/compare/v5.7.0...v5.13.2)
+*   [v5.6.0](https://github.com/Anush008/fastembed-rs/compare/v5.6.0...v5.13.2)
+*   [v5.5.0](https://github.com/Anush008/fastembed-rs/compare/v5.5.0...v5.13.2)
+*   [v5.4.0](https://github.com/Anush008/fastembed-rs/compare/v5.4.0...v5.13.2)
+*   [v5.3.1](https://github.com/Anush008/fastembed-rs/compare/v5.3.1...v5.13.2)
+*   [v5.3.0](https://github.com/Anush008/fastembed-rs/compare/v5.3.0...v5.13.2)
+*   [v5.2.1](https://github.com/Anush008/fastembed-rs/compare/v5.2.1...v5.13.2)
+*   [v5.2.0](https://github.com/Anush008/fastembed-rs/compare/v5.2.0...v5.13.2)
+*   [v5.1.0](https://github.com/Anush008/fastembed-rs/compare/v5.1.0...v5.13.2)
+*   [v5.0.3](https://github.com/Anush008/fastembed-rs/compare/v5.0.3...v5.13.2)
+*   [v5.0.2](https://github.com/Anush008/fastembed-rs/compare/v5.0.2...v5.13.2)
+*   [v5.0.1](https://github.com/Anush008/fastembed-rs/compare/v5.0.1...v5.13.2)
+*   [v5.0.0](https://github.com/Anush008/fastembed-rs/compare/v5.0.0...v5.13.2)
+*   [v4.9.1](https://github.com/Anush008/fastembed-rs/compare/v4.9.1...v5.13.2)
+*   [v4.9.0](https://github.com/Anush008/fastembed-rs/compare/v4.9.0...v5.13.2)
+*   [v4.8.0](https://github.com/Anush008/fastembed-rs/compare/v4.8.0...v5.13.2)
+*   [v4.7.0](https://github.com/Anush008/fastembed-rs/compare/v4.7.0...v5.13.2)
+*   [v4.6.0](https://github.com/Anush008/fastembed-rs/compare/v4.6.0...v5.13.2)
+*   [v4.5.0](https://github.com/Anush008/fastembed-rs/compare/v4.5.0...v5.13.2)
+*   [v4.4.0](https://github.com/Anush008/fastembed-rs/compare/v4.4.0...v5.13.2)
+*   [v4.3.0](https://github.com/Anush008/fastembed-rs/compare/v4.3.0...v5.13.2)
+*   [v4.2.1](https://github.com/Anush008/fastembed-rs/compare/v4.2.1...v5.13.2)
+*   [v4.2.0](https://github.com/Anush008/fastembed-rs/compare/v4.2.0...v5.13.2)
+*   [v4.1.2](https://github.com/Anush008/fastembed-rs/compare/v4.1.2...v5.13.2)
+*   [v4.1.1](https://github.com/Anush008/fastembed-rs/compare/v4.1.1...v5.13.2)
+*   [v4.1.0](https://github.com/Anush008/fastembed-rs/compare/v4.1.0...v5.13.2)
+*   [v4.0.0](https://github.com/Anush008/fastembed-rs/compare/v4.0.0...v5.13.2)
+*   [v3.14.1](https://github.com/Anush008/fastembed-rs/compare/v3.14.1...v5.13.2)
+*   [v3.14.0](https://github.com/Anush008/fastembed-rs/compare/v3.14.0...v5.13.2)
+*   [v3.13.0](https://github.com/Anush008/fastembed-rs/compare/v3.13.0...v5.13.2)
+*   [v3.12.0](https://github.com/Anush008/fastembed-rs/compare/v3.12.0...v5.13.2)
+*   [v3.11.1](https://github.com/Anush008/fastembed-rs/compare/v3.11.1...v5.13.2)
+*   [v3.11.0](https://github.com/Anush008/fastembed-rs/compare/v3.11.0...v5.13.2)
+*   [v3.10.0](https://github.com/Anush008/fastembed-rs/compare/v3.10.0...v5.13.2)
+*   [v3.9.1](https://github.com/Anush008/fastembed-rs/compare/v3.9.1...v5.13.2)
+*   [v3.9.0](https://github.com/Anush008/fastembed-rs/compare/v3.9.0...v5.13.2)
+*   [v3.8.0](https://github.com/Anush008/fastembed-rs/compare/v3.8.0...v5.13.2)
+*   [v3.7.1](https://github.com/Anush008/fastembed-rs/compare/v3.7.1...v5.13.2)
+*   [v3.7.0](https://github.com/Anush008/fastembed-rs/compare/v3.7.0...v5.13.2)
+*   [v3.6.2](https://github.com/Anush008/fastembed-rs/compare/v3.6.2...v5.13.2)
+*   [v3.6.1](https://github.com/Anush008/fastembed-rs/compare/v3.6.1...v5.13.2)
+*   [v3.6.0](https://github.com/Anush008/fastembed-rs/compare/v3.6.0...v5.13.2)
+*   [v3.5.0](https://github.com/Anush008/fastembed-rs/compare/v3.5.0...v5.13.2)
+*   [v3.4.1](https://github.com/Anush008/fastembed-rs/compare/v3.4.1...v5.13.2)
+*   [v3.4.0](https://github.com/Anush008/fastembed-rs/compare/v3.4.0...v5.13.2)
+*   [v3.3.0](https://github.com/Anush008/fastembed-rs/compare/v3.3.0...v5.13.2)
+*   [v3.2.0](https://github.com/Anush008/fastembed-rs/compare/v3.2.0...v5.13.2)
+*   [v3.1.4](https://github.com/Anush008/fastembed-rs/compare/v3.1.4...v5.13.2)
+*   [v3.1.3](https://github.com/Anush008/fastembed-rs/compare/v3.1.3...v5.13.2)
+*   [v3.1.2](https://github.com/Anush008/fastembed-rs/compare/v3.1.2...v5.13.2)
+*   [v3.1.1](https://github.com/Anush008/fastembed-rs/compare/v3.1.1...v5.13.2)
+*   [v3.1.0](https://github.com/Anush008/fastembed-rs/compare/v3.1.0...v5.13.2)
+*   [v3.0.2](https://github.com/Anush008/fastembed-rs/compare/v3.0.2...v5.13.2)
+*   [v3.0.1](https://github.com/Anush008/fastembed-rs/compare/v3.0.1...v5.13.2)
+*   [v3.0.0](https://github.com/Anush008/fastembed-rs/compare/v3.0.0...v5.13.2)
+*   [v2.1.1](https://github.com/Anush008/fastembed-rs/compare/v2.1.1...v5.13.2)
+*   [v2.1.0](https://github.com/Anush008/fastembed-rs/compare/v2.1.0...v5.13.2)
+*   [v2.0.1](https://github.com/Anush008/fastembed-rs/compare/v2.0.1...v5.13.2)
+*   [v2.0.0](https://github.com/Anush008/fastembed-rs/compare/v2.0.0...v5.13.2)
+*   [v1.11.0](https://github.com/Anush008/fastembed-rs/compare/v1.11.0...v5.13.2)
+*   [v1.10.0](https://github.com/Anush008/fastembed-rs/compare/v1.10.0...v5.13.2)
+*   [v1.9.0](https://github.com/Anush008/fastembed-rs/compare/v1.9.0...v5.13.2)
+*   [v1.8.0](https://github.com/Anush008/fastembed-rs/compare/v1.8.0...v5.13.2)
+*   [v1.7.0](https://github.com/Anush008/fastembed-rs/compare/v1.7.0...v5.13.2)
+*   [v1.6.0](https://github.com/Anush008/fastembed-rs/compare/v1.6.0...v5.13.2)
+*   [v1.5.0](https://github.com/Anush008/fastembed-rs/compare/v1.5.0...v5.13.2)
+*   [v1.4.3](https://github.com/Anush008/fastembed-rs/compare/v1.4.3...v5.13.2)
+*   [v1.4.2](https://github.com/Anush008/fastembed-rs/compare/v1.4.2...v5.13.2)
+*   [v1.4.1](https://github.com/Anush008/fastembed-rs/compare/v1.4.1...v5.13.2)
+*   [v1.4.0](https://github.com/Anush008/fastembed-rs/compare/v1.4.0...v5.13.2)
+*   [v1.3.0](https://github.com/Anush008/fastembed-rs/compare/v1.3.0...v5.13.2)
+*   [v1.2.0](https://github.com/Anush008/fastembed-rs/compare/v1.2.0...v5.13.2)
+*   [v1.1.3](https://github.com/Anush008/fastembed-rs/compare/v1.1.3...v5.13.2)
+*   [v1.1.2](https://github.com/Anush008/fastembed-rs/compare/v1.1.2...v5.13.2)
+*   [v1.1.1](https://github.com/Anush008/fastembed-rs/compare/v1.1.1...v5.13.2)
+*   [v1.1.0](https://github.com/Anush008/fastembed-rs/compare/v1.1.0...v5.13.2)
+*   [v1.0.0](https://github.com/Anush008/fastembed-rs/compare/v1.0.0...v5.13.2)
+
+## No results found
+
+[View all tags](https://github.com/Anush008/fastembed-rs/tags)
+
+[v5.13.2](https://github.com/Anush008/fastembed-rs/releases/tag/v5.13.2)
+
+## [5.13.2](https://github.com/Anush008/fastembed-rs/compare/v5.13.1...v5.13.2) (2026-04-10)
+
+### 🐛 Bug Fixes
+
+*   Set required DirectML session options (memory_pattern + sequential execution) ([#246](https://github.com/Anush008/fastembed-rs/issues/246)) ([138602f](https://github.com/Anush008/fastembed-rs/commit/138602f6b5b260788dce6177dcd845a41a32d8e9)) - By [@markgandolfo](https://github.com/markgandolfo)
+
+### Contributors
+
+*   [](https://github.com/markgandolfo)
+
+ markgandolfo 
+
+Assets 2
+
+*   [Source code(zip)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.13.2.zip) 2026-04-10T11:37:07Z 
+*   [Source code(tar.gz)](https://github.com/Anush008/fastembed-rs/archive/refs/tags/v5.13.2.tar.gz) 2026-04-10T11:37:07Z 
+
+All reactions
+
+Previous _1_[2](https://github.com/Anush008/fastembed-rs/releases?page=2)[3](https://github.com/Anush008/fastembed-rs/releases?page=3)[4](https://github.com/Anush008/fastembed-rs/releases?page=4)[5](https://github.com/Anush008/fastembed-rs/releases?page=5)…[8](https://github.com/Anush008/fastembed-rs/releases?page=8)[9](https://github.com/Anush008/fastembed-rs/releases?page=9)[Next](https://github.com/Anush008/fastembed-rs/releases?page=2)
+
+Previous[Next](https://github.com/Anush008/fastembed-rs/releases?page=2)
+
+## Footer
+
+[](https://github.com/) © 2026 GitHub,Inc. 
+
+### Footer navigation
+
+*   [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service)
+*   [Privacy](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)
+*   [Security](https://github.com/security)
+*   [Status](https://www.githubstatus.com/)
+*   [Community](https://github.community/)
+*   [Docs](https://docs.github.com/)
+*   [Contact](https://support.github.com/?tags=dotcom-footer)
+*    Manage cookies 
+*    Do not share my personal information 
+
+ You can’t perform that action at this time.

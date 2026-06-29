@@ -128,6 +128,33 @@ export default function AgentEditView({ agentId, onBack }: AgentEditViewProps) {
         if (!cfg.personality) {
           cfg.personality = { ...DEFAULT_PERSONALITY }
         }
+        // Ensure memory config exists (for agents created before this field was added)
+        if (!cfg.memory) {
+          cfg.memory = {
+            enabled: true,
+            shared: true,
+            promptBudget: 5000,
+            activeMemory: {
+              enabled: false,
+              timeoutMs: 8000,
+              maxChars: 220,
+              cacheTtlSecs: 15,
+              budgetTokens: 512,
+              candidateLimit: 10,
+              includeClaims: false,
+            },
+          }
+        } else if (!cfg.memory.activeMemory) {
+          cfg.memory.activeMemory = {
+            enabled: false,
+            timeoutMs: 8000,
+            maxChars: 220,
+            cacheTtlSecs: 15,
+            budgetTokens: 512,
+            candidateLimit: 10,
+            includeClaims: false,
+          }
+        }
         // Ensure subagents config exists
         if (!cfg.subagents) {
           cfg.subagents = {

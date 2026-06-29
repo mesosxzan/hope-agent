@@ -148,6 +148,14 @@ pub(crate) async fn run_polling_loop(
                     if let Some(context_token) =
                         update.context_token.as_deref().filter(|v| !v.is_empty())
                     {
+                        app_debug!(
+                            "channel",
+                            "wechat::polling",
+                            "Received context_token for sender='{}' (account='{}', len={})",
+                            sender_id,
+                            account_id,
+                            context_token.len(),
+                        );
                         if let Err(err) = shared
                             .set_context_token(&account_id, sender_id, context_token)
                             .await
@@ -160,6 +168,14 @@ pub(crate) async fn run_polling_loop(
                                 err
                             );
                         }
+                    } else {
+                        app_debug!(
+                            "channel",
+                            "wechat::polling",
+                            "Inbound message from sender='{}' has no context_token (account='{}')",
+                            sender_id,
+                            account_id,
+                        );
                     }
 
                     let item_list = update.item_list.clone();

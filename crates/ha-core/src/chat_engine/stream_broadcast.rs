@@ -20,6 +20,12 @@ pub const EVENT_CHAT_TURN_STARTED: &str = "chat:turn_started";
 /// not terminal yet, e.g. `running` -> `cancelling` after the user presses Stop.
 pub const EVENT_CHAT_TURN_STATUS: &str = "chat:turn_status";
 
+/// Event emitted when a new session is auto-created by a chat request.
+/// Broadcast immediately after session creation so HTTP-mode frontends can
+/// promote their `__pending__` cache key to the real session ID before
+/// `chat:stream_delta` events arrive over the WebSocket.
+pub const EVENT_CHAT_SESSION_CREATED: &str = "chat:session_created";
+
 /// Counterpart for IM channel worker sessions — same envelope shape
 /// (`{sessionId, event}`), different name so subscribers can filter.
 pub const EVENT_CHANNEL_STREAM_DELTA: &str = "channel:stream_delta";
@@ -94,6 +100,17 @@ pub fn broadcast_delta(session_id: &str, event: &str, seq: u64, stream_id: Optio
                 "seq": seq,
                 "streamId": stream_id,
                 "event": event,
+            }),
+        );
+    }
+}
+
+pub fn broadcast_session_created(session_id: &str) {
+    if let Some(bus) = globals::get_event_bus() {
+        bus.emit(
+            EVENT_CHAT_SESSION_CREATED,
+            json!({
+                "sessionId": session_id,
             }),
         );
     }

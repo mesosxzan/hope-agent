@@ -2,18 +2,22 @@
 #
 # Hope Agent — multi-arch container image for `hope-agent server`.
 #
-# Stage 1 (web)     — node:20-bookworm-slim builds the Vite frontend to `/work/dist/`.
+# Stage 1 (web)     — builds the Vite frontend to `/work/dist/`.
 #                     Pinned to $BUILDPLATFORM so we run pnpm exactly once even
 #                     for multi-arch builds (frontend output is arch-agnostic).
-#                     Node stage doesn't have the glibc constraint below.
-# Stage 2 (rust)    — rust:1.95.0-trixie builds the `hope-agent` binary.
+# Stage 2 (rust)    — builds the `hope-agent` binary.
 #                     The web `dist/` is copied in BEFORE `cargo build` so
 #                     `crates/ha-server/build.rs` sees the real assets and
 #                     `rust-embed` bakes them into the binary.
-# Stage 3 (runtime) — debian:trixie-slim — ca-certs + tzdata + wget + a few
+# Stage 3 (runtime) — minimal runtime with ca-certs + tzdata + wget + a few
 #                     desktop-tool shared libs (see runtime stage comment).
-#                     Runs as non-root user `hope` (uid 1000) with /data
-#                     persisted as the configurable HA_DATA_DIR.
+#                     Runs as root with /data persisted as the configurable
+#                     HA_DATA_DIR.
+#
+# Both Stage 1 and Stage 2 inherit from the pre-built base image
+# (`ghcr.io/shiwenwen/hope-agent-base`) which bundles Rust, Node, Python,
+# and all system build dependencies. This avoids re-installing toolchains
+# on every `docker build`.
 #
 # Glibc note: trixie (Debian 13, glibc 2.41) on both build and runtime is
 # required because `ort-sys` (pulled in by fastembed for embeddings) ships
@@ -23,18 +27,14 @@
 # binary baseline. Keep both stages on the same distro — mixing trixie
 # build / bookworm runtime would dynamically fail to load at startup.
 
+# Base image: see docker/Dockerfile.base for the full toolchain list.
+#ARG BASE_IMAGE=ghcr.io/shiwenwen/hope-agent-base:1.0
+ARG BASE_IMAGE=registry.cn-hangzhou.aliyuncs.com/xzan_docker_hub/hope-agent-base:1.0
+
 # -------------------------------------------------------------------
 # Stage 1: build the Vite frontend (arch-independent)
 # -------------------------------------------------------------------
-FROM --platform=$BUILDPLATFORM node:20-bookworm-slim AS web
-
-# Pin pnpm to the version declared in package.json#packageManager so
-# lockfile resolution is reproducible. `corepack prepare --activate`
-# downloads the pinned tarball; `pnpm-lock.yaml` was generated with the
-# same version.
-ENV COREPACK_DEFAULT_TO_LATEST=0 \
-    HUSKY=0
-RUN corepack enable && corepack prepare pnpm@10.33.1 --activate
+FROM --platform=$BUILDPLATFORM ${BASE_IMAGE} AS web
 
 WORKDIR /work
 
@@ -63,31 +63,25 @@ RUN pnpm build && \
 # -------------------------------------------------------------------
 # Stage 2: build the Rust `hope-agent` binary
 # -------------------------------------------------------------------
-FROM rust:1.95.0-trixie AS rust
+FROM ${BASE_IMAGE} AS rust
 
-# protobuf-compiler is required by `prost-build` at compile time.
-# pkg-config is needed by several -sys crates even though OpenSSL is
-# vendored.
-# libclang-dev is required by bindgen (pulled in by `libspa-sys`-style
-# crates that may still appear transitively; harmless when unused).
-#
-# Desktop-only image tools (`xcap` for screen capture, `arboard` for
-# clipboard) are gated behind ha-core's `desktop-tools` Cargo feature,
-# which we do NOT enable here — keeping wayland / pipewire / gtk-3 out
-# of both the build deps and the runtime libs.
-RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 update && \
-    apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 install -y --no-install-recommends \
-        pkg-config \
-        protobuf-compiler \
-        libclang-dev \
-        mold \
-    && rm -rf /var/lib/apt/lists/*
+# The base image already ships Rust 1.95.0 — the exact version pinned by
+# rust-toolchain.toml.  We deliberately do NOT copy rust-toolchain.toml
+# into the build context (see the COPY line below).  If present, rustup
+# reads `channel = "stable"` and tries to sync the latest stable channel
+# manifest from the network, which either hangs (static.rust-lang.org is
+# blocked) or fails ("no release found") behind the Great Firewall.
+# Without the file, rustup uses the pre-installed 1.95.0 toolchain
+# directly — same compiler, no network round-trip.
 
 WORKDIR /work
 
 # Copy the workspace metadata first so dependency compilation is cached
 # independently of source-only edits.
-COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+# rust-toolchain.toml is intentionally omitted — see the comment at the
+# top of this stage.  Cargo doesn't need it; only rustup does, and the
+# base image already has the right toolchain installed.
+COPY Cargo.toml Cargo.lock ./
 COPY crates/ha-core/Cargo.toml crates/ha-core/Cargo.toml
 COPY crates/ha-server/Cargo.toml crates/ha-server/Cargo.toml
 COPY src-tauri/Cargo.toml src-tauri/Cargo.toml
@@ -113,16 +107,28 @@ COPY --from=web /work/dist ./dist
 # The bin is named `hope-agent-server` upstream to avoid colliding with
 # src-tauri's `hope-agent` in `target/release/`; we rename it back to
 # `hope-agent` on the copy so the in-container command stays unchanged.
+# Docker 构建面向 server 部署，通过环境变量覆盖 release profile 以加快编译：
+#   CARGO_PROFILE_RELEASE_LTO=off      — 关闭 LTO，跳过跨 crate 内联的链接
+#                                        阶段（thin LTO 是 Docker 编译的主要瓶颈）
+#   CARGO_PROFILE_RELEASE_OPT_LEVEL=2  — 从默认 3 降到 2，编译稍快，运行性能
+#                                        损失通常可忽略
+# 根 Cargo.toml 的 [profile.release] 用 lto="thin" + opt-level 3 追求最优运行
+# 性能；此覆盖只影响 Docker 镜像构建，不影响 release.yml bare-binary（走独立
+# CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1）。二进制输出路径不变（仍 target/release/）。
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/work/target \
+    CARGO_PROFILE_RELEASE_LTO=off \
+    CARGO_PROFILE_RELEASE_OPT_LEVEL=2 \
     RUSTFLAGS="-C link-arg=-fuse-ld=mold" \
+    http_proxy= https_proxy= HTTP_PROXY= HTTPS_PROXY= no_proxy= NO_PROXY= \
     cargo build --release --locked -p ha-server --bin hope-agent-server && \
     cp /work/target/release/hope-agent-server /usr/local/bin/hope-agent
 
 # -------------------------------------------------------------------
 # Stage 3: minimal runtime
 # -------------------------------------------------------------------
-FROM debian:trixie-slim AS runtime
+#FROM debian:trixie-slim AS runtime
+FROM ${BASE_IMAGE} AS runtime
 
 # ca-certificates: required for outbound HTTPS to provider APIs.
 # tzdata: required for cron schedules / `TZ` env var to take effect.
@@ -140,23 +146,11 @@ FROM debian:trixie-slim AS runtime
 # Cargo feature is disabled when ha-server builds `hope-agent`, so xcap /
 # arboard never get linked in and their runtime dependencies aren't
 # needed. See `crates/ha-core/Cargo.toml` `[features]` for the gate.
-RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 update && \
-    apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 install -y --no-install-recommends \
-        ca-certificates \
-        tzdata \
-        wget \
-        tini \
-        chromium \
-        fonts-liberation \
-        libnss3 \
-        libgbm1 \
-        libxss1 \
-    && rm -rf /var/lib/apt/lists/*
 
-# Non-root user. /data is the persisted HA_DATA_DIR (mount this as a volume).
-RUN groupadd --system --gid 1000 hope && \
-    useradd  --system --uid 1000 --gid hope --shell /bin/sh --home-dir /data --create-home hope
 
+# Runtime runs as root. Entrypoint has no non-root assumptions
+# (no chown / su), and running as root simplifies volume mounts where
+# the host-side data dir may be owned by any uid.
 COPY --from=rust /usr/local/bin/hope-agent /usr/local/bin/hope-agent
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
@@ -176,7 +170,10 @@ ENV HA_DATA_DIR=/data \
     HOPE_AGENT_BUNDLED_SKILLS_DIR=/usr/local/share/hope-agent/skills \
     TZ=UTC
 
-USER hope
+# Ensure /data exists and is owned by root (HA_DATA_DIR=/data is set
+# above; this is the persisted data root that users mount as a volume).
+RUN mkdir -p /data
+
 WORKDIR /data
 EXPOSE 8420
 

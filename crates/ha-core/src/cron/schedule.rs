@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, FixedOffset, Utc};
 use chrono_tz::Tz;
 use cron::Schedule as CronExpression;
 use std::str::FromStr;
@@ -99,24 +99,32 @@ pub fn compute_next_every_run(
     DateTime::<Utc>::from_timestamp_millis(next_ms)
 }
 
-/// Parse cron expression and find the next occurrence after `after`.
+/// Default timezone for cron jobs when none is specified.
 ///
-/// When `timezone` names a valid IANA zone the cron wall-clock fields are
-/// interpreted in that zone (DST-aware), then converted back to UTC for storage.
-/// An absent / empty / unknown zone falls back to UTC interpretation (the
-/// historical behavior). `parse_schedule` rejects invalid zones up front, so the
-/// `None` fallback here is only hit by zone-less (legacy / explicit-UTC) jobs.
+/// Resolved at runtime from `UserConfig.timezone` → `iana-time-zone` auto-detect → UTC.
+/// Do NOT hardcode a specific zone here — in server/Docker mode the host zone may be
+/// UTC while the user is in a different timezone.
+fn default_cron_timezone() -> String {
+    crate::user_config::effective_timezone()
+}
+
+/// Parse cron expression and find the next occurrence after `after`,
+/// using the specified IANA timezone (e.g. "Asia/Shanghai") for calendar
+/// expansion. Falls back to `DEFAULT_CRON_TIMEZONE` when timezone is `None`.
 fn compute_next_cron(
     expression: &str,
     timezone: Option<&str>,
     after: &DateTime<Utc>,
 ) -> Option<DateTime<Utc>> {
     let schedule = CronExpression::from_str(expression).ok()?;
-    // Resolve the zone. An absent / empty name is the intended UTC default (stays
-    // silent). A *non-empty* name that no longer parses (chrono_tz drift, an older
-    // binary, or a tampered row) is logged before falling back to UTC: validation
-    // enforces "禁止静默回退 UTC" at create/update time, and this surfaces the rare
-    // runtime case instead of silently firing at the wrong wall-clock hour.
+    // Resolve the zone. An absent / empty name falls back to
+    // `default_cron_timezone()` (resolved from UserConfig / auto-detect / UTC)
+    // — the zone the user most likely intended when they omitted the field.
+    // A *non-empty* name that no longer parses (chrono_tz drift, an older
+    // binary, or a tampered row) is logged before falling back to UTC:
+    // validation enforces "禁止静默回退 UTC" at create/update time, and
+    // this surfaces the rare runtime case instead of silently firing at the
+    // wrong wall-clock hour.
     let tz = match timezone {
         Some(name) if !name.trim().is_empty() => match parse_timezone(name) {
             Some(tz) => Some(tz),
@@ -130,7 +138,7 @@ fn compute_next_cron(
                 None
             }
         },
-        _ => None,
+        _ => parse_timezone(&default_cron_timezone()),
     };
     // Take the first occurrence strictly AFTER `after` (in UTC terms). The `.find`
     // (vs `.next`) is load-bearing for DST fall-back: in the ambiguous wall-clock
@@ -173,6 +181,16 @@ pub fn validate_timezone(s: &str) -> Result<()> {
             s.trim()
         )
     }
+}
+
+/// Parse a fixed-offset timezone string like "+08:00" or "+0800".
+#[allow(dead_code)]
+fn parse_fixed_offset(s: &str) -> Result<FixedOffset> {
+    let normalized = normalize_tz_offset(&format!("2000-01-01T00:00:00{s}"));
+    if let Ok(dt) = DateTime::parse_from_rfc3339(&normalized) {
+        return Ok(*dt.offset());
+    }
+    anyhow::bail!("invalid fixed offset: {s}")
 }
 
 /// Validate a cron expression. Returns Ok if valid, Err with message if not.
@@ -351,20 +369,21 @@ mod tests {
     }
 
     #[test]
-    fn cron_schedule_without_timezone_is_utc() {
-        // No zone → cron fields interpreted as UTC wall-clock (historical).
+    fn cron_schedule_without_timezone_falls_back_to_effective() {
+        // No zone → falls back to `effective_timezone()`, which returns the
+        // host-detected zone in tests (or UTC in CI). This test verifies the
+        // fallback path works at all — the specific zone depends on the host.
         let after = parse_flexible_timestamp("2026-06-01T00:00:00Z").unwrap();
-        let next = compute_next_run(
+        let result = compute_next_run(
             &CronSchedule::Cron {
                 expression: "0 0 9 * * * *".into(),
                 timezone: None,
             },
             &after,
-        )
-        .expect("next");
-        assert_eq!(
-            next,
-            parse_flexible_timestamp("2026-06-01T09:00:00Z").unwrap()
+        );
+        assert!(
+            result.is_some(),
+            "should find next occurrence with default timezone"
         );
     }
 

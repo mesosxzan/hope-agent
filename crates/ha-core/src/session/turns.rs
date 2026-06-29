@@ -166,7 +166,7 @@ impl SessionDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         conn.execute(
             "INSERT INTO chat_turns (
                 id, session_id, source, status, interrupt_reason, stream_id,
@@ -234,7 +234,7 @@ impl SessionDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let n = conn.execute(
             "UPDATE chat_turns
              SET status = 'cancelling', interrupt_reason = ?1, updated_at = ?2
@@ -262,7 +262,7 @@ impl SessionDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let n = conn.execute(
             "UPDATE chat_turns
              SET status = ?1,
@@ -327,7 +327,7 @@ impl SessionDB {
         let final_error = (final_status == ChatTurnStatus::Failed)
             .then_some(error)
             .flatten();
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         conn.execute(
             "UPDATE chat_turns
              SET status = ?1,
@@ -363,7 +363,7 @@ impl SessionDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let n = conn.execute(
             "UPDATE chat_turns SET stream_id = ?1, updated_at = ?2 WHERE id = ?3",
             params![stream_id, now, turn_id],
@@ -376,7 +376,7 @@ impl SessionDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let n = conn.execute(
             "UPDATE chat_turns
              SET status = 'interrupted',

@@ -14,7 +14,6 @@ use std::{
 };
 
 use async_trait::async_trait;
-use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -975,7 +974,7 @@ impl MacControlSnapshot {
     pub fn new_empty() -> Self {
         Self {
             snapshot_id: new_snapshot_id(),
-            created_at: Utc::now().to_rfc3339(),
+            created_at: crate::user_config::now_local_rfc3339(),
             frontmost_app: None,
             displays: Vec::new(),
             windows: Vec::new(),
@@ -2333,7 +2332,7 @@ pub async fn diagnostics(request: MacControlDiagnosticsRequest) -> MacControlDia
     let status = status().await;
     let mut result = MacControlDiagnosticsResult {
         op: request.op,
-        generated_at: Utc::now().to_rfc3339(),
+        generated_at: crate::user_config::now_local_rfc3339(),
         snapshot_cache: snapshot_cache_summaries(request.limit),
         recent_errors: runtime_stats().recent_errors,
         focus_anchor: capture_focus_anchor().await,
@@ -4384,7 +4383,7 @@ fn record_error(operation: &str, message: &str) {
         return;
     };
     let key = format!("{operation}:{message}");
-    let now = Utc::now().to_rfc3339();
+    let now = crate::user_config::now_local_rfc3339();
     let entry = stats.entry(key).or_insert_with(|| MacControlErrorStat {
         operation: operation.to_string(),
         message: message.to_string(),

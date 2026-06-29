@@ -88,6 +88,7 @@ pub(crate) fn tool_manage_cron<'a>(
                     // None here = follow the agent default.
                     permission_mode_override: None,
                     sandbox_mode_override: None,
+                    reuse_session: args.get("reuse_session").and_then(|v| v.as_bool()),
                 };
 
                 let job = cron_db.add_job(&input)?;
@@ -234,9 +235,15 @@ pub(crate) fn tool_manage_cron<'a>(
                         .as_deref()
                         .map(|pid| format!(" | Project: {}", project_label(pid)))
                         .unwrap_or_default();
+                    // The full job id is load-bearing: `update` / `delete` /
+                    // `get` / `pause` / `resume` / `run_now` all look up the row
+                    // by `WHERE id=?` (exact match on the 36-char UUID). Showing
+                    // a truncated prefix here starves the model of the id it
+                    // needs to act on a listed job — every downstream action
+                    // then fails with "Job 'xxx' not found".
                     lines.push(format!(
-                        "  - [{}] {} ({}) | Next: {} | Status: {}{}{}",
-                        crate::truncate_utf8(&job.id, 8),
+                        "  - [id={}] {} ({}) | Next: {} | Status: {}{}{}",
+                        job.id,
                         job.name,
                         schedule_summary(&job.schedule),
                         next,

@@ -98,7 +98,7 @@ impl CrashJournal {
     /// Add a new crash entry, trimming old entries if needed
     pub fn add_crash(&mut self, exit_code: i32, crash_count_session: u32) {
         let entry = CrashEntry {
-            timestamp: chrono::Utc::now().to_rfc3339(),
+            timestamp: crate::user_config::now_local_rfc3339(),
             exit_code,
             signal: signal_name_from_exit_code(exit_code),
             crash_count_session,

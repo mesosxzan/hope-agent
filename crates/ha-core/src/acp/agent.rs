@@ -415,7 +415,7 @@ impl AcpAgent {
                 "sessionUpdate": {
                     "sessionUpdate": "session_info_update",
                     "title": title,
-                    "updatedAt": chrono::Utc::now().to_rfc3339(),
+                    "updatedAt": crate::user_config::now_local_rfc3339(),
                 }
             });
             let _ = self

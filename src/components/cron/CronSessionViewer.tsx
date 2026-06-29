@@ -5,6 +5,7 @@ import MessageList from "@/components/chat/MessageList"
 import { parseSessionMessages } from "@/components/chat/chatUtils"
 import { getTransport } from "@/lib/transport-provider"
 import { logger } from "@/lib/logger"
+import { useCronStream } from "./useCronStream"
 import type { Message, SessionMessage, AgentSummaryForSidebar } from "@/types/chat"
 
 const PAGE_SIZE = 50
@@ -34,6 +35,10 @@ export default function CronSessionViewer({ sessionId, agents }: CronSessionView
   const [loadingMore, setLoadingMore] = useState(false)
   // DB id of the oldest message currently loaded; the cursor for "load earlier".
   const oldestDbId = useRef<number | null>(null)
+
+  // Real-time streaming: listen for chat:stream_delta / stream_end / turn_started
+  // so the viewer shows LLM output as it arrives instead of only after completion.
+  useCronStream({ sessionId, messages, setMessages })
 
   useEffect(() => {
     let cancelled = false

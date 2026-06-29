@@ -93,6 +93,12 @@ impl WeChatSharedState {
     pub async fn restore_context_tokens(&self, account_id: &str) -> Result<()> {
         let path = Self::context_token_path(account_id)?;
         if !path.exists() {
+            app_info!(
+                "channel",
+                "wechat",
+                "No persisted context_token store for account '{}' (file not found), starting with empty cache",
+                account_id
+            );
             return Ok(());
         }
 
@@ -100,10 +106,20 @@ impl WeChatSharedState {
         let tokens: HashMap<String, String> =
             serde_json::from_str(&raw).context("Failed to parse WeChat context token store")?;
 
+        let count = tokens.len();
+        let keys: Vec<String> = tokens.keys().cloned().collect();
         self.context_tokens
             .lock()
             .await
             .insert(account_id.to_string(), tokens);
+        app_info!(
+            "channel",
+            "wechat",
+            "Restored {} context_token(s) for account '{}' from disk: [{}]",
+            count,
+            account_id,
+            keys.join(", ")
+        );
         Ok(())
     }
 
@@ -113,6 +129,13 @@ impl WeChatSharedState {
         user_id: &str,
         token: &str,
     ) -> Result<()> {
+        app_debug!(
+            "channel",
+            "wechat",
+            "Caching context_token for account='{}' user_id='{}'",
+            account_id,
+            user_id,
+        );
         let snapshot = {
             let mut store = self.context_tokens.lock().await;
             let entry = store.entry(account_id.to_string()).or_default();
@@ -128,6 +151,30 @@ impl WeChatSharedState {
             .get(account_id)
             .and_then(|value| value.get(user_id))
             .cloned()
+    }
+
+    /// Clear a stale/expired context_token from cache and persist.
+    /// Called when a send fails with ret=-2 (invalid/expired token)
+    /// so subsequent retries don't reuse the stale token.
+    pub async fn clear_context_token(&self, account_id: &str, user_id: &str) {
+        let snapshot = {
+            let mut store = self.context_tokens.lock().await;
+            if let Some(entry) = store.get_mut(account_id) {
+                entry.remove(user_id);
+                entry.clone()
+            } else {
+                return;
+            }
+        };
+        if let Err(e) = self.persist_context_tokens(account_id, &snapshot) {
+            app_warn!(
+                "channel",
+                "wechat",
+                "Failed to persist context_tokens after clearing {}: {}",
+                user_id,
+                e
+            );
+        }
     }
 
     fn persist_context_tokens(
@@ -477,6 +524,26 @@ impl ChannelPlugin for WeChatPlugin {
         let api = self.get_api(account_id).await?;
         let context_token = self.shared.get_context_token(account_id, chat_id).await;
 
+        // WeChat iLink requires a context_token for reliable message
+        // delivery.  The token is issued by the getupdates API alongside
+        // each inbound message and should be echoed verbatim in replies.
+        //
+        // However, empirical evidence from multiple open-source iLink
+        // clients (hermes-agent #17228, weixin-ilink-gateway) shows that
+        // iLink sometimes accepts sendmessage WITHOUT a context_token as a
+        // degraded fallback — typically when the server-side session is
+        // still active (e.g. the user messaged recently).  This "tokenless"
+        // path is the only way to deliver cron / proactive pushes when no
+        // cached context_token exists.
+        //
+        // Strategy:
+        // 1. If context_token is cached → use it (primary path).
+        // 2. If send fails with ret=-2 (invalid/expired token) → clear the
+        //    stale token and retry once without it (tokenless fallback).
+        // 3. If context_token was missing from the start → try tokenless
+        //    send directly (cron / proactive scenario).
+        // 4. If tokenless send also fails → return a clear error.
+
         // Send media attachments first (each as a separate message)
         let mut last_media_id = None;
         for m in &payload.media {
@@ -495,9 +562,86 @@ impl ChannelPlugin for WeChatPlugin {
         // Send text (if any)
         let text = payload.text.as_deref().map(str::trim).unwrap_or("");
         if !text.is_empty() {
-            let message_id = api
-                .send_text(chat_id, text, context_token.as_deref())
-                .await?;
+            let mut had_context_token = context_token.is_some();
+            // Tracks whether we already attempted a tokenless retry after
+            // the initial send failed with ret=-2.  This distinguishes
+            // three error scenarios in the final map_err:
+            //   A) had token, ret=-2, tokenless retry also ret=-2
+            //   B) had token, ret=-2, tokenless retry succeeded (no error)
+            //   C) never had token, tokenless send got ret=-2
+            let mut did_tokenless_retry = false;
+            let result = api.send_text(chat_id, text, context_token.as_deref()).await;
+
+            let result = match result {
+                Ok(msg_id) => Ok(msg_id),
+                Err(ref e) => {
+                    let err_str = e.to_string();
+
+                    // ret=-2 with a context_token means the token is
+                    // expired/invalid.  Clear the stale token and retry
+                    // once without it (tokenless fallback).
+                    if err_str.contains("ret=-2") && had_context_token {
+                        app_warn!(
+                            "channel",
+                            "wechat",
+                            "send_text got ret=-2 for {}, clearing stale context_token and retrying tokenless",
+                            chat_id
+                        );
+                        had_context_token = false;
+                        did_tokenless_retry = true;
+                        self.shared.clear_context_token(account_id, chat_id).await;
+                        api.send_text(chat_id, text, None).await
+                    } else {
+                        result
+                    }
+                }
+            };
+
+            if let Err(ref e) = result {
+                let err_str = e.to_string();
+
+                if err_str.contains("ret=-2") && !had_context_token {
+                    // Tokenless send also returned ret=-2 — the iLink
+                    // server requires a valid context_token for this user
+                    // session.  This is an unrecoverable protocol
+                    // limitation for proactive/cron delivery.
+                    app_warn!(
+                        "channel",
+                        "wechat",
+                        "send_text: tokenless fallback also failed with ret=-2 for chat_id='{}'; \
+                         iLink server requires a valid context_token for this session",
+                        chat_id
+                    );
+                }
+
+                if err_str.contains("errcode=-14") || err_str.contains("errcode= -14") {
+                    self.shared.pause_account(account_id).await;
+                }
+            }
+            let message_id = result.map_err(|e| {
+                let err_str = e.to_string();
+                if err_str.contains("ret=-2") {
+                    if did_tokenless_retry {
+                        anyhow::anyhow!(
+                            "WeChat: sendmessage failed for '{}' even after tokenless retry (ret=-2). \
+                             The cached context_token was expired and the server also rejected the \
+                             tokenless fallback. The user must send a new message to the bot to \
+                             refresh the session (iLink protocol limitation).",
+                            chat_id
+                        )
+                    } else {
+                        anyhow::anyhow!(
+                            "WeChat: no context_token for '{}' and tokenless send was rejected (ret=-2). \
+                             The user must send a message to the bot first so that a context_token \
+                             is cached. Proactive/cron delivery is not possible until then \
+                             (iLink protocol limitation).",
+                            chat_id
+                        )
+                    }
+                } else {
+                    e
+                }
+            })?;
             return Ok(DeliveryResult::ok(message_id));
         }
 
@@ -569,7 +713,7 @@ impl ChannelPlugin for WeChatPlugin {
         match api.probe().await {
             Ok(()) => Ok(ChannelHealth {
                 is_running: false,
-                last_probe: Some(chrono::Utc::now().to_rfc3339()),
+                last_probe: Some(crate::user_config::now_local_rfc3339()),
                 probe_ok: Some(true),
                 error: None,
                 uptime_secs: None,
@@ -577,7 +721,7 @@ impl ChannelPlugin for WeChatPlugin {
             }),
             Err(err) => Ok(ChannelHealth {
                 is_running: false,
-                last_probe: Some(chrono::Utc::now().to_rfc3339()),
+                last_probe: Some(crate::user_config::now_local_rfc3339()),
                 probe_ok: Some(false),
                 error: Some(err.to_string()),
                 uptime_secs: None,

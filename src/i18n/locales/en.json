@@ -803,6 +803,8 @@
     "noDeliveryTargets": "No targets — results only land in session history",
     "noJobs": "No scheduled tasks yet",
     "noProject": "No Project",
+    "timezone": "Timezone",
+    "reuseSession": "Reuse Session",
     "noResults": "No matching tasks",
     "noRuns": "No run history yet",
     "noTasksThisDay": "No tasks on this day",
@@ -4919,7 +4921,17 @@
     "webSearchRecommended": "Recommended",
     "webSearchSaved": "Saved",
     "webSearchTimeout": "Timeout (seconds)",
-    "webSearchTimeoutDesc": "HTTP timeout for search requests (5-120s)"
+    "webSearchTimeoutDesc": "HTTP timeout for search requests (5-120s)",
+    "webSearchProxy": "Search Proxy",
+    "webSearchProxyDesc": "Configure proxy for web search requests. Useful when DuckDuckGo is blocked in your region.",
+    "webSearchProxyGlobal": "Use Global Proxy",
+    "webSearchProxyGlobalDesc": "Inherit the global proxy settings",
+    "webSearchProxyNone": "No Proxy",
+    "webSearchProxyNoneDesc": "Direct connection, ignore global proxy for web search",
+    "webSearchProxyCustom": "Custom Proxy",
+    "webSearchProxyCustomDesc": "Use a dedicated proxy for web search only",
+    "webSearchProxyUrl": "Proxy URL",
+    "webSearchProxyUrlPlaceholder": "http://127.0.0.1:7890"
   },
   "shortcuts": {
     "actionOpenSettings": "Open Settings",

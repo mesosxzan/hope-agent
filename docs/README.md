@@ -25,6 +25,7 @@
 | 文档                                             | 说明                                                  | 关联源码                                           |
 | ---------------------------------------------- | --------------------------------------------------- | ---------------------------------------------- |
 | [Chat Engine](architecture/chat-engine.md)     | 对话编排入口、流式事件协议、Failover 集成、记忆提取门控                    | `chat_engine/`                                 |
+| [LLM 响应与前后端交互](architecture/llm-response-frontend-interaction.md) | LLM 返回数据端到端流式管线：on_delta 三路分发、StreamPersister 增量持久化、EventBus 双写、Transport 抽象、前端 Hook 层缓冲去重节流、消息渲染 | `chat_engine/`, `src/lib/transport*.ts`, `src/components/chat/hooks/` |
 | [Provider 系统](architecture/provider-system.md) | 4 种 API 类型、Provider 模板、Failover 策略、Thinking 系统、Provider Write Contract、Local Backend Catalog | `provider/`, `failover/`, `agent/providers/` |
 | [主 LLM OAuth](architecture/llm-oauth.md) | Codex 主对话 OAuth 登录（PKCE + 本地回调）、token 刷新与并发去抖、凭据落 `auth.json`、登出清理、与 MCP OAuth 隔离 | `oauth.rs` |
 | [本地模型加载](architecture/local-model-loading.md) | Ollama 本地模型搜索/下载/加载/删除、后台任务、Provider 注册、Embedding 配置与记忆向量重建 | `local_llm/`, `local_model_jobs.rs`, `local_embedding.rs`, `memory/embedding/` |

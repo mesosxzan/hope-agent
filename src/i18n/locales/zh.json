@@ -803,6 +803,8 @@
     "noDeliveryTargets": "未配置目标 — 结果只存在会话历史中",
     "noJobs": "暂无定时任务",
     "noProject": "无项目",
+    "timezone": "时区",
+    "reuseSession": "复用会话",
     "noResults": "没有匹配的任务",
     "noRuns": "暂无运行记录",
     "noTasksThisDay": "当天没有任务",
@@ -4919,7 +4921,17 @@
     "webSearchRecommended": "推荐",
     "webSearchSaved": "已保存",
     "webSearchTimeout": "超时（秒）",
-    "webSearchTimeoutDesc": "搜索请求 HTTP 超时时间（5-120 秒）"
+    "webSearchTimeoutDesc": "搜索请求 HTTP 超时时间（5-120 秒）",
+    "webSearchProxy": "搜索代理",
+    "webSearchProxyDesc": "为网页搜索请求配置专用代理，在 DuckDuckGo 被屏蔽的地区特别有用。",
+    "webSearchProxyGlobal": "使用全局代理",
+    "webSearchProxyGlobalDesc": "继承全局代理设置",
+    "webSearchProxyNone": "不使用代理",
+    "webSearchProxyNoneDesc": "直连，网页搜索忽略全局代理",
+    "webSearchProxyCustom": "自定义代理",
+    "webSearchProxyCustomDesc": "仅为网页搜索使用独立代理",
+    "webSearchProxyUrl": "代理地址",
+    "webSearchProxyUrlPlaceholder": "http://127.0.0.1:7890"
   },
   "shortcuts": {
     "actionOpenSettings": "打开设置",

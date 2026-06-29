@@ -324,7 +324,7 @@ fn format_token_count(tokens: u64) -> String {
 /// string. Returns `None` when the timestamp is unparseable so the caller can
 /// drop the row entirely rather than render a broken value.
 ///
-/// `sessions.updated_at` is always written via `Utc::now().to_rfc3339()`
+/// `sessions.updated_at` is always written via `crate::user_config::now_local_rfc3339()`
 /// (see `SessionDB`), so RFC3339 is the only format we need to handle.
 fn format_duration_since(ts: &str) -> Option<String> {
     let parsed = chrono::DateTime::parse_from_rfc3339(ts)

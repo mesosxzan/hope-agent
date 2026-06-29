@@ -1154,7 +1154,7 @@ impl SessionDB {
         incognito: bool,
     ) -> Result<SessionMeta> {
         let id = uuid::Uuid::new_v4().to_string();
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
 
         // New sessions inherit the agent's configured default permission mode
         // (`capabilities.default_session_permission_mode`). This is the single
@@ -1917,7 +1917,7 @@ impl SessionDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let timestamp = if msg.timestamp.is_empty() {
             &now
         } else {
@@ -2164,7 +2164,7 @@ impl SessionDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         match duration_ms {
             Some(d) => {
                 conn.execute(
@@ -2460,7 +2460,7 @@ impl SessionDB {
     /// not bump `updated_at` — pinning is an ordering preference, not chat
     /// activity.
     pub fn set_session_pinned(&self, session_id: &str, pinned: bool) -> Result<()> {
-        let pinned_at = pinned.then(|| chrono::Utc::now().to_rfc3339());
+        let pinned_at = pinned.then(|| crate::user_config::now_local_rfc3339());
         let conn = self
             .conn
             .lock()
@@ -2572,7 +2572,7 @@ impl SessionDB {
         session_id: &str,
         plan_mode: crate::plan::PlanModeState,
     ) -> Result<()> {
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let conn = self
             .conn
             .lock()
@@ -3156,7 +3156,7 @@ impl SessionDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let mut added = Vec::new();
         for name in skill_names {
             let changed = conn.execute(
@@ -4387,7 +4387,7 @@ mod tests {
         let channel = db.create_session("ha-main").expect("channel session");
         {
             let conn = db.conn.lock().expect("lock connection");
-            let now = chrono::Utc::now().to_rfc3339();
+            let now = crate::user_config::now_local_rfc3339();
             conn.execute(
                 "INSERT INTO channel_conversations
                     (channel_id, account_id, chat_id, session_id, chat_type, source, created_at, updated_at)

@@ -803,6 +803,12 @@ pub struct EmbeddedServerConfig {
     /// Format: `https://example.com` (no trailing slash).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub public_base_url: Option<String>,
+    /// Default IANA timezone for users when `UserConfig.timezone` is not set
+    /// and the server's host zone is UTC (e.g. in Docker). This overrides
+    /// the UTC fallback so web/server mode shows correct local times.
+    /// Example: `"Asia/Shanghai"`. `None` = fall back to UTC.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_timezone: Option<String>,
 }
 
 impl Default for EmbeddedServerConfig {
@@ -811,6 +817,7 @@ impl Default for EmbeddedServerConfig {
             bind_addr: default_server_bind(),
             api_key: None,
             public_base_url: None,
+            default_timezone: None,
         }
     }
 }
@@ -1047,6 +1054,9 @@ pub struct AppConfig {
     /// UI theme preference: "auto" | "light" | "dark"
     #[serde(default = "default_theme")]
     pub theme: String,
+    /// Color theme / accent palette: "default" | "ocean" | "aurora" | "rose"
+    #[serde(default)]
+    pub color_theme: Option<String>,
     /// UI language preference: "auto" means follow system, otherwise a locale code like "zh", "en"
     #[serde(default = "default_language")]
     pub language: String,
@@ -1307,6 +1317,7 @@ impl Default for AppConfig {
             timeout_policy: TimeoutPolicyConfig::default(),
             tool_result_disk_threshold: None,
             theme: default_theme(),
+            color_theme: None,
             language: default_language(),
             ui_effects_enabled: true,
             prevent_sleep: false,

@@ -113,7 +113,7 @@ impl AcpRuntimeRegistry {
                 binary_path: None,
                 version: None,
                 error: Some("Not checked yet".into()),
-                last_checked: chrono::Utc::now().to_rfc3339(),
+                last_checked: crate::user_config::now_local_rfc3339(),
             });
 
             infos.push(AcpBackendInfo {

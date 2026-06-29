@@ -93,7 +93,7 @@ pub async fn transition_state(
     // Persist alongside in-memory PlanMeta so a session-switch / app-restart
     // doesn't drop the stamp and silently break auto-complete scoping.
     if target == PlanModeState::Executing {
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let mut map = store().write().await;
         if let Some(meta) = map.get_mut(session_id) {
             meta.executing_started_at = Some(now.clone());

@@ -14,7 +14,7 @@ pub fn build_health_status(
         binary_path,
         version,
         error,
-        last_checked: chrono::Utc::now().to_rfc3339(),
+        last_checked: crate::user_config::now_local_rfc3339(),
     }
 }
 

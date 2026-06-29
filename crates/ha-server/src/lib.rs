@@ -1052,6 +1052,8 @@ fn build_router_with_cors(
         // Config — theme / language / UI
         .route("/config/theme", get(routes::config::get_theme))
         .route("/config/theme", post(routes::config::set_theme))
+        .route("/config/color-theme", get(routes::config::get_color_theme))
+        .route("/config/color-theme", post(routes::config::set_color_theme))
         .route(
             "/config/window-theme",
             post(routes::config::set_window_theme),
@@ -1930,6 +1932,7 @@ fn build_router_with_cors(
     attach_web_fallback(base)
         .layer(build_cors_layer(cors_origins))
         .layer(axum::middleware::from_fn(middleware::access_log))
+        .layer(axum::middleware::from_fn(middleware::convert_timezone))
         .with_state(ctx)
 }
 

@@ -532,6 +532,25 @@ pub async fn set_theme(theme: String) -> Result<(), CmdError> {
 }
 
 #[tauri::command]
+pub async fn get_color_theme() -> Result<String, CmdError> {
+    let store = ha_core::config::load_config()?;
+    Ok(store.color_theme.unwrap_or_else(|| "default".to_string()))
+}
+
+#[tauri::command]
+pub async fn set_color_theme(color_theme: String) -> Result<(), CmdError> {
+    ha_core::config::mutate_config(("theme", "settings-ui"), |store| {
+        store.color_theme = if color_theme == "default" {
+            None
+        } else {
+            Some(color_theme)
+        };
+        Ok(())
+    })
+    .map_err(Into::into)
+}
+
+#[tauri::command]
 pub async fn get_language() -> Result<String, CmdError> {
     let store = ha_core::config::load_config()?;
     Ok(store.language)
@@ -656,24 +675,14 @@ pub async fn save_avatar(data: Vec<u8>, file_name: String) -> Result<String, Cmd
     Ok(path.to_string_lossy().to_string())
 }
 
-/// Get the system's IANA timezone name
+/// Get the system's effective IANA timezone name.
+///
+/// Returns the user's effective timezone (from `UserConfig.timezone` →
+/// host auto-detect → `AppConfig.server.default_timezone` → UTC),
+/// consistent with the HTTP `/api/system/timezone` endpoint.
 #[tauri::command]
 pub async fn get_system_timezone() -> Result<String, CmdError> {
-    // Try reading /etc/localtime symlink (macOS/Linux)
-    if let Ok(link) = std::fs::read_link("/etc/localtime") {
-        let path_str = link.to_string_lossy().to_string();
-        // Extract timezone from path like /var/db/timezone/zoneinfo/Asia/Shanghai
-        if let Some(pos) = path_str.find("zoneinfo/") {
-            return Ok(path_str[pos + 9..].to_string());
-        }
-    }
-    // Fallback: TZ env var
-    if let Ok(tz) = std::env::var("TZ") {
-        if !tz.is_empty() {
-            return Ok(tz);
-        }
-    }
-    Ok("UTC".to_string())
+    Ok(ha_core::user_config::effective_timezone())
 }
 
 #[tauri::command]

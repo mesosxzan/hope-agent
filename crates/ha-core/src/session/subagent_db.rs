@@ -335,7 +335,7 @@ impl SessionDB {
             .conn
             .lock()
             .map_err(|e| anyhow::anyhow!("Lock error: {}", e))?;
-        let now = chrono::Utc::now().to_rfc3339();
+        let now = crate::user_config::now_local_rfc3339();
         let affected = conn.execute(
             "UPDATE subagent_runs SET status = 'error', error = 'Orphaned: app restarted before completion', finished_at = ?1
              WHERE status IN ('queued', 'spawning', 'running')",

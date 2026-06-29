@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { toast } from "sonner"
 import { getTransport } from "@/lib/transport-provider"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
@@ -182,6 +183,7 @@ export default function CronJobForm({
 
   const [message, setMessage] = useState(job?.payload.prompt ?? "")
   const [agentId, setAgentId] = useState(job?.payload.agentId ?? AUTO_AGENT_VALUE)
+  const [reuseSession, setReuseSession] = useState(job?.reuseSession ?? false)
   const [projectId, setProjectId] = useState(
     job ? (job.projectId ?? NO_PROJECT_VALUE) : (defaultProjectId ?? NO_PROJECT_VALUE),
   )
@@ -386,11 +388,13 @@ export default function CronJobForm({
           maxFailures: parseInt(maxFailures) || 5,
           notifyOnComplete,
           deliveryTargets: validTargets,
+          reuseSession,
           prefixDeliveryWithName,
           jobTimeoutSecs: parseJobTimeoutSecs(),
           permissionModeOverride: resolvedPermissionMode,
           sandboxModeOverride: resolvedSandboxMode,
         }
+        console.log("[CronJobForm] cron_update_job:", JSON.stringify(updated, null, 2))
         await getTransport().call("cron_update_job", { job: updated })
       } else {
         const schedule = buildSchedule()
@@ -408,16 +412,20 @@ export default function CronJobForm({
             maxFailures: parseInt(maxFailures) || 5,
             notifyOnComplete,
             deliveryTargets: validTargets,
+            reuseSession,
             prefixDeliveryWithName,
             jobTimeoutSecs: parseJobTimeoutSecs(),
             permissionModeOverride: resolvedPermissionMode,
             sandboxModeOverride: resolvedSandboxMode,
           },
         })
+        console.log("[CronJobForm] cron_create_job: reuseSession=", reuseSession)
       }
+      toast.success(isEditing ? t("cron.updateSuccess", "任务已更新") : t("cron.createSuccess", "任务已创建"))
       onSave()
     } catch (e: unknown) {
       setError(String(e))
+      toast.error(String(e))
     } finally {
       setSaving(false)
     }
@@ -447,7 +455,7 @@ export default function CronJobForm({
         }
       }
       case "cron":
-        return { type: "cron", expression: cronExpression, timezone: timezone || null }
+        return { type: "cron", expression: cronExpression, timezone }
     }
   }
 
@@ -599,6 +607,14 @@ export default function CronJobForm({
               </div>
             </>
           )}
+
+          {/* Reuse Session (available for all schedule types) */}
+          <div className="flex items-center gap-2">
+            <Switch checked={reuseSession} onCheckedChange={setReuseSession} />
+            <label className="text-xs font-medium text-muted-foreground">
+              {t("cron.reuseSession")}
+            </label>
+          </div>
 
           {/* Message */}
           <div>

@@ -354,7 +354,7 @@ impl ChannelPlugin for SignalPlugin {
         if crate::channel::process_manager::find_binary(binary_name).is_none() {
             return Ok(ChannelHealth {
                 is_running: false,
-                last_probe: Some(chrono::Utc::now().to_rfc3339()),
+                last_probe: Some(crate::user_config::now_local_rfc3339()),
                 probe_ok: Some(false),
                 error: Some(format!("signal-cli binary not found: '{}'", binary_name)),
                 uptime_secs: None,
@@ -368,7 +368,7 @@ impl ChannelPlugin for SignalPlugin {
             match running.client.list_identities().await {
                 Ok(_) => Ok(ChannelHealth {
                     is_running: true,
-                    last_probe: Some(chrono::Utc::now().to_rfc3339()),
+                    last_probe: Some(crate::user_config::now_local_rfc3339()),
                     probe_ok: Some(true),
                     error: None,
                     uptime_secs: None,
@@ -376,7 +376,7 @@ impl ChannelPlugin for SignalPlugin {
                 }),
                 Err(e) => Ok(ChannelHealth {
                     is_running: true,
-                    last_probe: Some(chrono::Utc::now().to_rfc3339()),
+                    last_probe: Some(crate::user_config::now_local_rfc3339()),
                     probe_ok: Some(false),
                     error: Some(e.to_string()),
                     uptime_secs: None,
@@ -386,7 +386,7 @@ impl ChannelPlugin for SignalPlugin {
         } else {
             Ok(ChannelHealth {
                 is_running: false,
-                last_probe: Some(chrono::Utc::now().to_rfc3339()),
+                last_probe: Some(crate::user_config::now_local_rfc3339()),
                 probe_ok: Some(true),
                 error: None,
                 uptime_secs: None,

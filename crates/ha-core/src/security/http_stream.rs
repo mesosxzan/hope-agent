@@ -19,7 +19,8 @@ pub async fn read_bytes_capped(resp: reqwest::Response, max_bytes: usize) -> Res
 }
 
 /// Like [`read_bytes_capped`] but returns a lossy UTF-8 string. `max_bytes` is
-/// the post-decompression cap (reqwest transparently decodes gzip/deflate).
+/// the post-decompression cap (reqwest transparently decodes gzip/deflate/brotli
+/// when the corresponding Cargo features are enabled).
 pub async fn read_text_capped(resp: reqwest::Response, max_bytes: usize) -> Result<String> {
     let bytes = read_bytes_capped(resp, max_bytes).await?;
     Ok(String::from_utf8_lossy(&bytes).into_owned())

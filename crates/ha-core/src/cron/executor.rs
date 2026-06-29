@@ -1,5 +1,4 @@
 use anyhow::Result;
-use chrono::Utc;
 use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::Arc;
 
@@ -99,7 +98,7 @@ impl Drop for RunningMarkerGuard {
                     let _ = self.cron_db.finalize_run_log(
                         run_log_id,
                         "error",
-                        &Utc::now().to_rfc3339(),
+                        &crate::user_config::now_local_rfc3339(),
                         None,
                         None,
                         Some("Interrupted (run did not reach a terminal path)"),
@@ -271,6 +270,13 @@ pub(crate) async fn execute_claimed_job(
     running_guard
         .run_log_id
         .store(run_log_id.unwrap_or(0), Ordering::SeqCst);
+
+    // Notify the frontend that a run has started so CronJobDetail can
+    // refresh its run log and auto-select the new session for live
+    // streaming.  Without this, the detail view only learns about a run
+    // when it completes (`cron:run_completed`), so the user never sees
+    // real-time output.
+    emit_cron_run_started(&job.id, &session_id);
 
     // Persist the cron prompt before execution so `run_chat_engine` can reuse
     // the same DB contract as interactive chat without duplicating user rows.
@@ -481,7 +487,7 @@ pub(crate) async fn execute_claimed_job(
     };
 
     let duration_ms = start_time.elapsed().as_millis() as u64;
-    let finished_at = Utc::now().to_rfc3339();
+    let finished_at = crate::user_config::now_local_rfc3339();
     // C08: user cancel vs timeout. On the normal path any set flag is the user's;
     // on the timeout path our own grace-cancel must NOT count — only a cancel the
     // user set before the timeout fired (captured above) does.
@@ -1016,7 +1022,7 @@ pub(crate) fn record_failure(
     immediate: bool,
 ) {
     let duration_ms = start_time.elapsed().as_millis() as u64;
-    let finished_at = Utc::now().to_rfc3339();
+    let finished_at = crate::user_config::now_local_rfc3339();
 
     let _ = cron_db.finalize_or_insert_run_log(
         run_log_id,
@@ -1142,6 +1148,20 @@ fn record_cancelled(
     );
 }
 
+/// Emit an event to notify the frontend that a cron run has started.
+/// This lets CronJobDetail refresh its run log and auto-select the new
+/// session so the user sees real-time streaming output instead of waiting
+/// until the run completes.
+fn emit_cron_run_started(job_id: &str, session_id: &str) {
+    if let Some(bus) = crate::get_event_bus() {
+        let payload = serde_json::json!({
+            "job_id": job_id,
+            "session_id": session_id,
+        });
+        bus.emit("cron:run_started", payload);
+    }
+}
+
 /// Emit an event to notify the frontend of a cron run result.
 pub(crate) fn emit_cron_event(
     job_id: &str,
@@ -1187,6 +1207,27 @@ pub(crate) fn emit_cron_disabled_event(
             "failure_reason": reason_key,
         });
         bus.emit("cron:run_completed", payload);
+    }
+}
+
+/// Helper: create a new cron session with title and cron marker.
+#[allow(dead_code)]
+fn create_cron_session(
+    session_db: &Arc<crate::session::SessionDB>,
+    agent_id: &str,
+    project_id: Option<&str>,
+    job_name: &str,
+) -> String {
+    match session_db.create_session_with_project(agent_id, project_id, None) {
+        Ok(meta) => {
+            let _ = session_db.update_session_title(&meta.id, job_name);
+            let _ = session_db.mark_session_cron(&meta.id);
+            meta.id
+        }
+        Err(e) => {
+            app_error!("cron", "executor", "Failed to create session: {}", e);
+            String::new()
+        }
     }
 }
 
@@ -1367,6 +1408,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         {
@@ -1442,6 +1484,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         let claimed = db
@@ -1503,6 +1546,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         let next_before = job.next_run_at.clone();
@@ -1575,6 +1619,7 @@ mod tests {
                 job_timeout_secs: None,
                 permission_mode_override: None,
                 sandbox_mode_override: None,
+                reuse_session: None,
             })
             .expect("add job");
         let claimed = db
