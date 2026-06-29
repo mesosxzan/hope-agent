@@ -69,6 +69,13 @@ gotcha that most often explains a failure. Open every DB read-only.
 - Grep: `source='failover'` (profile_rotation / codex_auth_expired / model_fallback); `category IN ('local_llm','local_model_jobs')`.
 - Gotcha: model precedence is `plan_model > model_override > session pin > agent.primary > active_model`. Codex is force-excluded from profile rotation. OpenAIResponses must use `store:false` and never replay reasoning items (`rs_*` 404s) — check `context_json` for leaked `type:reasoning` items.
 
+### Speech-to-Text (STT) — `stt.md`
+
+- Entry: `stt/engine.rs` (`failover_transcribe_batch` / `resolve_active` / `current_desktop_chain` / `current_im_chain`), `stt/crud.rs` (single write entry), `stt/session.rs` (`SttSessionManager`), `stt/local.rs` (4 local backends), `stt/providers/` (8 wire kinds). Owner surface: `src-tauri/src/commands/stt.rs` (20 cmds), `ha-server/src/routes/stt.rs` (17 routes, masked).
+- State: `config.json` (`stt.providers` / `stt.active_model` / `stt.fallback_models` / `stt.im_fallback_model`) — **separate from LLM `providers`**; sessions are in-memory (**no DB**); IM toggle `channels.accounts[*].settings.autoTranscribeVoice`.
+- Grep: `category='stt'` (session GC eviction). EventBus `stt:transcript_partial` / `stt:transcript_final` / `stt:session_error`.
+- Gotcha: no active model → `SttError::NoActiveModel` (fail-closed, never "any model"). Fallback / IM chains reject WS-only kinds via `check_batch_capable` (`supports_batch()`); desktop `active_model` may use WS (streaming). Size caps `MAX_BATCH_AUDIO_BYTES`=25 MiB (Tauri + HTTP + provider load) / chunk 1 MiB. WS providers are SSRF-checked through an http(s) twin (`ws_to_https_twin`). Provider list + keys are **owner-GUI-only** (not `update_settings`); only the `im_auto_transcribe` toggle is model-writable. Idle sessions GC'd after 300s. STT config is global — not incognito-scoped.
+
 ### Tools / Permissions / MCP / IM Channel / Skills / Logging / Background Jobs — `tool-system.md`, `permission-system.md`, `mcp.md`, `im-channel.md`, `skill-system.md`, `logging.md`, `background-jobs.md`
 
 - Entry: `tools/dispatch.rs` (visibility), `tools/execution.rs`, `permission/engine.rs` (`resolve_async`), `mcp/invoke.rs`, `channel/worker/dispatcher.rs`, `logging/db.rs`, `async_jobs/manager.rs` (`JobManager`).
