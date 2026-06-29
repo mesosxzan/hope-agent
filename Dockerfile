@@ -11,8 +11,8 @@
 #                     `rust-embed` bakes them into the binary.
 # Stage 3 (runtime) — minimal runtime with ca-certs + tzdata + wget + a few
 #                     desktop-tool shared libs (see runtime stage comment).
-#                     Runs as non-root user `hope` (uid 1000) with /data
-#                     persisted as the configurable HA_DATA_DIR.
+#                     Runs as root with /data persisted as the configurable
+#                     HA_DATA_DIR.
 #
 # Both Stage 1 and Stage 2 inherit from the pre-built base image
 # (`ghcr.io/shiwenwen/hope-agent-base`) which bundles Rust, Node, Python,
@@ -127,7 +127,8 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 # -------------------------------------------------------------------
 # Stage 3: minimal runtime
 # -------------------------------------------------------------------
-FROM debian:trixie-slim AS runtime
+#FROM debian:trixie-slim AS runtime
+FROM ${BASE_IMAGE} AS runtime
 
 # ca-certificates: required for outbound HTTPS to provider APIs.
 # tzdata: required for cron schedules / `TZ` env var to take effect.
@@ -145,23 +146,11 @@ FROM debian:trixie-slim AS runtime
 # Cargo feature is disabled when ha-server builds `hope-agent`, so xcap /
 # arboard never get linked in and their runtime dependencies aren't
 # needed. See `crates/ha-core/Cargo.toml` `[features]` for the gate.
-RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 update && \
-    apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 install -y --no-install-recommends \
-        ca-certificates \
-        tzdata \
-        wget \
-        tini \
-        chromium \
-        fonts-liberation \
-        libnss3 \
-        libgbm1 \
-        libxss1 \
-    && rm -rf /var/lib/apt/lists/*
 
-# Non-root user. /data is the persisted HA_DATA_DIR (mount this as a volume).
-RUN groupadd --system --gid 1000 hope && \
-    useradd  --system --uid 1000 --gid hope --shell /bin/sh --home-dir /data --create-home hope
 
+# Runtime runs as root. Entrypoint has no non-root assumptions
+# (no chown / su), and running as root simplifies volume mounts where
+# the host-side data dir may be owned by any uid.
 COPY --from=rust /usr/local/bin/hope-agent /usr/local/bin/hope-agent
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
@@ -181,7 +170,10 @@ ENV HA_DATA_DIR=/data \
     HOPE_AGENT_BUNDLED_SKILLS_DIR=/usr/local/share/hope-agent/skills \
     TZ=UTC
 
-USER hope
+# Ensure /data exists and is owned by root (HA_DATA_DIR=/data is set
+# above; this is the persisted data root that users mount as a volume).
+RUN mkdir -p /data
+
 WORKDIR /data
 EXPOSE 8420
 
