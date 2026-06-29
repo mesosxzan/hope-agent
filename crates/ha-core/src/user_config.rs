@@ -256,6 +256,93 @@ fn language_display_name(code: &str) -> &str {
     }
 }
 
+// ── Timezone helpers ─────────────────────────────────────────────
+//
+// These were lost during the `dev` → `raw-main` merge (7c5e3618) when
+// the conflict resolution took the `dev` side of `user_config.rs`.
+// Restored here verbatim from 51cbf0c1.
+
+/// Resolve the user's effective IANA timezone name.
+///
+/// Priority chain:
+/// 1. `UserConfig.timezone` (explicitly set by user in profile)
+/// 2. `iana-time-zone` auto-detect (host zone — correct for desktop, UTC in Docker)
+/// 3. `AppConfig.server.default_timezone` (server operator configured default)
+/// 4. `"UTC"` (last resort)
+///
+/// Use this instead of `chrono::Local` or `iana_time_zone::get_timezone()`
+/// directly: in server/Docker mode the host zone is UTC, but the user may be
+/// in e.g. Asia/Shanghai.
+pub fn effective_timezone() -> String {
+    // 1. User explicitly set timezone in profile
+    if let Some(tz) = load_user_config()
+        .ok()
+        .and_then(|cfg| cfg.timezone)
+        .filter(|s| !s.trim().is_empty())
+    {
+        return tz;
+    }
+    // 2. Auto-detect host timezone (correct on desktop, UTC in Docker)
+    if let Ok(tz) = iana_time_zone::get_timezone() {
+        if !tz.trim().is_empty() && tz != "UTC" {
+            return tz;
+        }
+    }
+    // 3. Server operator's default (e.g. "Asia/Shanghai" in ha-settings.json)
+    if let Some(tz) = crate::config::cached_config()
+        .server
+        .default_timezone
+        .as_deref()
+        .filter(|s| !s.trim().is_empty())
+    {
+        return tz.to_string();
+    }
+    // 4. Last resort
+    "UTC".to_string()
+}
+
+/// Return the current timestamp in the user's effective timezone as RFC3339.
+///
+/// Use this instead of `chrono::Utc::now().to_rfc3339()` for all **database
+/// writes and API responses** so that stored/displayed times are in the user's
+/// local timezone. For internal time arithmetic (expiry checks, diff
+/// calculations, etc.) continue using `chrono::Utc::now()` directly.
+pub fn now_local_rfc3339() -> String {
+    now_local_rfc3339_opts(chrono::SecondsFormat::AutoSi)
+}
+
+/// Same as `now_local_rfc3339` but with configurable sub-second precision.
+/// Used by `util::now_rfc3339()` which needs millisecond precision for
+/// lexicographic ordering in DB columns.
+pub fn now_local_rfc3339_opts(precision: chrono::SecondsFormat) -> String {
+    let tz_name = effective_timezone();
+    let now = chrono::Utc::now();
+    match tz_name.parse::<chrono_tz::Tz>() {
+        Ok(tz) => now.with_timezone(&tz).to_rfc3339_opts(precision, false),
+        Err(_) => now.to_rfc3339_opts(precision, true),
+    }
+}
+
+/// Return today's date in the user's configured (or auto-detected) timezone.
+/// Falls back to UTC when neither is available.
+///
+/// This replaces `chrono::Local::now().date_naive()` in contexts where the
+/// server's local timezone (e.g. a Docker container running UTC) is NOT the
+/// user's timezone.
+pub fn user_local_today(tz_override: &Option<String>) -> NaiveDate {
+    let tz_name = if let Some(tz) = tz_override.as_deref().filter(|s| !s.trim().is_empty()) {
+        tz.to_string()
+    } else {
+        effective_timezone()
+    };
+
+    let now = chrono::Utc::now();
+    match tz_name.parse::<chrono_tz::Tz>() {
+        Ok(tz) => now.with_timezone(&tz).date_naive(),
+        Err(_) => now.date_naive(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::UserConfig;
