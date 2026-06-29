@@ -111,6 +111,11 @@ export default function SubagentSessionDialog({
     setLoadingSessionIds,
     sessionCacheRef,
     reloadSessions: async () => {},
+    // SubagentSessionDialog is read-only history replay — it never sends
+    // messages, so the `__pending__` → real-session-id promotion driven by
+    // `chat:session_created` never applies here. No-op matches the existing
+    // `reloadSessions` stub above.
+    setCurrentSessionId: () => {},
     onTurnStarted: handleTurnStarted,
     onTurnEnded: handleTurnEnded,
   })
