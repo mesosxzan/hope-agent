@@ -61,8 +61,22 @@ impl ChatSource {
     /// when a background job/subagent result is injected back into a normal
     /// conversation. Subagent stays off the bus because child sessions have no
     /// UI counterpart waiting to reattach.
+    ///
+    /// Cron is on the bus: a cron run is a real, persisted, user-viewable
+    /// session surfaced read-only in `CronSessionViewer`, whose
+    /// `useCronStream` hook listens on `chat:stream_delta` /
+    /// `chat:stream_end` for live streaming — exactly like the main chat.
+    /// Unlike `Channel`, cron carries no `ChannelStreamSink` (it runs with
+    /// `NoopEventSink`), so there is no second `channel:stream_delta` path
+    /// that would double-render the same frames. Cron's `turn_id` is `None`
+    /// (it self-manages cancellation / delivery), so `chat:turn_started` is
+    /// never emitted for cron — the frontend detects an active stream on mount
+    /// via `get_session_stream_state` and seeds its placeholder from there.
     pub fn broadcasts_to_user_ui(&self) -> bool {
-        matches!(self, Self::Desktop | Self::Http | Self::ParentInjection)
+        matches!(
+            self,
+            Self::Desktop | Self::Http | Self::ParentInjection | Self::Cron
+        )
     }
 
     /// Sources tracked by the stream_seq registry (so reload-recovery can
@@ -390,12 +404,17 @@ mod tests {
 
     #[test]
     fn cron_source_wire_roundtrip_and_buckets() {
-        // Cron is owner-internal: it tracks seq (real session + concurrency
-        // guard) but does NOT broadcast to the user UI (background run), and its
-        // wire string round-trips so persisted `messages.source` rows reload as
-        // Cron rather than collapsing to Desktop.
+        // Cron is a real, persisted, user-viewable session surfaced in
+        // `CronSessionViewer`; `useCronStream` listens on `chat:stream_delta`
+        // / `chat:stream_end`, so cron must broadcast to the user UI just like
+        // desktop / HTTP. It has no `ChannelStreamSink` (NoopEventSink), so
+        // there is no second `channel:stream_delta` path to double-render.
+        // Cron's `turn_id` is `None`, so `chat:turn_started` is never emitted
+        // — the frontend seeds its placeholder from `get_session_stream_state`
+        // on mount. Its wire string round-trips so persisted `messages.source`
+        // rows reload as Cron rather than collapsing to Desktop.
         assert!(ChatSource::Cron.tracks_seq());
-        assert!(!ChatSource::Cron.broadcasts_to_user_ui());
+        assert!(ChatSource::Cron.broadcasts_to_user_ui());
         assert_eq!(ChatSource::Cron.as_str(), "cron");
         assert_eq!(ChatSource::from_db_string("cron"), ChatSource::Cron);
         assert_eq!(

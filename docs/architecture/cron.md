@@ -327,7 +327,7 @@ cron 执行通过 `run_chat_engine` 起一轮对话，其 `source` 是专属的 
 | `holds_foreground_idle_guard` | ✅ | 后台 job / subagent 完成注入必须让位于在跑的 cron turn（R2 §5.4），否则注入打在活跃 turn 上 |
 | `fires_user_lifecycle_hooks` | ✅ | cron 是合法顶层会话（无 subagent 级联风险），`SessionStart` 等照常触发 |
 | `tracks_seq` | ✅ | cron 会话真实可持久化、用户可见；注册进 stream_seq 还顺带拿到「同会话第二条流被拒」的并发流守卫 |
-| `broadcasts_to_user_ui` | ❌ | 后台 turn，不上主 `chat:stream_delta` bus；结果走 `delivery_targets` fan-out 到 IM |
+| `broadcasts_to_user_ui` | ✅ | cron 会话真实持久化、用户在 `CronSessionViewer` 只读可见；前端 `useCronStream` 监听 `chat:stream_delta` / `chat:stream_end` 实时流式输出（与主对话框一致）。cron 跑 `NoopEventSink`、无 `ChannelStreamSink`，故无 `channel:stream_delta` 第二路径双渲染；`turn_id=None` 故 `chat:turn_started` 不发，前端靠 `get_session_stream_state` 在挂载时探活并补种占位 |
 | `active_counts` 桶 | 不计 | cron 不是 desktop/http/channel 交互会话，与 `Subagent` / `ParentInjection` 同属后台、不进状态条计数 |
 | `kb_access_source` | `KbAccessSource::Cron` | **非 IM owner 桶**：见下 |
 

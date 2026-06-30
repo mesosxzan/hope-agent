@@ -224,12 +224,13 @@ fn discard_failed_attempt_partial(slot: &Arc<Mutex<Option<FailedAttemptPartial>>
     }
 }
 
-/// Emit one stream event. Desktop / HTTP turns send through both the per-call
-/// sink and the main `chat:stream_delta` EventBus path with a shared `_oc_seq`
-/// for dedup. Parent-injection turns use the same bus so background-completion
-/// follow-up replies are visible while they stream. Channel / cron turns stay
-/// off the main chat bus; IM uses `ChannelStreamSink` to emit
-/// `channel:stream_delta` instead.
+/// Emit one stream event. Desktop / HTTP / cron turns send through both the
+/// per-call sink and the main `chat:stream_delta` EventBus path with a shared
+/// `_oc_seq` for dedup. Parent-injection turns use the same bus so
+/// background-completion follow-up replies are visible while they stream.
+/// Channel turns stay off the main chat bus; IM uses `ChannelStreamSink` to
+/// emit `channel:stream_delta` instead (cron has no `ChannelStreamSink` — it
+/// runs with `NoopEventSink` — so it does not double-render via that path).
 fn emit_stream_event(
     db: &session::SessionDB,
     event_sink: &std::sync::Arc<dyn EventSink>,
